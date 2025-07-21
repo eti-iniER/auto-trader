@@ -1,0 +1,74 @@
+import logging
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    ENV: str = "development"
+    DEBUG: bool = False
+    DATABASE_URL: str = Field(..., env="DATABASE_URL")
+    DRAMATIQ_BROKER_URL: str = Field(..., env="DRAMATIQ_BROKER_URL")
+    SECRET_KEY: str = Field(..., env="SECRET_KEY")
+    BASE_DIR: str = Field(
+        default=Path(__file__).resolve().parent.parent.as_posix(),
+        env="BASE_DIR",
+        description="Base directory for the application",
+    )
+    ALLOWED_ORIGINS: list[str] = Field(
+        default=["*"],
+        env="ALLOWED_ORIGINS",
+        description="List of allowed origins for CORS",
+    )
+    FRONTEND_URL: str = Field(
+        default="http://localhost:5173",
+        env="FRONTEND_URL",
+        description="URL of the frontend application",
+    )
+    LOG_LEVEL: int = Field(
+        default=logging.INFO,
+        env="LOG_LEVEL",
+        description="Logging level for the application",
+    )
+    IG_USERNAME: str = Field(..., env="IG_USERNAME")
+    IG_PASSWORD: str = Field(..., env="IG_PASSWORD")
+    IG_API_KEY: str = Field(..., env="IG_API_KEY")
+    IG_API_BASE_URL: str = Field(
+        ...,
+        env="IG_API_BASE_URL",
+        description="Base URL for the IG API",
+    )
+
+    model_config = SettingsConfigDict(env_file=".env")
+
+
+settings = Settings()
+
+
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        },
+    },
+    "loggers": {
+        "app": {
+            "level": settings.LOG_LEVEL,
+            "handlers": ["console"],
+            "propagate": False,
+        },
+    },
+    "root": {
+        "level": settings.LOG_LEVEL,
+        "handlers": ["console"],
+    },
+}
