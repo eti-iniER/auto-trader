@@ -1,0 +1,101 @@
+name: auto-trader
+services:
+    fastapi:
+        image: etinier/auto-trader
+        command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload --log-level trace
+        expose:
+            - "80"
+        env_file:
+            - .env
+        networks:
+            - app-network
+
+    dramatiq_worker:
+        image: etinier/email-chat-agent:latest
+        restart: unless-stopped
+        command: dramatiq app.tasks.broker --processes 1 --threads 1
+        env_file:
+            - .env
+        environment:
+            - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
+            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbit_mq:5672/
+        depends_on:
+            fastapi:
+                condition: service_started
+            rabbit_mq:
+                condition: service_healthy
+        networks:
+            - app-network
+
+    periodiq_scheduler:
+        image: etinier/email-chat-agent:latest
+        restart: unless-stopped
+        volumes:
+            - .:/app
+        command: periodiq -v app.tasks.broker
+        env_file:
+            - .env
+        environment:
+            - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
+            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbit_mq:5672/
+        depends_on:
+            dramatiq_worker:
+                condition: service_started
+            rabbit_mq:
+                condition: service_healthy
+        networks:
+            - app-network
+
+    postgres:
+        image: postgres:15
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        networks:
+            - app-network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+    rabbit_mq:
+        image: rabbitmq:3-management
+        restart: unless-stopped
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        networks:
+            - app-network
+        healthcheck:
+            test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
+    caddy:
+        image: caddy:2.10-alpine
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./config/caddy:/etc/caddy
+            - caddy_data:/data
+            - caddy_config:/config
+        networks:
+            - app-network
+
+volumes:
+    caddy_data:
+    caddy_config:
+    postgres_data:
+    rabbitmq_data:
+
+networks:
+    app-network:
