@@ -21,7 +21,7 @@ async def log_message(
     """
 
     async with get_db_context() as db:
-        log_entry = Log(message=message, type=log_type, extra=extra)
+        log_entry = Log(message=message, log_type=log_type, extra=extra)
         db.add(log_entry)
         await db.commit()
         await db.refresh(log_entry)
