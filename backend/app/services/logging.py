@@ -1,0 +1,25 @@
+from typing import Literal, Optional
+
+from app.db.crud import log_message as log_message_to_db
+from app.db.enums import LogType
+
+LOG_TYPE = Literal["unspecified", "authentication", "alert", "trade", "order", "error"]
+
+
+async def log_message(
+    message: str, log_type: LOG_TYPE, extra: Optional[dict] = None
+) -> None:
+    """
+    Logs a message to the database.
+
+    Args:
+        message (str): The log message.
+        log_type (str): The type of log.
+        extra (Optional[dict]): Additional information to log.
+    """
+    try:
+        enum_type = LogType(log_type)
+    except ValueError:
+        enum_type = LogType.UNSPECIFIED
+
+    await log_message_to_db(message, enum_type, extra)

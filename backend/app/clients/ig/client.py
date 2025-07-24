@@ -78,8 +78,8 @@ class IGClient:
                 "Accept": "application/json",
                 "Version": "3",
             },
-        ) as raw_client:
-            response = raw_client.post(
+        ) as client:
+            response = client.post(
                 "session",
                 json={
                     "identifier": self.username,

@@ -1,9 +1,11 @@
 import datetime
 import uuid
 
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, JSON, Text, Enum
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from typing import Optional
+from app.db.enums import LogType
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -23,3 +25,13 @@ class BaseDBModel(Base):
         default=lambda: datetime.datetime.now(datetime.timezone.utc),
         onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
+
+
+class Log(BaseDBModel):
+    __tablename__ = "logs"
+
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    type = Mapped[LogType] = mapped_column(
+        Enum(LogType), nullable=False, default=LogType.UNSPECIFIED
+    )
+    extra: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
