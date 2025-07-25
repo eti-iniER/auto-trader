@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Body
 
 logger = logging.getLogger(__name__)
 
@@ -8,9 +8,12 @@ router = APIRouter()
 
 
 @router.post("/trading-view-webhook")
-async def trading_view_webhook(request: Request):
-    body = await request.body()
-    alert = body.decode()
+async def trading_view_webhook(alert: str = Body(..., media_type="text/plain")):
+    """
+    Receives TradingView webhook with plaintext body.
+
+    Expects a plaintext request body containing the alert data.
+    """
 
     response = {
         "status": "success",
@@ -19,7 +22,6 @@ async def trading_view_webhook(request: Request):
     }
 
     logger.info(f"Received TradingView webhook: {alert}")
-    logger.debug(f"Webhook body: {body}")
     logger.debug(f"Webhook response: {response}")
 
     return response

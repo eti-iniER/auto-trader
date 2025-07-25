@@ -1,0 +1,125 @@
+import { useLogin } from "@/api/hooks/authentication/use-login";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { LoaderWrapper } from "@/components/ui/loader-wrapper";
+import { images } from "@/constants/images";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
+export const Login = () => {
+  const login = useLogin();
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    login.mutate(data, {
+      onSuccess: () => {
+        toast.success("Login successful!");
+      },
+    });
+  };
+
+  return (
+    <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md rounded-md shadow-none">
+        <CardHeader className="text-center">
+          <div className="flex flex-col items-center space-y-3">
+            <img
+              src={images.candlestick}
+              alt="AutoTrader Logo"
+              className="h-16 w-16"
+            />
+            <div className="space-y-1">
+              <CardTitle className="text-2xl font-semibold">Log in</CardTitle>
+              <CardDescription className="text-sm text-gray-500">
+                Enter your credentials to access your account
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Enter your username"
+                        autoComplete="username"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="Enter your password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={form.formState.isSubmitting}
+              >
+                <LoaderWrapper isLoading={login.isPending}>
+                  Log in
+                </LoaderWrapper>
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

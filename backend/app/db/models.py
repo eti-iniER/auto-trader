@@ -35,3 +35,13 @@ class Log(BaseDBModel):
         Enum(LogType), nullable=False, default=LogType.UNSPECIFIED
     )
     extra: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
+
+
+class User(BaseDBModel):
+    __tablename__ = "users"
+
+    username: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    is_superuser: Mapped[bool] = mapped_column(default=False)
