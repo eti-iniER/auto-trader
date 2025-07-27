@@ -167,3 +167,44 @@ class GetHistoryResponse(BaseModel):
     metadata: GetHistoryMetadata = Field(
         ..., description="Metadata about the history results", alias="metadata"
     )
+
+
+class Price(BaseModel):
+    bid: Decimal = Field(..., description="Bid price")
+    ask: Decimal = Field(..., description="Ask price")
+    last_traded: Optional[Decimal] = Field(
+        None, description="Last traded price", alias="lastTraded"
+    )
+
+
+class Position(BaseModel):
+    deal_reference: str = Field(
+        ..., description="Deal reference identifier", alias="dealReference"
+    )
+    epic: str = Field(..., description="Instrument epic identifier", alias="epic")
+    direction: Literal["BUY", "SELL"] = Field(
+        ..., description="Position direction", alias="direction"
+    )
+    size: Decimal = Field(..., description="Position size", alias="size")
+    level: Decimal = Field(..., description="Entry level price", alias="level")
+    limit_level: Optional[Decimal] = Field(
+        None, description="Limit order level", alias="limitLevel"
+    )
+    stop_level: Optional[Decimal] = Field(
+        None, description="Stop order level", alias="stopLevel"
+    )
+    trailing_step: Optional[Decimal] = Field(
+        None, description="Trailing step distance", alias="trailingStep"
+    )
+    trailing_stop_distance: Optional[Decimal] = Field(
+        None, description="Trailing stop distance", alias="trailingStopDistance"
+    )
+    price: Optional[Price] = Field(
+        None, description="Current price snapshot at time of response", alias="price"
+    )
+
+
+class PositionsResponse(BaseModel):
+    positions: List[Position] = Field(
+        ..., description="List of open positions", alias="positions"
+    )

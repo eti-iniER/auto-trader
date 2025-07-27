@@ -45,6 +45,11 @@ export const Login = () => {
       onSuccess: () => {
         toast.success("Login successful!");
       },
+      onError: (error) => {
+        toast.error("Login failed", {
+          description: error.message || "An unexpected error occurred.",
+        });
+      },
     });
   };
 
@@ -68,7 +73,7 @@ export const Login = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="username"
