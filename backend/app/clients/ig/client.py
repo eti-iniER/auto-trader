@@ -1,6 +1,6 @@
-import logging
-from typing import List, Optional
 import json
+import logging
+from typing import Optional
 
 import httpx
 from app.config import settings
@@ -18,10 +18,8 @@ def log_request(request):
     logger.debug(f"URL: {request.url}")
     logger.debug(f"Headers: {dict(request.headers)}")
 
-    # Log request body if present
     if hasattr(request, "content") and request.content:
         try:
-            # Try to parse as JSON for better formatting
             if request.headers.get("content-type", "").startswith("application/json"):
                 body = json.loads(request.content.decode("utf-8"))
                 logger.debug(f"Body: {json.dumps(body, indent=2)}")
@@ -38,10 +36,8 @@ def log_response(response):
     logger.debug(f"Status Code: {response.status_code}")
     logger.debug(f"Headers: {dict(response.headers)}")
 
-    # Log response body if present
     try:
         if response.content:
-            # Try to parse as JSON for better formatting
             if response.headers.get("content-type", "").startswith("application/json"):
                 body = response.json()
                 logger.debug(f"Body: {json.dumps(body, indent=2)}")
@@ -197,6 +193,42 @@ class IGClient:
             )
 
         return PositionsResponse(**data)
+
+    def create_position(self, data: CreatePositionRequest) -> CreatePositionResponse:
+        """
+        Create a new position in the account.
+        """
+        response = self.client.post(
+            "positions/otc",
+            json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
+            headers={"Version": "2"},
+        )
+        data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=data.get("errorCode"),
+            )
+
+        return CreatePositionResponse(**data)
+
+    def get_working_orders(self) -> WorkingOrdersResponse:
+        """
+        Retrieve working orders for the account.
+        """
+        response = self.client.get("workingorders", headers={"Version": "2"})
+        data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=data.get("errorCode"),
+            )
+
+        return WorkingOrdersResponse(**data)
 
     def _get_auth_data(self) -> AuthenticationData:
         """

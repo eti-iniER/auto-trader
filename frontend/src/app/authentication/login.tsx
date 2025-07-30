@@ -18,8 +18,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { LoaderWrapper } from "@/components/ui/loader-wrapper";
 import { images } from "@/constants/images";
+import { paths } from "@/paths";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -120,6 +122,17 @@ export const Login = () => {
                 <LoaderWrapper isLoading={login.isPending}>
                   Log in
                 </LoaderWrapper>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                type="submit"
+                className="-mt-3 w-full"
+                disabled={form.formState.isSubmitting}
+              >
+                <Link to={paths.authentication.RESET_PASSWORD}>
+                  Forgot password?
+                </Link>
               </Button>
             </form>
           </Form>

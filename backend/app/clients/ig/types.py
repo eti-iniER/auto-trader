@@ -3,16 +3,90 @@ from typing import List, Literal, Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
 
+type InstrumentType = Literal[
+    "BINARY",
+    "BUNGEE_CAPPED",
+    "BUNGEE_COMMODITIES",
+    "BUNGEE_CURRENCIES",
+    "BUNGEE_INDICES",
+    "COMMODITIES",
+    "CURRENCIES",
+    "INDICES",
+    "KNOCKOUTS_COMMODITIES",
+    "KNOCKOUTS_CURRENCIES",
+    "KNOCKOUTS_INDICES",
+    "KNOCKOUTS_SHARES",
+    "OPT_COMMODITIES",
+    "OPT_CURRENCIES",
+    "OPT_INDICES",
+    "OPT_RATES",
+    "OPT_SHARES",
+    "RATES",
+    "SECTORS",
+    "SHARES",
+    "SPRINT_MARKET",
+    "TEST_MARKET",
+    "UNKNOWN",
+]
+
+type MarketStatus = Literal[
+    "CLOSED",
+    "EDITS_ONLY",
+    "OFFLINE",
+    "ON_AUCTION",
+    "ON_AUCTION_NO_EDITS",
+    "SUSPENDED",
+    "TRADEABLE",
+]
+
+type Direction = Literal["BUY", "SELL"]
+
+type OrderType = Literal["LIMIT", "STOP"]
+
+type TimeInForce = Literal["GOOD_TILL_CANCELLED", "GOOD_TILL_DATE"]
+
+type PositionOrderType = Literal["LIMIT", "MARKET", "QUOTE"]
+
+type TimeInForce = Literal["GOOD_TILL_CANCELLED", "GOOD_TILL_DATE"]
+
+type PositionTimeInForce = Literal["EXECUTE_AND_ELIMINATE", "FILL_OR_KILL"]
+
+type AccountStatus = Literal["DISABLED", "ENABLED", "SUSPENDED_FROM_DEALING"]
+
+type AccountType = Literal["CFD", "PHYSICAL", "SPREADBET"]
+
+type ActivityChannel = Literal[
+    "DEALER", "MOBILE", "PUBLIC_FIX_API", "PUBLIC_WEB_API", "SYSTEM", "WEB"
+]
+
+
+type ActivityActionType = Literal[
+    "LIMIT_ORDER_AMENDED",
+    "LIMIT_ORDER_DELETED",
+    "LIMIT_ORDER_FILLED",
+    "LIMIT_ORDER_OPENED",
+    "LIMIT_ORDER_ROLLED",
+    "POSITION_CLOSED",
+    "POSITION_DELETED",
+    "POSITION_OPENED",
+    "POSITION_PARTIALLY_CLOSED",
+    "POSITION_ROLLED",
+    "STOP_LIMIT_AMENDED",
+    "STOP_ORDER_AMENDED",
+    "STOP_ORDER_DELETED",
+    "STOP_ORDER_FILLED",
+    "STOP_ORDER_OPENED",
+    "STOP_ORDER_ROLLED",
+    "UNKNOWN",
+    "WORKING_ORDER_DELETED",
+]
+
 
 class ErrorResponse(BaseModel):
     status_code: int = Field(..., description="HTTP status code of the error")
     error_code: str = Field(
         ..., description="Error code indicating the type of error", alias="errorCode"
     )
-
-
-type AccountStatus = Literal["DISABLED", "ENABLED", "SUSPENDED_FROM_DEALING"]
-type AccountType = Literal["CFD", "PHYSICAL", "SPREADBET"]
 
 
 class AccountBalance(BaseModel):
@@ -54,33 +128,6 @@ class Account(BaseModel):
     preferred: bool = Field(
         ..., description="Indicates if this is the preferred account", alias="preferred"
     )
-
-
-type ActivityChannel = Literal[
-    "DEALER", "MOBILE", "PUBLIC_FIX_API", "PUBLIC_WEB_API", "SYSTEM", "WEB"
-]
-
-
-type ActivityActionType = Literal[
-    "LIMIT_ORDER_AMENDED",
-    "LIMIT_ORDER_DELETED",
-    "LIMIT_ORDER_FILLED",
-    "LIMIT_ORDER_OPENED",
-    "LIMIT_ORDER_ROLLED",
-    "POSITION_CLOSED",
-    "POSITION_DELETED",
-    "POSITION_OPENED",
-    "POSITION_PARTIALLY_CLOSED",
-    "POSITION_ROLLED",
-    "STOP_LIMIT_AMENDED",
-    "STOP_ORDER_AMENDED",
-    "STOP_ORDER_DELETED",
-    "STOP_ORDER_FILLED",
-    "STOP_ORDER_OPENED",
-    "STOP_ORDER_ROLLED",
-    "UNKNOWN",
-    "WORKING_ORDER_DELETED",
-]
 
 
 class ActivityAction(BaseModel):
@@ -208,3 +255,130 @@ class PositionsResponse(BaseModel):
     positions: List[Position] = Field(
         ..., description="List of open positions", alias="positions"
     )
+
+
+class MarketData(BaseModel):
+    bid: Optional[float] = None
+    delay_time: Optional[float] = Field(None, alias="delayTime")
+    epic: Optional[str] = None
+    exchange_id: Optional[str] = Field(None, alias="exchangeId")
+    expiry: Optional[str] = None
+    high: Optional[float] = None
+    instrument_name: Optional[str] = Field(None, alias="instrumentName")
+    instrument_type: Optional[InstrumentType] = Field(None, alias="instrumentType")
+    lot_size: Optional[float] = Field(None, alias="lotSize")
+    low: Optional[float] = None
+    market_status: Optional[MarketStatus] = Field(None, alias="marketStatus")
+    net_change: Optional[float] = Field(None, alias="netChange")
+    offer: Optional[float] = None
+    percentage_change: Optional[float] = Field(None, alias="percentageChange")
+    scaling_factor: Optional[float] = Field(None, alias="scalingFactor")
+    streaming_prices_available: Optional[bool] = Field(
+        None, alias="streamingPricesAvailable"
+    )
+    update_time: Optional[str] = Field(None, alias="updateTime")
+    update_time_utc: Optional[str] = Field(None, alias="updateTimeUTC")
+
+
+class WorkingOrderData(BaseModel):
+    created_date: Optional[str] = Field(None, alias="createdDate")
+    created_date_utc: Optional[str] = Field(None, alias="createdDateUTC")
+    currency_code: Optional[str] = Field(None, alias="currencyCode")
+    deal_id: Optional[str] = Field(None, alias="dealId")
+    direction: Optional[Direction] = None
+    dma: Optional[bool] = None
+    epic: Optional[str] = None
+    good_till_date: Optional[str] = Field(None, alias="goodTillDate")
+    good_till_date_iso: Optional[str] = Field(None, alias="goodTillDateISO")
+    guaranteed_stop: Optional[bool] = Field(None, alias="guaranteedStop")
+    limit_distance: Optional[float] = Field(None, alias="limitDistance")
+    limited_risk_premium: Optional[float] = Field(None, alias="limitedRiskPremium")
+    order_level: Optional[float] = Field(None, alias="orderLevel")
+    order_size: Optional[float] = Field(None, alias="orderSize")
+    order_type: Optional[OrderType] = Field(None, alias="orderType")
+    stop_distance: Optional[float] = Field(None, alias="stopDistance")
+    time_in_force: Optional[TimeInForce] = Field(None, alias="timeInForce")
+
+
+class WorkingOrder(BaseModel):
+    market_data: Optional[MarketData] = Field(None, alias="marketData")
+    working_order_data: Optional[WorkingOrderData] = Field(
+        None, alias="workingOrderData"
+    )
+
+
+class WorkingOrdersResponse(BaseModel):
+    working_orders: List[WorkingOrder] = Field(alias="workingOrders")
+
+
+class CreateWorkingOrderRequest(BaseModel):
+    currency_code: str = Field(alias="currencyCode")
+    deal_reference: Optional[str] = Field(None, alias="dealReference")
+    direction: Direction
+    epic: str
+    expiry: str
+    force_open: Optional[bool] = Field(None, alias="forceOpen")
+    good_till_date: Optional[str] = Field(None, alias="goodTillDate")
+    guaranteed_stop: bool = Field(alias="guaranteedStop")
+    level: float
+    limit_distance: Optional[float] = Field(None, alias="limitDistance")
+    limit_level: Optional[float] = Field(None, alias="limitLevel")
+    size: float
+    stop_distance: Optional[float] = Field(None, alias="stopDistance")
+    stop_level: Optional[float] = Field(None, alias="stopLevel")
+    time_in_force: Optional[TimeInForce] = Field(None, alias="timeInForce")
+    type: OrderType
+
+
+class CreateWorkingOrderResponse(BaseModel):
+    deal_reference: Optional[str] = Field(None, alias="dealReference")
+
+
+class CreatePositionRequest(BaseModel):
+    currency_code: str = Field(alias="currencyCode")
+    deal_reference: Optional[str] = Field(None, alias="dealReference")
+    direction: Direction
+    epic: str
+    expiry: str
+    force_open: bool = Field(alias="forceOpen")
+    guaranteed_stop: bool = Field(alias="guaranteedStop")
+    level: Optional[float] = None
+    limit_distance: Optional[float] = Field(None, alias="limitDistance")
+    limit_level: Optional[float] = Field(None, alias="limitLevel")
+    order_type: PositionOrderType = Field(alias="orderType")
+    quote_id: Optional[str] = Field(None, alias="quoteId")
+    size: float
+    stop_distance: Optional[float] = Field(None, alias="stopDistance")
+    stop_level: Optional[float] = Field(None, alias="stopLevel")
+    time_in_force: Optional[PositionTimeInForce] = Field(None, alias="timeInForce")
+    trailing_stop: Optional[bool] = Field(None, alias="trailingStop")
+    trailing_stop_increment: Optional[float] = Field(
+        None, alias="trailingStopIncrement"
+    )
+
+
+class CreatePositionResponse(BaseModel):
+    deal_reference: Optional[str] = Field(None, alias="dealReference")
+
+
+class CreateWorkingOrderRequest(BaseModel):
+    currency_code: str = Field(alias="currencyCode")
+    deal_reference: Optional[str] = Field(None, alias="dealReference")
+    direction: Direction
+    epic: str
+    expiry: str
+    force_open: Optional[bool] = Field(None, alias="forceOpen")
+    good_till_date: Optional[str] = Field(None, alias="goodTillDate")
+    guaranteed_stop: bool = Field(alias="guaranteedStop")
+    level: float
+    limit_distance: Optional[float] = Field(None, alias="limitDistance")
+    limit_level: Optional[float] = Field(None, alias="limitLevel")
+    size: float
+    stop_distance: Optional[float] = Field(None, alias="stopDistance")
+    stop_level: Optional[float] = Field(None, alias="stopLevel")
+    time_in_force: Optional[TimeInForce] = Field(None, alias="timeInForce")
+    type: OrderType
+
+
+class CreateWorkingOrderResponse(BaseModel):
+    deal_reference: Optional[str] = Field(None, alias="dealReference")
