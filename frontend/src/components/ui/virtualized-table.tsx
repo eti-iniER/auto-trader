@@ -53,6 +53,7 @@ export interface VirtualizedTableProps<TData, TValue = unknown> {
   className?: string;
   rowHeight?: number;
   maxHeight?: number;
+  fillAvailableHeight?: boolean;
   additionalInputs?: React.ReactNode;
 }
 
@@ -65,6 +66,7 @@ function VirtualizedTable<TData, TValue = unknown>({
   className,
   rowHeight = 45,
   maxHeight = 600,
+  fillAvailableHeight = false,
   additionalInputs,
 }: VirtualizedTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -111,7 +113,13 @@ function VirtualizedTable<TData, TValue = unknown>({
       : 0;
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div
+      className={cn(
+        "space-y-4",
+        fillAvailableHeight && "flex h-full flex-col",
+        className,
+      )}
+    >
       <div className="flex justify-start gap-2">
         <Input
           placeholder={searchPlaceholder}
@@ -122,12 +130,18 @@ function VirtualizedTable<TData, TValue = unknown>({
         {additionalInputs}
       </div>
 
-      <div className="w-full overflow-hidden rounded-md border">
+      <div
+        className={cn(
+          "w-full overflow-hidden rounded-md border",
+          fillAvailableHeight && "min-h-0 flex-1",
+        )}
+      >
         <div
           ref={parentRef}
-          className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 w-full overflow-auto"
+          className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative w-full overflow-auto"
           style={{
-            maxHeight: `${maxHeight}px`,
+            height: fillAvailableHeight ? "100%" : `${maxHeight}px`,
+            maxHeight: fillAvailableHeight ? "100%" : `${maxHeight}px`,
             willChange: "scroll-position",
             transform: "translateZ(0)", // Force hardware acceleration
             scrollBehavior: "auto", // Disable smooth scrolling for performance
@@ -135,10 +149,7 @@ function VirtualizedTable<TData, TValue = unknown>({
           }}
         >
           <Table className="w-full" style={{ minWidth: "800px" }}>
-            <TableHeader
-              className="bg-background sticky top-0 z-10"
-              style={{ transform: "translateZ(0)" }}
-            >
+            <TableHeader className="bg-background sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
@@ -247,7 +258,12 @@ function VirtualizedTable<TData, TValue = unknown>({
 
       {/* Pagination */}
       {pagination && (
-        <div className="flex flex-col space-y-4 px-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div
+          className={cn(
+            "flex flex-col space-y-4 px-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0",
+            fillAvailableHeight && "flex-shrink-0",
+          )}
+        >
           <div className="text-muted-foreground text-sm">
             Showing{" "}
             {Math.min(

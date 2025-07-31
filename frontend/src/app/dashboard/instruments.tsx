@@ -1,3 +1,4 @@
+import { useFetchDividendDates } from "@/api/hooks/instruments/use-fetch-dividend-dates";
 import { useInstruments } from "@/api/hooks/instruments/use-instruments";
 import { useUploadInstrumentsCsv } from "@/api/hooks/instruments/use-upload-instruments-as-csv";
 import { InstrumentsTable } from "@/components/instruments-table";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { FiUpload } from "react-icons/fi";
+import { FiClock, FiUpload } from "react-icons/fi";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -47,9 +48,11 @@ export const Instruments = () => {
   });
 
   const uploadMutation = useUploadInstrumentsCsv();
+  const fetchDividendDates = useFetchDividendDates();
 
   const form = useForm<UploadFormData>({
     resolver: zodResolver(uploadSchema),
+    disabled: uploadMutation.isPending,
   });
 
   const instruments = instrumentsResponse?.data || [];
@@ -78,6 +81,17 @@ export const Instruments = () => {
     });
   };
 
+  const handleFetchDividendDates = () => {
+    fetchDividendDates.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Dividend dates updated!");
+      },
+      onError: (error) => {
+        toast.error(`Failed to fetch dividend dates: ${error.message}`);
+      },
+    });
+  };
+
   if (isError) {
     return (
       <div className="min-w-0 flex-1 space-y-8 p-8">
@@ -98,13 +112,13 @@ export const Instruments = () => {
   }
 
   return (
-    <div className="min-w-0 flex-1 space-y-8 p-8">
+    <div className="flex h-full min-h-0 flex-col space-y-8 p-8">
       <PageHeader
         title="Instruments"
         description="View and edit your trading instruments and ticker data"
       />
 
-      <div className="h-full w-full overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <InstrumentsTable
           data={instruments}
           loading={isPending}
@@ -116,40 +130,59 @@ export const Instruments = () => {
             onPageSizeChange: handlePageSizeChange,
           }}
           additionalInputs={
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="flex items-end gap-3"
-              >
-                <FormField
-                  control={form.control}
-                  name="file"
-                  render={({ field: { onChange, ...field } }) => (
-                    <FormItem className="min-w-0 flex-1">
-                      <FormControl>
-                        <Input
-                          type="file"
-                          accept=".csv"
-                          onChange={(e) => onChange(e.target.files)}
-                          {...field}
-                          value={undefined}
-                          className="file:bg-muted file:text-muted-foreground hover:file:bg-muted/80 file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1 file:text-sm file:font-medium"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="submit"
-                  className="flex shrink-0 gap-2"
-                  disabled={uploadMutation.isPending}
+            <>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="flex items-end gap-3"
                 >
-                  <FiUpload />
-                  {uploadMutation.isPending ? "Uploading..." : "Upload"}
-                </Button>
-              </form>
-            </Form>
+                  <FormField
+                    control={form.control}
+                    name="file"
+                    render={({ field: { onChange, ...field } }) => (
+                      <FormItem className="min-w-0 flex-1">
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => onChange(e.target.files)}
+                            {...field}
+                            value={undefined}
+                            className="file:bg-muted file:text-muted-foreground hover:file:bg-muted/80 file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1 file:text-sm file:font-medium"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="flex shrink-0 gap-2"
+                    disabled={uploadMutation.isPending}
+                  >
+                    <FiUpload />
+                    {uploadMutation.isPending ? "Uploading..." : "Upload"}
+                  </Button>
+                </form>
+              </Form>
+              <Button
+                onClick={handleFetchDividendDates}
+                disabled={fetchDividendDates.isPending}
+                className="flex items-center gap-2"
+              >
+                {fetchDividendDates.isPending ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current" />
+                    Fetching...
+                  </>
+                ) : (
+                  <>
+                    <FiClock />
+                    Fetch Dividend Dates
+                  </>
+                )}
+              </Button>
+            </>
           }
         />
       </div>

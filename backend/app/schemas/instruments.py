@@ -10,6 +10,8 @@ T = TypeVar("T")
 
 def ensure_timezone_aware(v: Any) -> datetime:
     """Convert naive datetime to UTC timezone-aware datetime."""
+    if v is None:
+        return v
     if isinstance(v, datetime):
         if v.tzinfo is None:
             return v.replace(tzinfo=timezone.utc)
@@ -46,7 +48,9 @@ class InstrumentBase(BaseModel):
     opening_price_multiple: Decimal = Field(
         default=Decimal("1.0"), description="Opening price multiple"
     )
-    next_dividend_date: Optional[date] = Field(None, description="Next dividend date")
+    next_dividend_date: Optional[AwareDatetime] = Field(
+        None, description="Next dividend date"
+    )
 
 
 class InstrumentCreate(InstrumentBase):
@@ -76,7 +80,9 @@ class InstrumentUpdate(BaseModel):
     opening_price_multiple: Optional[Decimal] = Field(
         None, description="Opening price multiple"
     )
-    next_dividend_date: Optional[date] = Field(None, description="Next dividend date")
+    next_dividend_date: Optional[AwareDatetime] = Field(
+        None, description="Next dividend date"
+    )
 
 
 class InstrumentRead(InstrumentBase):
@@ -84,7 +90,7 @@ class InstrumentRead(InstrumentBase):
     created_at: AwareDatetime
     updated_at: AwareDatetime
 
-    @field_validator("created_at", "updated_at", mode="before")
+    @field_validator("created_at", "updated_at", "next_dividend_date", mode="before")
     @classmethod
     def ensure_timezone_aware_validator(cls, v: Any) -> datetime:
         """Ensure datetime fields are timezone-aware, defaulting to UTC."""
@@ -105,3 +111,9 @@ class InstrumentUploadResponse(BaseModel):
 
     message: str = Field(..., description="Success message")
     instruments_created: int = Field(..., description="Number of instruments created")
+
+
+class DividendFetchResponse(BaseModel):
+    """Response model for dividend fetch endpoint"""
+
+    message: str = Field(..., description="Success message")

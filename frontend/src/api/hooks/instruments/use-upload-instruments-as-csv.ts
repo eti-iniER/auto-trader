@@ -20,7 +20,6 @@ export const useUploadInstrumentsCsv = () => {
   return useMutation({
     mutationFn: uploadInstrumentsCsv,
     onSuccess: () => {
-      // Invalidate instruments queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ["instruments"] });
     },
   });

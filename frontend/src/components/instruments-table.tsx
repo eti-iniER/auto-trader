@@ -151,7 +151,7 @@ function InstrumentsTable({
       pagination={pagination}
       className={className}
       rowHeight={50}
-      maxHeight={600}
+      fillAvailableHeight={true}
       additionalInputs={additionalInputs}
     />
   );

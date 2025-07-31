@@ -67,6 +67,6 @@ class Instrument(BaseDBModel):
     opening_price_multiple: Mapped[Decimal] = mapped_column(
         nullable=False, default=Decimal("1.0")
     )
-    next_dividend_date: Mapped[Optional[datetime.date]] = mapped_column(
-        Date, nullable=True
+    next_dividend_date: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )

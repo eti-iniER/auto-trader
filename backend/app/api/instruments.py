@@ -16,6 +16,7 @@ from app.schemas.instruments import (
     InstrumentRead,
     InstrumentUpdate,
     InstrumentUploadResponse,
+    DividendFetchResponse,
     PaginatedResponse,
 )
 from app.api.helpers import (
@@ -221,6 +222,82 @@ async def search_instruments(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to search instruments: {str(e)}",
+        )
+
+
+@router.post(
+    "/fetch-dividend-dates",
+    response_model=DividendFetchResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def fetch_dividend_dates(
+    db: AsyncSession = Depends(get_db),
+) -> DividendFetchResponse:
+    """
+    Trigger fetching and updating of dividend dates for all instruments with Yahoo symbols.
+    This endpoint will fetch the latest dividend dates from Yahoo Finance and update the database.
+    """
+    try:
+        from app.services.fetch_dividend_dates import (
+            fetch_and_update_all_dividend_dates,
+        )
+
+        updated_count = await fetch_and_update_all_dividend_dates(db)
+
+        return DividendFetchResponse(
+            message="Successfully updated dividend dates for all instruments",
+        )
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch dividend dates: {str(e)}",
+        )
+
+
+@router.post(
+    "/{id}/fetch-dividend-date",
+    response_model=DividendFetchResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def fetch_single_dividend_date(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> DividendFetchResponse:
+    """
+    Trigger fetching and updating of dividend date for a specific instrument.
+    This endpoint will fetch the latest dividend date from Yahoo Finance for the specified instrument.
+    """
+    try:
+        from app.services.fetch_dividend_dates import (
+            fetch_and_update_single_dividend_date,
+        )
+
+        # Check if instrument exists
+        existing_instrument = await instrument_crud.exists(db, id=id)
+        if not existing_instrument:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Instrument with ID {id} not found",
+            )
+
+        success = await fetch_and_update_single_dividend_date(db, id)
+
+        if success:
+            return DividendFetchResponse(
+                message=f"Successfully updated dividend date for instrument {id}",
+            )
+        else:
+            return DividendFetchResponse(
+                message=f"No dividend date found or updated for instrument {id}",
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch dividend date: {str(e)}",
         )
 
 
