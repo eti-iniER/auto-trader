@@ -12,13 +12,13 @@ from app.services.fetch_dividend_dates import (
 
 logger = logging.getLogger(__name__)
 
-MIDNIGHT_ON_SUNDAYS = cron("0 0 * * 0")
+MIDNIGHT_ON_SATURDAY = cron("0 0 * * 6")
 
 
-@dramatiq.actor(periodic=MIDNIGHT_ON_SUNDAYS)
+@dramatiq.actor(periodic=MIDNIGHT_ON_SATURDAY)
 async def poll_scheduled_tasks():
     """
-    Main scheduled task that runs at midnight on Sundays.
+    Main scheduled task that runs at midnight on Saturdays.
     Currently executes the dividend date update task.
     """
     logger.info("Starting scheduled tasks execution")

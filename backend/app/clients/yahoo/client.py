@@ -43,49 +43,18 @@ class YahooFinanceClient:
                 logger.info(f"No dividend data found for symbol: {symbol}")
                 return None
 
-            # Get the most recent dividend date
             last_dividend_date = dividends.index[-1]
 
-            # Get basic info to check dividend frequency
             info = ticker.info
 
-            # Try to get the next dividend date from various sources
             next_dividend_date = None
 
-            # Check if there's an ex-dividend date in the info
             if "exDividendDate" in info and info["exDividendDate"]:
                 ex_div_timestamp = info["exDividendDate"]
                 if isinstance(ex_div_timestamp, (int, float)):
                     next_dividend_date = datetime.fromtimestamp(ex_div_timestamp)
                 elif isinstance(ex_div_timestamp, Timestamp):
                     next_dividend_date = ex_div_timestamp.to_pydatetime()
-
-            # If we still don't have a next dividend date, try to estimate based on historical pattern
-            if next_dividend_date is None and len(dividends) >= 2:
-                # Calculate average time between dividends
-                dividend_dates = dividends.index.tolist()
-                if len(dividend_dates) >= 2:
-                    # Get the most common interval (quarterly, monthly, etc.)
-                    intervals = []
-                    for i in range(
-                        1, min(len(dividend_dates), 5)
-                    ):  # Look at last 4 intervals
-                        interval = (dividend_dates[-i] - dividend_dates[-i - 1]).days
-                        intervals.append(interval)
-
-                    if intervals:
-                        avg_interval = sum(intervals) / len(intervals)
-                        # Estimate next dividend date
-                        next_dividend_date = (
-                            last_dividend_date
-                            + Timestamp(days=avg_interval).to_pytimedelta()
-                        )
-                        next_dividend_date = next_dividend_date.to_pydatetime()
-
-            if next_dividend_date:
-                logger.debug(f"Next dividend date for {symbol}: {next_dividend_date}")
-            else:
-                logger.info(f"Could not determine next dividend date for {symbol}")
 
             return next_dividend_date
 

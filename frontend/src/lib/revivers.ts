@@ -1,4 +1,9 @@
-const DATE_KEYS = new Set(["createdAt", "updatedAt", "timestamp"]);
+const DATE_KEYS = new Set([
+  "createdAt",
+  "updatedAt",
+  "timestamp",
+  "nextDividendDate",
+]);
 
 export function dateReviver(_key: string, value: string) {
   const isDate =
