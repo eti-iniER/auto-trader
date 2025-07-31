@@ -1,0 +1,349 @@
+import logging
+import uuid
+import csv
+import io
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
+from fastcrud import FastCRUD
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
+
+from app.db.deps import get_db
+from app.db.models import Instrument
+from app.schemas.instruments import (
+    InstrumentCreate,
+    InstrumentRead,
+    InstrumentUpdate,
+    InstrumentUploadResponse,
+    PaginatedResponse,
+)
+from app.api.helpers import (
+    build_paginated_response,
+    PaginationParams,
+    SortingParams,
+    InstrumentFilters,
+)
+
+router = APIRouter(prefix="/instruments", tags=["instruments"])
+
+instrument_crud = FastCRUD(Instrument)
+
+logger = logging.getLogger(__name__)
+
+
+@router.post("/", response_model=InstrumentRead, status_code=status.HTTP_201_CREATED)
+async def create_instrument(
+    instrument: InstrumentCreate, db: AsyncSession = Depends(get_db)
+) -> InstrumentRead:
+    """
+    Create a new instrument.
+    """
+    try:
+        new_instrument = await instrument_crud.create(db, instrument)
+        # Refresh to get the model with all fields including generated ones
+        await db.refresh(new_instrument)
+        return InstrumentRead.model_validate(new_instrument)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create instrument: {str(e)}",
+        )
+
+
+@router.get("/", response_model=PaginatedResponse[InstrumentRead])
+async def list_instruments(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+    sorting: SortingParams = Depends(),
+) -> PaginatedResponse[InstrumentRead]:
+    """
+    Get a list of instruments with pagination and sorting.
+
+    Returns:
+        PaginatedResponse: Contains 'data' (list of instruments), 'count', 'next', and 'previous' URLs
+    """
+    try:
+        result = await instrument_crud.get_multi(
+            db,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            sort_columns=sorting.sort_columns,
+            sort_orders=sorting.sort_orders,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+        )
+
+        return build_paginated_response(
+            request=request,
+            result=result,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            endpoint="/api/v1/instruments/",
+            response_class=InstrumentRead,
+            sort_by=sorting.sort_by,
+            sort_order=sorting.sort_order,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve instruments: {str(e)}",
+        )
+
+
+@router.get("/{id}", response_model=InstrumentRead)
+async def get_instrument(
+    id: uuid.UUID, db: AsyncSession = Depends(get_db)
+) -> InstrumentRead:
+    """
+    Get a specific instrument by ID.
+    """
+    try:
+        instrument = await instrument_crud.get(
+            db, schema_to_select=InstrumentRead, return_as_model=True, id=id
+        )
+
+        if not instrument:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Instrument with ID {id} not found",
+            )
+
+        return instrument
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve instrument: {str(e)}",
+        )
+
+
+@router.put("/{id}", response_model=InstrumentRead)
+async def update_instrument(
+    id: uuid.UUID,
+    instrument_update: InstrumentUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> InstrumentRead:
+    """
+    Update an existing instrument.
+    """
+    try:
+        existing_instrument = await instrument_crud.exists(db, id=id)
+        if not existing_instrument:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Instrument with ID {id} not found",
+            )
+
+        update_data = instrument_update.model_dump(
+            exclude_unset=True, exclude_none=True
+        )
+
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid fields provided for update",
+            )
+
+        updated_instrument = await instrument_crud.update(
+            db,
+            update_data,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+            id=id,
+        )
+
+        return updated_instrument
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update instrument: {str(e)}",
+        )
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_instrument(id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
+    """
+    Delete an instrument by ID.
+    """
+    try:
+        existing_instrument = await instrument_crud.exists(db, id=id)
+        if not existing_instrument:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Instrument with ID {id} not found",
+            )
+
+        await instrument_crud.delete(db, id=id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete instrument: {str(e)}",
+        )
+
+
+@router.get("/search/", response_model=PaginatedResponse[InstrumentRead])
+async def search_instruments(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(),
+    filters: InstrumentFilters = Depends(),
+) -> PaginatedResponse[InstrumentRead]:
+    """
+    Search instruments with filters.
+    """
+    try:
+        result = await instrument_crud.get_multi(
+            db,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+            **filters.to_dict(),
+        )
+
+        return build_paginated_response(
+            request=request,
+            result=result,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            endpoint="/api/v1/instruments/search/",
+            response_class=InstrumentRead,
+            **filters.to_query_params(),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to search instruments: {str(e)}",
+        )
+
+
+@router.post(
+    "/upload-csv",
+    response_model=InstrumentUploadResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_instruments_csv(
+    file: UploadFile = File(..., description="CSV file containing instrument data"),
+    db: AsyncSession = Depends(get_db),
+) -> InstrumentUploadResponse:
+    """
+    Upload a CSV file containing instrument data.
+    This will replace ALL existing instruments with the new data from the CSV.
+
+    Expected CSV format:
+    Symbol,IG EPIC,Yahoo Symbol,ATR Stop Loss Period,ATR Stop Loss Multiple,ATR Profit Target Period,ATR Profit Multiple,Position Size Max GBP,Opening Price Multiple
+    """
+
+    # Validate file type
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a CSV file"
+        )
+
+    try:
+        content = await file.read()
+        csv_content = content.decode("utf-8")
+        csv_reader = csv.DictReader(io.StringIO(csv_content))
+
+        header_mapping = {
+            "Symbol": "market_and_symbol",
+            "IG EPIC": "ig_epic",
+            "Yahoo Symbol": "yahoo_symbol",
+            "ATR Stop Loss Period": "atr_stop_loss_period",
+            "ATR Stop Loss Multiple": "atr_stop_loss_multiple",
+            "ATR Profit Target Period": "atr_profit_target_period",
+            "ATR Profit Multiple": "atr_profit_multiple",
+            "Position Size Max GBP": "max_position_size",
+            "Opening Price Multiple": "opening_price_multiple",
+        }
+
+        csv_headers = set(csv_reader.fieldnames or [])
+        expected_headers = set(header_mapping.keys())
+
+        logger.info(f"CSV Headers: {csv_headers}")
+        logger.info(f"Expected Headers: {expected_headers}")
+
+        if not expected_headers.issubset(csv_headers):
+            missing_headers = expected_headers - csv_headers
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"CSV is missing required headers: {', '.join(missing_headers)}",
+            )
+
+        instruments_data = []
+        for row_num, row in enumerate(csv_reader, start=2):
+            try:
+                instrument_data = {}
+
+                for csv_field, model_field in header_mapping.items():
+                    value = row[csv_field].strip() if row[csv_field] else None
+
+                    if not value:
+                        raise ValueError(f"Missing value for {csv_field}")
+
+                    # Type conversion based on field
+                    if model_field in [
+                        "atr_stop_loss_period",
+                        "atr_profit_target_period",
+                        "max_position_size",
+                    ]:
+                        instrument_data[model_field] = int(value)
+                    elif model_field in [
+                        "atr_stop_loss_multiple",
+                        "atr_profit_multiple",
+                        "opening_price_multiple",
+                    ]:
+                        instrument_data[model_field] = Decimal(str(value))
+                    else:
+                        instrument_data[model_field] = value
+
+                # Set default values for fields not in CSV
+                instrument_data["position_size"] = 1  # Default value
+                instrument_data["next_dividend_date"] = None  # Not in CSV
+
+                instruments_data.append(InstrumentCreate(**instrument_data))
+
+            except (ValueError, TypeError) as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid data in row {row_num}: {str(e)}",
+                )
+
+        if not instruments_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid instrument data found in CSV",
+            )
+
+        await db.execute(delete(Instrument))
+
+        created_instruments = []
+        for instrument_create in instruments_data:
+            new_instrument = await instrument_crud.create(db, instrument_create)
+            created_instruments.append(new_instrument)
+
+        await db.commit()
+
+        return InstrumentUploadResponse(
+            message=f"Successfully uploaded {len(created_instruments)} instruments",
+            instruments_created=len(created_instruments),
+        )
+
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File encoding error. Please ensure the file is UTF-8 encoded",
+        )
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process CSV file: {str(e)}",
+        )

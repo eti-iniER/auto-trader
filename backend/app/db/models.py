@@ -1,11 +1,12 @@
 import datetime
 import uuid
 
-from sqlalchemy import DateTime, JSON, Text, Enum
+from sqlalchemy import DateTime, JSON, Text, Enum, String, Date
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from typing import Optional
 from app.db.enums import LogType
+from decimal import Decimal
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -45,3 +46,27 @@ class User(BaseDBModel):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
     is_superuser: Mapped[bool] = mapped_column(default=False)
+
+
+class Instrument(BaseDBModel):
+    __tablename__ = "instruments"
+
+    market_and_symbol: Mapped[str] = mapped_column(String(255), nullable=False)
+    ig_epic: Mapped[str] = mapped_column(String(255), nullable=False)
+    yahoo_symbol: Mapped[str] = mapped_column(String(255), nullable=False)
+    atr_stop_loss_period: Mapped[int] = mapped_column(nullable=False)
+    atr_stop_loss_multiple: Mapped[Decimal] = mapped_column(
+        nullable=False, default=Decimal("1.0")
+    )
+    atr_profit_target_period: Mapped[int] = mapped_column(nullable=False)
+    atr_profit_multiple: Mapped[Decimal] = mapped_column(
+        nullable=False, default=Decimal("1.0")
+    )
+    position_size: Mapped[int] = mapped_column(nullable=False, default=1)
+    max_position_size: Mapped[int] = mapped_column(nullable=True)
+    opening_price_multiple: Mapped[Decimal] = mapped_column(
+        nullable=False, default=Decimal("1.0")
+    )
+    next_dividend_date: Mapped[Optional[datetime.date]] = mapped_column(
+        Date, nullable=True
+    )

@@ -16,6 +16,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -46,6 +53,7 @@ export interface VirtualizedTableProps<TData, TValue = unknown> {
   className?: string;
   rowHeight?: number;
   maxHeight?: number;
+  additionalInputs?: React.ReactNode;
 }
 
 function VirtualizedTable<TData, TValue = unknown>({
@@ -57,6 +65,7 @@ function VirtualizedTable<TData, TValue = unknown>({
   className,
   rowHeight = 45,
   maxHeight = 600,
+  additionalInputs,
 }: VirtualizedTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -103,17 +112,16 @@ function VirtualizedTable<TData, TValue = unknown>({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Single Search Input */}
-      <div className="flex justify-start">
+      <div className="flex justify-start gap-2">
         <Input
           placeholder={searchPlaceholder}
           value={globalFilter ?? ""}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="w-full max-w-sm sm:max-w-sm"
         />
+        {additionalInputs}
       </div>
 
-      {/* Table */}
       <div className="w-full overflow-hidden rounded-md border">
         <div
           ref={parentRef}
@@ -256,19 +264,23 @@ function VirtualizedTable<TData, TValue = unknown>({
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-6 lg:space-x-8">
             <div className="flex items-center justify-between space-x-2 sm:justify-start">
               <p className="text-sm font-medium">Rows per page</p>
-              <select
-                value={pagination.pageSize}
-                onChange={(e) =>
-                  pagination.onPageSizeChange(Number(e.target.value))
+              <Select
+                value={pagination.pageSize.toString()}
+                onValueChange={(value) =>
+                  pagination.onPageSizeChange(Number(value))
                 }
-                className="border-input bg-background h-10 w-[80px] rounded border px-2 text-sm sm:h-8 sm:w-[70px]"
               >
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <option key={pageSize} value={pageSize}>
-                    {pageSize}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="h-10 w-[80px] sm:h-8 sm:w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={pageSize.toString()}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-center text-sm font-medium sm:w-[100px]">
               Page {pagination.page} of{" "}

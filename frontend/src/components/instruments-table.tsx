@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
 
-// Import the Instrument type from the existing API types
+// The Instrument type is available globally from api/types/global.d.ts
 
 interface InstrumentsTableProps {
   data: Instrument[];
@@ -14,6 +14,7 @@ interface InstrumentsTableProps {
     onPageSizeChange: (pageSize: number) => void;
   };
   className?: string;
+  additionalInputs?: React.ReactNode; // For any additional inputs like search
 }
 
 const formatCurrency = (value: number) => {
@@ -139,6 +140,7 @@ function InstrumentsTable({
   loading = false,
   pagination,
   className,
+  additionalInputs,
 }: InstrumentsTableProps) {
   return (
     <VirtualizedTable
@@ -150,6 +152,7 @@ function InstrumentsTable({
       className={className}
       rowHeight={50}
       maxHeight={600}
+      additionalInputs={additionalInputs}
     />
   );
 }

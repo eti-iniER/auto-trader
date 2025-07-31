@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["webhook"])
 
 
 @router.post("/trading-view-webhook")

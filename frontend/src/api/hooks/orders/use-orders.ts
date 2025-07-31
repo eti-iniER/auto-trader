@@ -1,22 +1,13 @@
 import { api } from "@/api/config";
 import { useQuery } from "@tanstack/react-query";
 
-export interface PaginatedOrdersResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  data: Order[];
-}
-
 interface OrdersParams {
   page?: number;
   pageSize?: number;
   search?: string;
 }
 
-const fetchOrders = async (
-  params: OrdersParams = {},
-): Promise<PaginatedOrdersResponse> => {
+const getOrders = async (params: OrdersParams = {}) => {
   const searchParams = new URLSearchParams();
 
   if (params.page) {
@@ -29,14 +20,16 @@ const fetchOrders = async (
     searchParams.append("search", params.search);
   }
 
-  const response = await api.get(`orders?${searchParams.toString()}`);
+  const response = await api.get("orders", {
+    searchParams: searchParams,
+  });
   return response.json();
 };
 
 export const useOrders = (params: OrdersParams = {}) => {
   return useQuery({
     queryKey: ["orders", params],
-    queryFn: () => fetchOrders(params),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    queryFn: () => getOrders(params),
+    refetchInterval: 1000 * 30,
   });
 };

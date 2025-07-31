@@ -1,120 +1,101 @@
-import { useState, useEffect } from "react";
-import { PageHeader } from "@/components/page-header";
+import { useInstruments } from "@/api/hooks/instruments/use-instruments";
+import { useUploadInstrumentsCsv } from "@/api/hooks/instruments/use-upload-instruments-as-csv";
 import { InstrumentsTable } from "@/components/instruments-table";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { FiUpload } from "react-icons/fi";
+import { toast } from "sonner";
+import { z } from "zod";
 
-// Define the Instrument type to match the API
-type Instrument = {
-  marketAndSymbol: string;
-  igEpic: string;
-  yahooSymbol: string;
-  atrStopLossPeriod: number;
-  atrStopLossMultiple: number;
-  atrProfitTargetPeriod: number;
-  atrProfitMultiple: number;
-  positionSize: number;
-  maxPositionSize: number;
-  openingPriceMultiple: number;
-  nextDividendDate: Date | null;
-};
+const uploadSchema = z.object({
+  file: z
+    .instanceof(FileList)
+    .refine((files) => files.length > 0, "Please select a file")
+    .refine(
+      (files) => files[0]?.name.toLowerCase().endsWith(".csv"),
+      "Please select a CSV file",
+    ),
+});
 
-// Mock data for demonstration - replace with real API call
-const mockInstruments: Instrument[] = [
-  {
-    marketAndSymbol: "AAPL",
-    igEpic: "UA.D.AAPL.CASH.IP",
-    yahooSymbol: "AAPL",
-    atrStopLossPeriod: 14,
-    atrStopLossMultiple: 2.0,
-    atrProfitTargetPeriod: 14,
-    atrProfitMultiple: 3.0,
-    positionSize: 100,
-    maxPositionSize: 500,
-    openingPriceMultiple: 1.02,
-    nextDividendDate: new Date("2025-02-15"),
-  },
-  {
-    marketAndSymbol: "GOOGL",
-    igEpic: "UA.D.GOOGL.CASH.IP",
-    yahooSymbol: "GOOGL",
-    atrStopLossPeriod: 14,
-    atrStopLossMultiple: 2.5,
-    atrProfitTargetPeriod: 14,
-    atrProfitMultiple: 3.5,
-    positionSize: 50,
-    maxPositionSize: 200,
-    openingPriceMultiple: 1.015,
-    nextDividendDate: null,
-  },
-  {
-    marketAndSymbol: "MSFT",
-    igEpic: "UA.D.MSFT.CASH.IP",
-    yahooSymbol: "MSFT",
-    atrStopLossPeriod: 20,
-    atrStopLossMultiple: 1.8,
-    atrProfitTargetPeriod: 20,
-    atrProfitMultiple: 2.8,
-    positionSize: 75,
-    maxPositionSize: 300,
-    openingPriceMultiple: 1.025,
-    nextDividendDate: new Date("2025-03-10"),
-  },
-  {
-    marketAndSymbol: "TSLA",
-    igEpic: "UA.D.TSLA.CASH.IP",
-    yahooSymbol: "TSLA",
-    atrStopLossPeriod: 10,
-    atrStopLossMultiple: 3.0,
-    atrProfitTargetPeriod: 10,
-    atrProfitMultiple: 4.0,
-    positionSize: 25,
-    maxPositionSize: 100,
-    openingPriceMultiple: 1.03,
-    nextDividendDate: null,
-  },
-  {
-    marketAndSymbol: "AMZN",
-    igEpic: "UA.D.AMZN.CASH.IP",
-    yahooSymbol: "AMZN",
-    atrStopLossPeriod: 14,
-    atrStopLossMultiple: 2.2,
-    atrProfitTargetPeriod: 14,
-    atrProfitMultiple: 3.2,
-    positionSize: 30,
-    maxPositionSize: 150,
-    openingPriceMultiple: 1.018,
-    nextDividendDate: new Date("2025-04-20"),
-  },
-];
+type UploadFormData = z.infer<typeof uploadSchema>;
 
 export const Instruments = () => {
-  const [loading, setLoading] = useState(true);
-  const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Simulate API call
-  useEffect(() => {
-    const loadInstruments = async () => {
-      setLoading(true);
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setInstruments(mockInstruments);
-      setLoading(false);
-    };
+  const offset = (page - 1) * pageSize;
 
-    loadInstruments();
-  }, []);
+  const {
+    data: instrumentsResponse,
+    isPending,
+    isError,
+    error,
+  } = useInstruments({
+    offset,
+    limit: pageSize,
+  });
+
+  const uploadMutation = useUploadInstrumentsCsv();
+
+  const form = useForm<UploadFormData>({
+    resolver: zodResolver(uploadSchema),
+  });
+
+  const instruments = instrumentsResponse?.data || [];
+  const totalCount = instrumentsResponse?.count || 0;
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    // In a real app, you might trigger an API call here
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setPage(1); // Reset to first page
-    // In a real app, you might trigger an API call here
+    setPage(1);
   };
+
+  const onSubmit = (data: UploadFormData) => {
+    const file = data.file[0];
+
+    uploadMutation.mutate(file, {
+      onSuccess: (response) => {
+        toast.success(response.message);
+        form.reset();
+      },
+      onError: (error) => {
+        toast.error(`Upload failed: ${error.message}`);
+      },
+    });
+  };
+
+  if (isError) {
+    return (
+      <div className="min-w-0 flex-1 space-y-8 p-8">
+        <PageHeader
+          title="Instruments"
+          description="View and edit your trading instruments and ticker data"
+        />
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <p className="mb-2 text-red-600">Error loading instruments</p>
+            <p className="text-sm text-gray-500">
+              {error?.message || "Something went wrong"}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-w-0 flex-1 space-y-8 p-8">
@@ -126,14 +107,50 @@ export const Instruments = () => {
       <div className="h-full w-full overflow-hidden">
         <InstrumentsTable
           data={instruments}
-          loading={loading}
+          loading={isPending}
           pagination={{
             page,
             pageSize,
-            totalCount: instruments.length,
+            totalCount,
             onPageChange: handlePageChange,
             onPageSizeChange: handlePageSizeChange,
           }}
+          additionalInputs={
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="flex items-end gap-3"
+              >
+                <FormField
+                  control={form.control}
+                  name="file"
+                  render={({ field: { onChange, ...field } }) => (
+                    <FormItem className="min-w-0 flex-1">
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept=".csv"
+                          onChange={(e) => onChange(e.target.files)}
+                          {...field}
+                          value={undefined}
+                          className="file:bg-muted file:text-muted-foreground hover:file:bg-muted/80 file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1 file:text-sm file:font-medium"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="flex shrink-0 gap-2"
+                  disabled={uploadMutation.isPending}
+                >
+                  <FiUpload />
+                  {uploadMutation.isPending ? "Uploading..." : "Upload"}
+                </Button>
+              </form>
+            </Form>
+          }
         />
       </div>
     </div>

@@ -2,7 +2,7 @@ import logging
 import logging.config
 from contextlib import asynccontextmanager
 
-from app.api import webhook
+from app.api import webhook, instruments
 from app.config import LOGGING_CONFIG, settings
 from app.db.models import Base
 from app.db.session import engine
@@ -27,6 +27,7 @@ app = FastAPI(lifespan=lifespan)
 v1 = APIRouter()
 
 v1.include_router(webhook.router)
+v1.include_router(instruments.router)
 
 
 app.include_router(v1, prefix="/api/v1")
