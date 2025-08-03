@@ -2,25 +2,21 @@ import { api } from "@/api/config";
 import { useQuery } from "@tanstack/react-query";
 
 interface OrdersParams {
-  page?: number;
-  pageSize?: number;
-  search?: string;
+  offset?: number;
+  limit?: number;
 }
 
 const getOrders = async (params: OrdersParams = {}) => {
   const searchParams = new URLSearchParams();
 
-  if (params.page) {
-    searchParams.append("page", params.page.toString());
+  if (params.offset !== undefined) {
+    searchParams.append("offset", params.offset.toString());
   }
-  if (params.pageSize) {
-    searchParams.append("page_size", params.pageSize.toString());
-  }
-  if (params.search) {
-    searchParams.append("search", params.search);
+  if (params.limit) {
+    searchParams.append("limit", params.limit.toString());
   }
 
-  const response = await api.get("orders", {
+  const response = await api.get<PaginatedResponse<Order>>("orders", {
     searchParams: searchParams,
   });
   return response.json();
@@ -31,5 +27,17 @@ export const useOrders = (params: OrdersParams = {}) => {
     queryKey: ["orders", params],
     queryFn: () => getOrders(params),
     refetchInterval: 1000 * 30,
+    placeholderData: (previousData) => {
+      // Only preserve metadata, not the actual data
+      if (previousData) {
+        return {
+          count: previousData.count,
+          next: previousData.next,
+          previous: previousData.previous,
+          data: [], // Empty data array to show loading state
+        };
+      }
+      return undefined;
+    },
   });
 };

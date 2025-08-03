@@ -3,6 +3,7 @@ import React from "react";
 import { NavLink } from "react-router";
 import { cn } from "../../lib/utils";
 import { sidebarLinks } from "./links";
+import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
 
 interface DesktopSidebarProps {
   className?: string;
@@ -11,6 +12,9 @@ interface DesktopSidebarProps {
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   className,
 }) => {
+  const { user } = useDashboardContext();
+  const userInitial = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+
   return (
     <div
       className={cn(
@@ -67,10 +71,14 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       <div className="flex-shrink-0 border-t border-gray-200 px-4 py-4">
         <div className="flex items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500">
-            <span className="text-sm font-medium text-white">U</span>
+            <span className="text-sm font-medium text-white">
+              {userInitial}
+            </span>
           </div>
           <div className="ml-3">
-            <p className="text-sm font-medium text-gray-700">User</p>
+            <p className="text-sm font-medium text-gray-700">
+              {user.firstName} {user.lastName}
+            </p>
             <p className="text-xs text-gray-500">Admin</p>
           </div>
         </div>

@@ -4,16 +4,10 @@ import { useUploadInstrumentsCsv } from "@/api/hooks/instruments/use-upload-inst
 import { InstrumentsTable } from "@/components/instruments-table";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiClock, FiUpload } from "react-icons/fi";
 import { toast } from "sonner";
@@ -34,6 +28,7 @@ type UploadFormData = z.infer<typeof uploadSchema>;
 export const Instruments = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const offset = (page - 1) * pageSize;
 
@@ -74,6 +69,10 @@ export const Instruments = () => {
       onSuccess: (response) => {
         toast.success(response.message);
         form.reset();
+        // Clear the file input manually
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       },
       onError: (error) => {
         toast.error(`Upload failed: ${error.message}`);
@@ -139,10 +138,14 @@ export const Instruments = () => {
                   <FormField
                     control={form.control}
                     name="file"
-                    render={({ field: { onChange, ...field } }) => (
+                    render={({ field: { onChange, ref, ...field } }) => (
                       <FormItem className="min-w-0 flex-1">
                         <FormControl>
                           <Input
+                            ref={(e) => {
+                              ref(e);
+                              fileInputRef.current = e;
+                            }}
                             type="file"
                             accept=".csv"
                             onChange={(e) => onChange(e.target.files)}
@@ -151,7 +154,6 @@ export const Instruments = () => {
                             className="file:bg-muted file:text-muted-foreground hover:file:bg-muted/80 file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1 file:text-sm file:font-medium"
                           />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />

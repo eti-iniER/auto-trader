@@ -1,12 +1,12 @@
 import datetime
 import uuid
+from decimal import Decimal
+from typing import Optional
 
-from sqlalchemy import DateTime, JSON, Text, Enum, String, Date
+from app.db.enums import LogType
+from sqlalchemy import JSON, DateTime, Enum, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from typing import Optional
-from app.db.enums import LogType
-from decimal import Decimal
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -41,11 +41,20 @@ class Log(BaseDBModel):
 class User(BaseDBModel):
     __tablename__ = "users"
 
-    username: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    first_name: Mapped[str] = mapped_column(String(50), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True)
     is_superuser: Mapped[bool] = mapped_column(default=False)
+    last_login: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
+    )
+    refresh_token: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, unique=True
+    )
 
 
 class Instrument(BaseDBModel):

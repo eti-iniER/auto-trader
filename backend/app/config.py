@@ -39,6 +39,26 @@ class Settings(BaseSettings):
         env="IG_API_BASE_URL",
         description="Base URL for the IG API",
     )
+    ACCESS_TOKEN_LIFETIME_IN_SECONDS: int = Field(
+        default=600,  # 10 minutes
+        env="ACCESS_TOKEN_LIFETIME_IN_SECONDS",
+        description="Lifetime of access tokens in seconds",
+    )
+    REFRESH_TOKEN_LIFETIME_IN_SECONDS: int = Field(
+        default=604800,  # 7 days
+        env="REFRESH_TOKEN_LIFETIME_IN_SECONDS",
+        description="Lifetime of refresh tokens in seconds",
+    )
+    JWT_ALGORITHM: str = Field(
+        default="HS256",
+        env="JWT_ALGORITHM",
+        description="Algorithm used for signing JWT tokens",
+    )
+    DEV_ACCESS_TOKEN_LIFETIME_IN_SECONDS: int = Field(
+        default=3600,  # 1 hour
+        env="DEV_ACCESS_TOKEN_LIFETIME_IN_SECONDS",
+        description="Lifetime of access tokens in development mode in seconds",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

@@ -28,13 +28,12 @@ export const useInstruments = (params: InstrumentsParams = {}) => {
     queryFn: () => getInstruments(params),
     refetchInterval: 1000 * 30,
     placeholderData: (previousData) => {
-      // Only preserve metadata, not the actual data
       if (previousData) {
         return {
           count: previousData.count,
           next: previousData.next,
           previous: previousData.previous,
-          data: [], // Empty data array to show loading state
+          data: [],
         };
       }
       return undefined;

@@ -12,6 +12,7 @@ interface OrdersTableProps {
     onPageSizeChange: (pageSize: number) => void;
   };
   className?: string;
+  additionalInputs?: React.ReactNode; // For any additional inputs like search
 }
 
 const formatCurrency = (value: number) => {
@@ -127,17 +128,19 @@ function OrdersTable({
   loading = false,
   pagination,
   className,
+  additionalInputs,
 }: OrdersTableProps) {
   return (
     <VirtualizedTable
       columns={columns}
       data={data}
       loading={loading}
-      searchPlaceholder="Search orders by deal ID, IG Epic..."
+      searchPlaceholder="Search orders by IG Epic, Deal ID..."
       pagination={pagination}
       className={className}
       rowHeight={50}
-      maxHeight={600}
+      fillAvailableHeight={true}
+      additionalInputs={additionalInputs}
     />
   );
 }

@@ -11,3 +11,12 @@ interface Instrument {
   openingPriceMultiple: number;
   nextDividendDate: Date | null;
 }
+
+interface InstrumentUploadResponse {
+  message: string;
+  instrumentsCreated: number;
+}
+
+interface DividendFetchResponse {
+  message: string;
+}

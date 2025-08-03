@@ -4,12 +4,3 @@ interface PaginatedResponse<T> {
   previous: string | null;
   data: T[];
 }
-
-interface InstrumentUploadResponse {
-  message: string;
-  instrumentsCreated: number;
-}
-
-interface DividendFetchResponse {
-  message: string;
-}

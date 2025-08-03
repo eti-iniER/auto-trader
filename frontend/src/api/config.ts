@@ -1,11 +1,16 @@
+import { refreshToken } from "@/lib/authentication";
 import { dateReviver } from "@/lib/revivers";
 import camelcaseKeys from "camelcase-keys";
 import ky from "ky";
 import snakecaseKeys from "snakecase-keys";
 
+let isRefreshing = false;
+
 export const api = ky.create({
   prefixUrl: import.meta.env.VITE_API_URL,
   timeout: 1000 * 60 * 5,
+  retry: 1,
+  credentials: "include",
   parseJson: (text) => JSON.parse(text, dateReviver),
   hooks: {
     beforeRequest: [
@@ -30,6 +35,17 @@ export const api = ky.create({
           const camel = camelcaseKeys(json as any, { deep: true });
           return new Response(JSON.stringify(camel), response);
         }
+      },
+      async (_request, _options, response) => {
+        if (response.status === 401 && !isRefreshing) {
+          isRefreshing = true;
+          try {
+            await refreshToken();
+          } finally {
+            isRefreshing = false;
+          }
+        }
+        return response;
       },
     ],
   },

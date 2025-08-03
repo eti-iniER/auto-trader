@@ -21,12 +21,12 @@ import { images } from "@/constants/images";
 import { paths } from "@/paths";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.email("Invalid email address").min(1, "Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -34,10 +34,11 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Login = () => {
   const login = useLogin();
+  const navigate = useNavigate();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -46,6 +47,7 @@ export const Login = () => {
     login.mutate(data, {
       onSuccess: () => {
         toast.success("Login successful!");
+        navigate(paths.dashboard.OVERVIEW);
       },
       onError: (error) => {
         toast.error("Login failed", {
@@ -78,15 +80,15 @@ export const Login = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
-                        placeholder="Enter your username"
-                        autoComplete="username"
+                        placeholder="Enter your email"
+                        autoComplete="email"
                         {...field}
                       />
                     </FormControl>

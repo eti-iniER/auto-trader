@@ -1,6 +1,16 @@
-from typing import Optional, Dict, Any
-from fastapi import Request, Query
-from app.schemas.instruments import PaginatedResponse
+from typing import Any, Dict, Generic, List, Optional, TypeVar
+
+from fastapi import Query, Request
+from pydantic import BaseModel, Field
+
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    count: int = Field(..., description="Total number of items")
+    next: Optional[str] = Field(None, description="URL for next page")
+    previous: Optional[str] = Field(None, description="URL for previous page")
+    results: List[T] = Field(..., description="List of items for current page")
 
 
 def build_pagination_urls(
@@ -27,20 +37,17 @@ def build_pagination_urls(
     """
     base_url = str(request.base_url).rstrip("/")
 
-    # Build query string from existing params
     query_string_parts = []
     for key, value in query_params.items():
         if value is not None:
             query_string_parts.append(f"{key}={value}")
 
-    # Calculate next URL
     next_url = None
     if offset + limit < total_count:
         next_offset = offset + limit
         next_params = query_string_parts + [f"offset={next_offset}", f"limit={limit}"]
         next_url = f"{base_url}{endpoint}?{'&'.join(next_params)}"
 
-    # Calculate previous URL
     previous_url = None
     if offset > 0:
         prev_offset = max(0, offset - limit)
@@ -87,7 +94,7 @@ def build_paginated_response(
         count=result["total_count"],
         next=next_url,
         previous=previous_url,
-        data=result["data"],
+        results=result["data"],
     )
 
 
@@ -127,38 +134,3 @@ class SortingParams:
     def sort_orders(self) -> Optional[list[str]]:
         """Return sort orders as a list if sort_by is provided."""
         return [self.sort_order] if self.sort_by else None
-
-
-class InstrumentFilters:
-    """Dependency for instrument-specific filters."""
-
-    def __init__(
-        self,
-        market_and_symbol: Optional[str] = Query(
-            None, description="Filter by market and symbol"
-        ),
-        ig_epic: Optional[str] = Query(None, description="Filter by IG epic"),
-        yahoo_symbol: Optional[str] = Query(None, description="Filter by Yahoo symbol"),
-    ):
-        self.market_and_symbol = market_and_symbol
-        self.ig_epic = ig_epic
-        self.yahoo_symbol = yahoo_symbol
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert filters to a dictionary, excluding None values."""
-        filters = {}
-        if self.market_and_symbol:
-            filters["market_and_symbol"] = self.market_and_symbol
-        if self.ig_epic:
-            filters["ig_epic"] = self.ig_epic
-        if self.yahoo_symbol:
-            filters["yahoo_symbol"] = self.yahoo_symbol
-        return filters
-
-    def to_query_params(self) -> Dict[str, Any]:
-        """Convert filters to query parameters for pagination URLs."""
-        return {
-            "market_and_symbol": self.market_and_symbol,
-            "ig_epic": self.ig_epic,
-            "yahoo_symbol": self.yahoo_symbol,
-        }

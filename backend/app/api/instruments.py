@@ -1,30 +1,32 @@
-import logging
-import uuid
 import csv
 import io
+import logging
+import uuid
 from decimal import Decimal
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
-from fastcrud import FastCRUD
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete
-
+from app.api.utils.caching import cache
+from app.api.utils.filters import InstrumentFilters
+from app.api.utils.pagination import (
+    PaginatedResponse,
+    PaginationParams,
+    SortingParams,
+    build_paginated_response,
+)
 from app.db.deps import get_db
 from app.db.models import Instrument
 from app.schemas.instruments import (
+    DividendFetchResponse,
     InstrumentCreate,
     InstrumentRead,
     InstrumentUpdate,
     InstrumentUploadResponse,
-    DividendFetchResponse,
     PaginatedResponse,
 )
-from app.api.helpers import (
-    build_paginated_response,
-    PaginationParams,
-    SortingParams,
-    InstrumentFilters,
-)
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastcrud import FastCRUD
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -42,7 +44,6 @@ async def create_instrument(
     """
     try:
         new_instrument = await instrument_crud.create(db, instrument)
-        # Refresh to get the model with all fields including generated ones
         await db.refresh(new_instrument)
         return InstrumentRead.model_validate(new_instrument)
     except Exception as e:
@@ -55,9 +56,9 @@ async def create_instrument(
 @router.get("/", response_model=PaginatedResponse[InstrumentRead])
 async def list_instruments(
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    pagination: PaginationParams = Depends(),
-    sorting: SortingParams = Depends(),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    pagination: Annotated[PaginationParams, Depends()],
+    sorting: Annotated[SortingParams, Depends()],
 ) -> PaginatedResponse[InstrumentRead]:
     """
     Get a list of instruments with pagination and sorting.
@@ -94,8 +95,9 @@ async def list_instruments(
 
 
 @router.get("/{id}", response_model=InstrumentRead)
+@cache(ttl=300, namespace="instruments")
 async def get_instrument(
-    id: uuid.UUID, db: AsyncSession = Depends(get_db)
+    id: uuid.UUID, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> InstrumentRead:
     """
     Get a specific instrument by ID.
@@ -125,7 +127,7 @@ async def get_instrument(
 async def update_instrument(
     id: uuid.UUID,
     instrument_update: InstrumentUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> InstrumentRead:
     """
     Update an existing instrument.
@@ -167,7 +169,9 @@ async def update_instrument(
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_instrument(id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_instrument(
+    id: uuid.UUID, db: Annotated[AsyncSession, Depends(get_db)]
+) -> None:
     """
     Delete an instrument by ID.
     """
@@ -192,9 +196,9 @@ async def delete_instrument(id: uuid.UUID, db: AsyncSession = Depends(get_db)) -
 @router.get("/search/", response_model=PaginatedResponse[InstrumentRead])
 async def search_instruments(
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    pagination: PaginationParams = Depends(),
-    filters: InstrumentFilters = Depends(),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    pagination: Annotated[PaginationParams, Depends()],
+    filters: Annotated[InstrumentFilters, Depends()],
 ) -> PaginatedResponse[InstrumentRead]:
     """
     Search instruments with filters.
@@ -231,7 +235,7 @@ async def search_instruments(
     status_code=status.HTTP_200_OK,
 )
 async def fetch_dividend_dates(
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> DividendFetchResponse:
     """
     Trigger fetching and updating of dividend dates for all instruments with Yahoo symbols.
@@ -262,7 +266,7 @@ async def fetch_dividend_dates(
 )
 async def fetch_single_dividend_date(
     id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> DividendFetchResponse:
     """
     Trigger fetching and updating of dividend date for a specific instrument.
@@ -307,8 +311,8 @@ async def fetch_single_dividend_date(
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_instruments_csv(
+    db: Annotated[AsyncSession, Depends(get_db)],
     file: UploadFile = File(..., description="CSV file containing instrument data"),
-    db: AsyncSession = Depends(get_db),
 ) -> InstrumentUploadResponse:
     """
     Upload a CSV file containing instrument data.
