@@ -6,7 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const segmentedControlVariants = cva(
-  "border-input bg-background inline-flex rounded-lg border p-1",
+  "border-input bg-background inline-flex rounded-lg border p-1 gap-1",
   {
     variants: {
       size: {
@@ -36,6 +36,8 @@ interface SegmentedControlItemProps
   isSelected?: boolean;
   variant?: "default" | "colored";
   size?: "default" | "sm" | "lg";
+  selectedClassName?: string;
+  unselectedClassName?: string;
 }
 
 const SegmentedControl = React.forwardRef<
@@ -75,6 +77,8 @@ const SegmentedControl = React.forwardRef<
               disabled: disabled || child.props.disabled,
               variant,
               size: size || "default",
+              selectedClassName: child.props.selectedClassName,
+              unselectedClassName: child.props.unselectedClassName,
             });
           }
           return child;
@@ -95,6 +99,8 @@ const SegmentedControlItem = React.forwardRef<
       variant = "default",
       value,
       isSelected,
+      selectedClassName,
+      unselectedClassName,
       children,
       ...props
     },
@@ -102,13 +108,22 @@ const SegmentedControlItem = React.forwardRef<
   ) => {
     const getButtonClasses = () => {
       const baseClasses =
-        "flex-1 rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+        "flex-1 rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex items-center justify-center";
 
       const sizeClasses = {
         default: "px-4 py-2",
         sm: "px-3 py-1.5 text-xs",
         lg: "px-5 py-3",
       };
+
+      // If custom class names are provided, use them
+      if (selectedClassName && unselectedClassName) {
+        return cn(
+          baseClasses,
+          sizeClasses[size],
+          isSelected ? selectedClassName : unselectedClassName,
+        );
+      }
 
       if (variant === "colored") {
         // Special handling for demo/live coloring

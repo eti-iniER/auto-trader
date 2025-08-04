@@ -1,9 +1,12 @@
 import { images } from "@/constants/images";
 import React from "react";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { cn } from "../../lib/utils";
 import { sidebarLinks } from "./links";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useLogout } from "@/api/hooks/authentication/use-logout";
+import { paths } from "@/paths";
+import { FiLogOut } from "react-icons/fi";
 
 interface DesktopSidebarProps {
   className?: string;
@@ -12,8 +15,18 @@ interface DesktopSidebarProps {
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   className,
 }) => {
-  const { user } = useDashboardContext();
+  const { user, settings } = useDashboardContext();
+  const navigate = useNavigate();
+  const logoutMutation = useLogout();
   const userInitial = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        navigate(paths.authentication.LOGIN);
+      },
+    });
+  };
 
   return (
     <div
@@ -30,6 +43,16 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           className="aspect-square h-8"
         />
         <h1 className="text-lg font-semibold text-neutral-800">AutoTrader</h1>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-xs font-medium",
+            settings.mode === "DEMO"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800",
+          )}
+        >
+          {settings.mode}
+        </span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
@@ -68,18 +91,28 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       </nav>
 
       <div className="flex-shrink-0 border-t border-gray-200 px-4 py-4">
-        <div className="flex items-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500">
-            <span className="text-sm font-medium text-white">
-              {userInitial}
-            </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500">
+              <span className="text-sm font-medium text-white">
+                {userInitial}
+              </span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-gray-700">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="text-xs text-gray-500">Admin</p>
+            </div>
           </div>
-          <div className="ml-3">
-            <p className="text-sm font-medium text-gray-700">
-              {user.firstName} {user.lastName}
-            </p>
-            <p className="text-xs text-gray-500">Admin</p>
-          </div>
+          <button
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+            title="Logout"
+          >
+            <FiLogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>

@@ -4,14 +4,16 @@ import json
 from datetime import datetime
 
 from app.db.models import User
+from app.db.enums import UserSettingsMode
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from aiocache import Cache
-from app.api.utils.caching import cache_with_pagination
+from app.api.utils.caching import cache_with_pagination, cache_user_data
 from app.api.utils.pagination import (
     build_paginated_response,
     PaginationParams,
 )
 from app.api.utils.authentication import get_current_user
+from app.api.utils.ig_client import get_ig_client_for_user
 from .utils.pagination import *
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
@@ -22,29 +24,18 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 logger = logging.getLogger(__name__)
 
 
-def get_ig_client() -> IGClient:
-    """Dependency to get IG client instance."""
-    return IGClient()
-
-
-async def get_all_orders_from_ig(ig_client: IGClient) -> List[Order]:
+@cache_user_data(ttl=60, namespace="ig_orders")
+async def get_all_orders_from_ig(user: User) -> List[Order]:
     """
     Fetch all working orders from IG and cache them.
     This function handles the IG API call and data transformation.
     """
-    cache = Cache.MEMORY(namespace="ig_orders")
-    cache_key = "all_working_orders_raw"
+    ig_client = get_ig_client_for_user(user)
 
-    cached_data = await cache.get(cache_key)
-    if cached_data:
-        ig_orders_data = json.loads(cached_data)
-    else:
-        ig_response = ig_client.get_working_orders()
-        ig_orders_data = [
-            order.model_dump(by_alias=True) for order in ig_response.working_orders
-        ]
-
-        await cache.set(cache_key, json.dumps(ig_orders_data), ttl=60)
+    ig_response = ig_client.get_working_orders()
+    ig_orders_data = [
+        order.model_dump(by_alias=True) for order in ig_response.working_orders
+    ]
 
     orders = []
     for ig_order in ig_orders_data:
@@ -60,13 +51,11 @@ async def get_all_orders_from_ig(ig_client: IGClient) -> List[Order]:
         order_type = working_order_data.get("orderType", "")
         size = working_order_data.get("orderSize", 0.0)
 
-        # Parse created date
         created_date_str = working_order_data.get(
             "createdDateUTC"
         ) or working_order_data.get("createdDate")
         try:
             if created_date_str:
-                # Assuming the date is in ISO format or similar
                 created_at = datetime.fromisoformat(
                     created_date_str.replace("Z", "+00:00")
                 )
@@ -75,7 +64,6 @@ async def get_all_orders_from_ig(ig_client: IGClient) -> List[Order]:
         except (ValueError, AttributeError):
             created_at = datetime.now()
 
-        # Calculate stop and profit levels
         order_level = working_order_data.get("orderLevel", 0.0)
         stop_distance = working_order_data.get("stopDistance")
         limit_distance = working_order_data.get("limitDistance")
@@ -92,7 +80,7 @@ async def get_all_orders_from_ig(ig_client: IGClient) -> List[Order]:
         if limit_distance and order_level:
             if direction == "BUY":
                 profit_level = order_level + limit_distance
-            else:  # SELL
+            else:
                 profit_level = order_level - limit_distance
 
         order = Order(
@@ -115,7 +103,6 @@ async def get_all_orders_from_ig(ig_client: IGClient) -> List[Order]:
 async def list_orders(
     request: Request,
     pagination: Annotated[PaginationParams, Depends()],
-    ig_client: Annotated[IGClient, Depends(get_ig_client)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> PaginatedResponse[Order]:
     """
@@ -128,7 +115,7 @@ async def list_orders(
         PaginatedOrdersResponse: Contains 'data' (list of orders), 'count', 'next', and 'previous' URLs
     """
     try:
-        all_orders = await get_all_orders_from_ig(ig_client)
+        all_orders = await get_all_orders_from_ig(user)
 
         total_count = len(all_orders)
         start_index = pagination.offset

@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Annotated
 
 from app.api.utils.authentication import get_current_user
-from app.api.utils.caching import cache
+from app.api.utils.caching import cache, cache_with_pagination
 from app.api.utils.filters import InstrumentFilters
 from app.api.utils.pagination import (
     PaginatedResponse,
@@ -56,6 +56,7 @@ async def create_instrument(
 
 
 @router.get("/", response_model=PaginatedResponse[InstrumentRead])
+@cache_with_pagination(ttl=300, namespace="instruments")
 async def list_instruments(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -202,6 +203,7 @@ async def delete_instrument(
 
 
 @router.get("/search/", response_model=PaginatedResponse[InstrumentRead])
+@cache_with_pagination(ttl=300, namespace="instrument_search")
 async def search_instruments(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],

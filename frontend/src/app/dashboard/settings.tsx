@@ -1,5 +1,7 @@
 import { useUpdateUserSettings } from "@/api/hooks/user-settings/use-update-user-settings";
+import { useLogout } from "@/api/hooks/authentication/use-logout";
 import { PageHeader } from "@/components/page-header";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,8 +18,10 @@ import {
   SegmentedControlItem,
 } from "@/components/ui/segmented-control";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { paths } from "@/paths";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -42,6 +46,8 @@ type SettingsFormData = z.infer<typeof settingsSchema>;
 export const Settings = () => {
   const { settings } = useDashboardContext();
   const updateSettings = useUpdateUserSettings();
+  const logoutMutation = useLogout();
+  const navigate = useNavigate();
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -75,6 +81,12 @@ export const Settings = () => {
     updateSettings.mutate(processedData, {
       onSuccess: () => {
         toast.success("Settings updated successfully!");
+        // Log out the user after updating settings
+        logoutMutation.mutate(undefined, {
+          onSettled: () => {
+            navigate(paths.authentication.LOGIN);
+          },
+        });
       },
       onError: (error) => {
         toast.error("Failed to update settings", {
@@ -94,11 +106,21 @@ export const Settings = () => {
       <div className="mt-8 w-full">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="flex justify-end">
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertDescription className="text-amber-800">
+                <span>
+                  <span className="font-bold">Note:</span> You will be logged
+                  out after updating your settings.
+                </span>
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex justify-start">
               <Button
                 type="submit"
                 disabled={updateSettings.isPending}
-                className="min-w-32"
+                size="lg"
+                className="min-w-40"
               >
                 <LoaderWrapper isLoading={updateSettings.isPending}>
                   Update settings
@@ -118,18 +140,25 @@ export const Settings = () => {
                 name="mode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mode</FormLabel>
                     <FormControl>
                       <SegmentedControl
                         value={field.value}
                         onValueChange={field.onChange}
                         disabled={updateSettings.isPending}
-                        variant="colored"
+                        variant="default"
                       >
-                        <SegmentedControlItem value="DEMO">
+                        <SegmentedControlItem
+                          value="DEMO"
+                          selectedClassName="bg-green-700 text-white shadow-sm hover:bg-green-800"
+                          unselectedClassName="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           Demo
                         </SegmentedControlItem>
-                        <SegmentedControlItem value="LIVE">
+                        <SegmentedControlItem
+                          value="LIVE"
+                          selectedClassName="bg-red-600 text-white shadow-sm hover:bg-red-700"
+                          unselectedClassName="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
                           Live
                         </SegmentedControlItem>
                       </SegmentedControl>

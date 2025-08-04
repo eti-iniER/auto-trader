@@ -2,6 +2,7 @@ name: auto-trader
 services:
     fastapi:
         image: etinier/auto-trader
+        restart: unless-stopped
         command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload --log-level trace
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
@@ -14,7 +15,7 @@ services:
             - app-network
 
     dramatiq_worker:
-        image: etinier/email-chat-agent:latest
+        image: etinier/auto-trader
         restart: unless-stopped
         command: dramatiq app.tasks.broker --processes 1 --threads 1
         env_file:
@@ -31,7 +32,7 @@ services:
             - app-network
 
     periodiq_scheduler:
-        image: etinier/email-chat-agent:latest
+        image: etinier/auto-trader
         restart: unless-stopped
         volumes:
             - .:/app
