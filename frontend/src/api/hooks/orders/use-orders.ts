@@ -34,7 +34,7 @@ export const useOrders = (params: OrdersParams = {}) => {
           count: previousData.count,
           next: previousData.next,
           previous: previousData.previous,
-          data: [], // Empty data array to show loading state
+          results: [], // Empty data array to show loading state
         };
       }
       return undefined;

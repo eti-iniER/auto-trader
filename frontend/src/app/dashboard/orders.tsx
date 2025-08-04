@@ -19,7 +19,7 @@ export const Orders = () => {
     limit: pageSize,
   });
 
-  const orders = ordersResponse?.data || [];
+  const orders = ordersResponse?.results || [];
   const totalCount = ordersResponse?.count || 0;
 
   const handlePageChange = (newPage: number) => {
