@@ -104,6 +104,7 @@ async def register_user(
         value=access_token,
         httponly=True,
         samesite="None",
+        secure=True,
         max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
     )
     response.set_cookie(
@@ -111,6 +112,7 @@ async def register_user(
         value=refresh_token,
         httponly=True,
         samesite="None",
+        secure=True,
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
     return new_user
@@ -145,6 +147,7 @@ async def login(
         value=access_token,
         httponly=True,
         samesite="None",
+        secure=True,
         max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
     )
     response.set_cookie(
@@ -152,6 +155,7 @@ async def login(
         value=refresh_token,
         httponly=True,
         samesite="None",
+        secure=True,
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
     return user
@@ -229,6 +233,7 @@ async def generate_access_token(
         value=access_token,
         httponly=True,
         samesite="None",
+        secure=True,
         max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
     )
     response.set_cookie(
@@ -236,6 +241,7 @@ async def generate_access_token(
         value=refresh_token,
         httponly=True,
         samesite="None",
+        secure=True,
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
 
