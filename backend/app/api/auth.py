@@ -76,12 +76,16 @@ async def register_user(
         first_name=payload.first_name,
         last_name=payload.last_name,
     )
-    new_user_settings = UserSettings(user_id=new_user.id)
-    db.add(new_user_settings)
+
     db.add(new_user)
 
     await db.commit()
     await db.refresh(new_user)
+
+    new_user_settings = UserSettings(user_id=new_user.id)
+
+    db.add(new_user_settings)
+    await db.commit()
 
     access_token = create_access_token(
         data={"sub": new_user.email},
@@ -213,6 +217,13 @@ async def generate_access_token(
 
     await update_user(db, email=user.email, user_data={"refresh_token": refresh_token})
 
+    response = JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "message": "Access token generated successfully.",
+        },
+    )
+
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -228,12 +239,7 @@ async def generate_access_token(
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
 
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "message": "Access token generated successfully.",
-        },
-    )
+    return response
 
 
 @router.get("/me", response_model=UserSchema, summary="Get current user")
@@ -245,3 +251,19 @@ async def get_current_user_endpoint(
     This uses the access token from the cookie to identify the user.
     """
     return user
+
+
+@router.post("/logout", summary="User logout")
+async def logout(
+    response: Response,
+):
+    """
+    Endpoint to log out the user by clearing the access and refresh tokens.
+    """
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "User logged out successfully."},
+    )

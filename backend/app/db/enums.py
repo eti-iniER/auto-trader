@@ -2,14 +2,14 @@ from enum import Enum
 
 
 class LogType(str, Enum):
-    UNSPECIFIED = "unspecified"
-    AUTHENTICATION = "authentication"
-    ALERT = "alert"
-    TRADE = "trade"
-    ORDER = "order"
-    ERROR = "error"
+    UNSPECIFIED = "UNSPECIFIED"
+    AUTHENTICATION = "AUTHENTICATION"
+    ALERT = "ALERT"
+    TRADE = "TRADE"
+    ORDER = "ORDER"
+    ERROR = "ERROR"
 
 
 class UserSettingsMode(str, Enum):
-    DEMO = "demo"
-    LIVE = "live"
+    DEMO = "DEMO"
+    LIVE = "LIVE"

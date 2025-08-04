@@ -19,9 +19,13 @@ class UserSettingsRead(BaseModel):
     live_username: Optional[str] = Field(None, description="Live username")
     live_password: Optional[str] = Field(None, description="Live password")
     live_webhook_url: Optional[str] = Field(None, description="Live webhook URL")
+    maximum_order_age_in_minutes: int = Field(
+        ..., description="Maximum age of an order in minutes"
+    )
 
     class Config:
         from_attributes = True
+        use_enum_values = True
 
 
 class UserSettingsUpdate(BaseModel):
@@ -38,3 +42,10 @@ class UserSettingsUpdate(BaseModel):
     live_username: Optional[str] = Field(None, description="Live username")
     live_password: Optional[str] = Field(None, description="Live password")
     live_webhook_url: Optional[str] = Field(None, description="Live webhook URL")
+    maximum_order_age_in_minutes: Optional[int] = Field(
+        None, description="Maximum age of an order in minutes"
+    )
+
+    class Config:
+        from_attributes = True
+        use_enum_values = True

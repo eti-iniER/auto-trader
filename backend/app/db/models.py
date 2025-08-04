@@ -108,3 +108,6 @@ class UserSettings(BaseDBModel):
     live_username: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     live_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     live_webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    maximum_order_age_in_minutes: Mapped[int] = mapped_column(
+        nullable=False, default=1, comment="Maximum age of an order in minutes"
+    )

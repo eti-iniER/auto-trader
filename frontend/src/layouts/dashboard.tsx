@@ -1,4 +1,5 @@
 import { useCurrentUser } from "@/api/hooks/authentication/use-current-user";
+import { useUserSettings } from "@/api/hooks/user-settings/use-user-settings";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DashboardContext } from "@/contexts/dashboard";
 import { paths } from "@/paths";
@@ -9,8 +10,20 @@ import { toast } from "sonner";
 import { DesktopSidebar, MobileSidebar } from "../components/sidebar";
 
 const DashboardLayout: React.FC = () => {
-  const { data: user, isPending, isError } = useCurrentUser();
+  const {
+    data: user,
+    isPending: isUserPending,
+    isError: isUserError,
+  } = useCurrentUser();
+  const {
+    data: settings,
+    isPending: isSettingsPending,
+    isError: isSettingsError,
+  } = useUserSettings();
   const navigate = useNavigate();
+
+  const isError = isUserError || isSettingsError;
+  const isPending = isUserPending || isSettingsPending;
 
   if (isError) {
     toast.error("Authentication failed. Please sign in again.");
@@ -45,7 +58,7 @@ const DashboardLayout: React.FC = () => {
           </div>
         </motion.div>
       ) : (
-        <DashboardContext.Provider value={{ user }}>
+        <DashboardContext.Provider value={{ user, settings }}>
           <motion.div
             key="content"
             initial={{ opacity: 0, filter: "blur(10px)" }}

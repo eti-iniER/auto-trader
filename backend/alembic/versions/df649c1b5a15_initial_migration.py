@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: ce5da03d3ee8
+Revision ID: df649c1b5a15
 Revises: 
-Create Date: 2025-08-04 16:35:02.305219
+Create Date: 2025-08-04 21:24:09.201865
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'ce5da03d3ee8'
+revision: str = 'df649c1b5a15'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -76,6 +76,7 @@ def upgrade() -> None:
     sa.Column('live_username', sa.Text(), nullable=True),
     sa.Column('live_password', sa.Text(), nullable=True),
     sa.Column('live_webhook_url', sa.Text(), nullable=True),
+    sa.Column('maximum_order_age_in_minutes', sa.Integer(), nullable=False, comment='Maximum age of an order in minutes'),
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),

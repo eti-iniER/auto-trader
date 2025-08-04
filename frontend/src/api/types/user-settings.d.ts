@@ -1,5 +1,7 @@
+type UserSettingsMode = "DEMO" | "LIVE";
+
 interface UserSettings {
-  mode: "live" | "demo";
+  mode: UserSettingsMode;
   demoApiKey: string | null;
   demoUsername: string | null;
   demoPassword: string | null;
