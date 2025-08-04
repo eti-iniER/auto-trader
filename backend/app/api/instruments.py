@@ -55,7 +55,7 @@ async def create_instrument(
         )
 
 
-@router.get("/", response_model=PaginatedResponse[InstrumentRead])
+@router.get("", response_model=PaginatedResponse[InstrumentRead])
 @cache_with_pagination(ttl=300, namespace="instruments")
 async def list_instruments(
     request: Request,
