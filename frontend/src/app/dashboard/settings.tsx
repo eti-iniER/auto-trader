@@ -5,7 +5,7 @@ export const Settings = () => {
     <div className="flex-1 p-8">
       <PageHeader
         title="Settings"
-        description="Manage app settings and configurations"
+        description="Manage user-specific app settings and configurations"
       />
     </div>
   );

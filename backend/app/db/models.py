@@ -3,10 +3,10 @@ import uuid
 from decimal import Decimal
 from typing import Optional
 
-from app.db.enums import LogType
+from app.db.enums import LogType, UserSettingsMode
 from sqlalchemy import JSON, DateTime, Enum, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -55,6 +55,9 @@ class User(BaseDBModel):
     refresh_token: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, unique=True
     )
+    settings: Mapped["UserSettings"] = relationship(
+        "UserSettings", back_populates="user", uselist=False
+    )
 
 
 class Instrument(BaseDBModel):
@@ -79,3 +82,21 @@ class Instrument(BaseDBModel):
     next_dividend_date: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class UserSettings(BaseDBModel):
+    __tablename__ = "user_settings"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(String(36), nullable=False, unique=True)
+    user: Mapped[User] = relationship("User", back_populates="settings")
+    mode: Mapped[UserSettingsMode] = mapped_column(
+        Enum(UserSettingsMode), nullable=False, default=UserSettingsMode.DEMO
+    )
+    demo_api_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    demo_username: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    demo_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    demo_webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    live_api_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    live_username: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    live_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    live_webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

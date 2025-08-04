@@ -1,8 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
-from pydantic import BaseModel, Field
-from app.schemas.instruments import PaginatedResponse
+from typing import Optional
+from pydantic import BaseModel
 
 
 class Order(BaseModel):
@@ -14,12 +13,8 @@ class Order(BaseModel):
     type: str
     size: float
     created_at: datetime
-    stop_level: Optional[float] = None
-    profit_level: Optional[float] = None
+    stop_level: Optional[Decimal] = None
+    profit_level: Optional[Decimal] = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
-
-
-# Type alias for paginated orders response
-PaginatedOrdersResponse = PaginatedResponse[Order]

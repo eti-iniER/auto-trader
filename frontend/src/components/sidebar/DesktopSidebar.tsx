@@ -67,7 +67,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         })}
       </nav>
 
-      {/* Footer */}
       <div className="flex-shrink-0 border-t border-gray-200 px-4 py-4">
         <div className="flex items-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500">

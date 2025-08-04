@@ -1,9 +1,9 @@
-from decimal import Decimal
-from datetime import date, datetime, timezone
-from typing import Optional, List, Generic, TypeVar, Any
 import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Any, Optional, TypeVar
 
-from pydantic import BaseModel, Field, ConfigDict, AwareDatetime, field_validator
+from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
 T = TypeVar("T")
 
@@ -17,18 +17,6 @@ def ensure_timezone_aware(v: Any) -> datetime:
             return v.replace(tzinfo=timezone.utc)
         return v
     return v
-
-
-class PaginatedResponse(BaseModel, Generic[T]):
-    count: int = Field(..., description="Total number of items")
-    next: Optional[str] = Field(None, description="URL for next page")
-    previous: Optional[str] = Field(None, description="URL for previous page")
-    data: List[T] = Field(..., description="List of items for current page")
-
-
-import uuid
-
-from pydantic import BaseModel, Field, AwareDatetime
 
 
 class InstrumentBase(BaseModel):

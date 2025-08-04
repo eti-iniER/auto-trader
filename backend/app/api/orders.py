@@ -1,8 +1,9 @@
 import logging
-from typing import List
+from typing import List, Annotated
 import json
 from datetime import datetime
 
+from app.db.models import User
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from aiocache import Cache
 from app.api.utils.caching import cache_with_pagination
@@ -10,9 +11,11 @@ from app.api.utils.pagination import (
     build_paginated_response,
     PaginationParams,
 )
+from app.api.utils.authentication import get_current_user
+from .utils.pagination import *
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
-from app.schemas.orders import Order, PaginatedOrdersResponse
+from app.schemas.orders import Order
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -107,13 +110,14 @@ async def get_all_orders_from_ig(ig_client: IGClient) -> List[Order]:
     return orders
 
 
-@router.get("/", response_model=PaginatedOrdersResponse)
+@router.get("/", response_model=PaginatedResponse[Order])
 @cache_with_pagination(ttl=30, namespace="orders")
 async def list_orders(
     request: Request,
-    pagination: PaginationParams = Depends(),
-    ig_client: IGClient = Depends(get_ig_client),
-) -> PaginatedOrdersResponse:
+    pagination: Annotated[PaginationParams, Depends()],
+    ig_client: Annotated[IGClient, Depends(get_ig_client)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> PaginatedResponse[Order]:
     """
     Get a list of working orders from IG with pagination.
 

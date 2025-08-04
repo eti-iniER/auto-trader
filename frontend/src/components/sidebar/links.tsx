@@ -8,7 +8,6 @@ import {
   FiSettings,
   FiShoppingCart,
   FiTrendingUp,
-  FiUser,
 } from "react-icons/fi";
 
 export interface SidebarLink {
@@ -55,12 +54,7 @@ export const sidebarLinks: SidebarLink[] = [
     icon: FiFileText,
     description: "View trading logs and history",
   },
-  {
-    text: "Profile",
-    href: paths.dashboard.PROFILE,
-    icon: FiUser,
-    description: "Manage your profile and authentication details",
-  },
+
   {
     text: "Settings",
     href: paths.dashboard.SETTINGS,

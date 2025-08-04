@@ -67,7 +67,7 @@ const columns: ColumnDef<Instrument>[] = [
     header: "ATR Stop Loss Period",
     size: 160,
     cell: ({ row }) => (
-      <div className="text-right">{row.getValue("atrStopLossPeriod")}</div>
+      <div className="text-center">{row.getValue("atrStopLossPeriod")}</div>
     ),
   },
   {
@@ -75,7 +75,7 @@ const columns: ColumnDef<Instrument>[] = [
     header: "ATR Stop Loss Multiple",
     size: 180,
     cell: ({ row }) => (
-      <div className="text-right">
+      <div className="text-center">
         {formatCurrency(row.getValue("atrStopLossMultiple"))}
       </div>
     ),
@@ -85,14 +85,14 @@ const columns: ColumnDef<Instrument>[] = [
     header: "ATR Profit Target Period",
     size: 180,
     cell: ({ row }) => (
-      <div className="text-right">{row.getValue("atrProfitTargetPeriod")}</div>
+      <div className="text-center">{row.getValue("atrProfitTargetPeriod")}</div>
     ),
   },
   {
     accessorKey: "atrProfitMultiple",
     header: "ATR Profit Multiple",
     cell: ({ row }) => (
-      <div className="text-right">
+      <div className="text-center">
         {formatCurrency(row.getValue("atrProfitMultiple"))}
       </div>
     ),
@@ -101,17 +101,15 @@ const columns: ColumnDef<Instrument>[] = [
     accessorKey: "positionSize",
     header: "Position Size",
     cell: ({ row }) => (
-      <div className="text-right">
-        {formatCurrency(row.getValue("positionSize"))}
-      </div>
+      <div className="text-center">{row.getValue("positionSize")}</div>
     ),
   },
   {
     accessorKey: "maxPositionSize",
     header: "Max Position Size",
     cell: ({ row }) => (
-      <div className="text-right">
-        {formatCurrency(row.getValue("maxPositionSize"))}
+      <div className="text-center">
+        {Number(row.getValue("maxPositionSize")).toLocaleString("en-GB")}
       </div>
     ),
   },
@@ -119,7 +117,7 @@ const columns: ColumnDef<Instrument>[] = [
     accessorKey: "openingPriceMultiple",
     header: "Opening Price Multiple",
     cell: ({ row }) => (
-      <div className="text-right">
+      <div className="text-center">
         {formatCurrency(row.getValue("openingPriceMultiple"))}
       </div>
     ),

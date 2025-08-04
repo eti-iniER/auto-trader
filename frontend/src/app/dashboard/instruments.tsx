@@ -50,7 +50,7 @@ export const Instruments = () => {
     disabled: uploadMutation.isPending,
   });
 
-  const instruments = instrumentsResponse?.data || [];
+  const instruments = instrumentsResponse?.results || [];
   const totalCount = instrumentsResponse?.count || 0;
 
   const handlePageChange = (newPage: number) => {

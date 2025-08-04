@@ -11,6 +11,6 @@ export const useCurrentUser = () => {
     queryKey: ["me"],
     queryFn: getCurrentUser,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: false,
+    retry: 2,
   });
 };

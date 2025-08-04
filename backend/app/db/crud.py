@@ -2,7 +2,8 @@ from typing import Optional
 
 from app.db.deps import get_db_context
 from app.db.enums import LogType
-from app.db.models import Log, User
+from app.db.models import Instrument, Log, User
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -83,3 +84,27 @@ async def update_user(db: AsyncSession, email: str, user_data: dict) -> User:
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def get_instrument_by_ig_epic(db: AsyncSession, ig_epic: str) -> Instrument:
+    """
+    Retrieve an instrument by its IG epic.
+
+    Args:
+        db (AsyncSession): The database session.
+        ig_epic (str): The IG epic of the instrument to retrieve.
+
+    Returns:
+        Instrument: The instrument object if found, otherwise None.
+    """
+    stmt = select(Instrument).where(Instrument.ig_epic == ig_epic)
+    result = await db.execute(stmt)
+    instrument = result.scalar_one_or_none()
+
+    if not instrument:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Instrument with IG epic '{ig_epic}' not found.",
+        )
+
+    return instrument

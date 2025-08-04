@@ -92,7 +92,6 @@ async def register_user(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,
         samesite="Lax",
         max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
     )
@@ -100,7 +99,6 @@ async def register_user(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
         samesite="Lax",
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
@@ -135,7 +133,6 @@ async def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,
         samesite="Lax",
         max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
     )
@@ -143,7 +140,6 @@ async def login(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
         samesite="Lax",
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
@@ -171,8 +167,14 @@ async def generate_access_token(
             content={"message": "Invalid refresh token."},
         )
 
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=timedelta(seconds=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS),
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": user.email},
+        expires_delta=timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS),
+    )
 
     await update_user(db, email=user.email, user_data={"refresh_token": refresh_token})
 
@@ -180,7 +182,6 @@ async def generate_access_token(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,
         samesite="Lax",
         max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
     )
@@ -188,7 +189,6 @@ async def generate_access_token(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
         samesite="Lax",
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )

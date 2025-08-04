@@ -41,6 +41,7 @@ export const Login = () => {
       email: "",
       password: "",
     },
+    disabled: login.isPending,
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -119,7 +120,7 @@ export const Login = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={form.formState.isSubmitting}
+                disabled={login.isPending}
               >
                 <LoaderWrapper isLoading={login.isPending}>
                   Log in

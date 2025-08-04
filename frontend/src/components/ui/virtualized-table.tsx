@@ -31,13 +31,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  data: T[];
-}
-
 export interface VirtualizedTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];

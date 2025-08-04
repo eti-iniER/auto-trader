@@ -33,7 +33,7 @@ export const useInstruments = (params: InstrumentsParams = {}) => {
           count: previousData.count,
           next: previousData.next,
           previous: previousData.previous,
-          data: [],
+          results: [],
         };
       }
       return undefined;

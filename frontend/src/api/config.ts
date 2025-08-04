@@ -1,5 +1,5 @@
 import { refreshToken } from "@/lib/authentication";
-import { dateReviver } from "@/lib/revivers";
+import { revivers } from "@/lib/revivers";
 import camelcaseKeys from "camelcase-keys";
 import ky from "ky";
 import snakecaseKeys from "snakecase-keys";
@@ -9,9 +9,8 @@ let isRefreshing = false;
 export const api = ky.create({
   prefixUrl: import.meta.env.VITE_API_URL,
   timeout: 1000 * 60 * 5,
-  retry: 1,
   credentials: "include",
-  parseJson: (text) => JSON.parse(text, dateReviver),
+  parseJson: (text) => JSON.parse(text, revivers),
   hooks: {
     beforeRequest: [
       async (request, options) => {

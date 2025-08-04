@@ -8,3 +8,8 @@ class LogType(str, Enum):
     TRADE = "trade"
     ORDER = "order"
     ERROR = "error"
+
+
+class UserSettingsMode(str, Enum):
+    DEMO = "demo"
+    LIVE = "live"
