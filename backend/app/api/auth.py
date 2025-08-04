@@ -7,7 +7,7 @@ from app.api.schemas.user import UserSchema
 from app.config import settings
 from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
 from app.db.deps import get_db
-from app.db.models import User
+from app.db.models import User, UserSettings
 from fastapi import APIRouter, Depends, Response, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
@@ -76,8 +76,10 @@ async def register_user(
         first_name=payload.first_name,
         last_name=payload.last_name,
     )
-
+    new_user_settings = UserSettings(user_id=new_user.id)
+    db.add(new_user_settings)
     db.add(new_user)
+
     await db.commit()
     await db.refresh(new_user)
 

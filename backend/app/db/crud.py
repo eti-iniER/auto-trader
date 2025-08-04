@@ -2,10 +2,11 @@ from typing import Optional
 
 from app.db.deps import get_db_context
 from app.db.enums import LogType
-from app.db.models import Instrument, Log, User
+from app.db.models import Instrument, Log, User, UserSettings
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 
 async def log_message(
@@ -41,7 +42,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     Returns:
         User: The user object if found, otherwise raises an error.
     """
-    stmt = select(User).where(User.email == email)
+    stmt = select(User).options(selectinload(User.settings)).where(User.email == email)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
 
@@ -81,6 +82,36 @@ async def update_user(db: AsyncSession, email: str, user_data: dict) -> User:
     for key, value in user_data.items():
         setattr(user, key, value)
 
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def update_user_settings(
+    db: AsyncSession, email: str, settings_data: dict
+) -> User:
+    """
+    Update user settings in the database.
+    :param db: The database session.
+    :param email: The email of the user whose settings are to be updated.
+    :param settings_data: A dictionary containing the updated settings data.
+    :return: The updated user object with the new settings.
+    """
+
+    user = await get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with email '{email}' not found.",
+        )
+
+    user_settings = user.settings or UserSettings(user_id=user.id)
+
+    for key, value in settings_data.items():
+        setattr(user_settings, key, value)
+
+    user.settings = user_settings
+    db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
