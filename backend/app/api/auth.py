@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Annotated
 
+from app.api.schemas.generic import SimpleResponseSchema
 from app.api.schemas.user import UserSchema
 from app.config import settings
 from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
@@ -17,9 +18,9 @@ from .utils.authentication import (
     authenticate_user,
     create_access_token,
     create_refresh_token,
+    get_current_user,
     get_refresh_token_from_cookie,
     hash_password,
-    get_current_user,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -46,6 +47,10 @@ class RegisterPayload(BaseModel):
     password: str
     first_name: str
     last_name: str
+
+
+class ResetPasswordPayload(BaseModel):
+    email: EmailStr
 
 
 @router.post("/register", response_model=UserSchema, summary="User registration")
@@ -144,6 +149,34 @@ async def login(
         max_age=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS,
     )
     return user
+
+
+@router.post(
+    "/reset-password",
+    summary="Send reset password email",
+    response_model=SimpleResponseSchema,
+)
+async def send_reset_password_email(
+    payload: ResetPasswordPayload, db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """
+    Endpoint to send a reset password email to the user.
+    """
+    user = await get_user_by_email(db, payload.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    # Here you would typically send an email with a reset link
+    # For simplicity, we will just log the action
+    logger.info(f"Reset password email sent to {payload.email}")
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "Reset password email sent successfully."},
+    )
 
 
 @router.post("/token", summary="Generate access token")

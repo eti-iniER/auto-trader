@@ -1,4 +1,6 @@
 import { Login } from "@/app/authentication/login";
+import { Register } from "@/app/authentication/register";
+import { ResetPassword } from "@/app/authentication/reset-password";
 import { Help } from "@/app/dashboard/help";
 import { Instruments } from "@/app/dashboard/instruments";
 import { Logs } from "@/app/dashboard/logs";
@@ -20,6 +22,8 @@ const AppRoutes = () => {
       <Route element={<RootLayout />}>
         <Route path="auth">
           <Route path="login" element={<Login />} />
+          <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="register" element={<Register />} />
         </Route>
         <Route path="dashboard" element={<DashboardLayout />}>
           <Route index element={<Navigate to={paths.dashboard.OVERVIEW} />} />
@@ -44,7 +48,7 @@ export const App = () => {
   return (
     <QueryClientProvider client={client}>
       <BrowserRouter>
-        <Toaster position="top-center" />
+        <Toaster position="top-center" richColors />
         <AppRoutes />
       </BrowserRouter>
     </QueryClientProvider>

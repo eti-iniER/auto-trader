@@ -1,10 +1,10 @@
 import datetime
 import uuid
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from app.db.enums import LogType, UserSettingsMode
-from sqlalchemy import JSON, DateTime, Enum, String, Text
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -56,13 +56,21 @@ class User(BaseDBModel):
         Text, nullable=True, unique=True
     )
     settings: Mapped["UserSettings"] = relationship(
-        "UserSettings", back_populates="user", uselist=False
+        "UserSettings", back_populates="user", cascade="all, delete-orphan"
+    )
+    instruments: Mapped[List["Instrument"]] = relationship(
+        "Instrument",
+        back_populates="user",
+        cascade="all, delete",
+        order_by="desc(Instrument.updated_at)",
     )
 
 
 class Instrument(BaseDBModel):
     __tablename__ = "instruments"
 
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user: Mapped[User] = relationship("User", back_populates="instruments")
     market_and_symbol: Mapped[str] = mapped_column(String(255), nullable=False)
     ig_epic: Mapped[str] = mapped_column(String(255), nullable=False)
     yahoo_symbol: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -87,8 +95,8 @@ class Instrument(BaseDBModel):
 class UserSettings(BaseDBModel):
     __tablename__ = "user_settings"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(String(36), nullable=False, unique=True)
-    user: Mapped[User] = relationship("User", back_populates="settings")
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user: Mapped[User] = relationship("User", back_populates="settings", uselist=False)
     mode: Mapped[UserSettingsMode] = mapped_column(
         Enum(UserSettingsMode), nullable=False, default=UserSettingsMode.DEMO
     )

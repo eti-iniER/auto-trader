@@ -4,7 +4,8 @@ import logging
 import uuid
 from decimal import Decimal
 from typing import Annotated
-from app.db.models import User
+
+from app.api.utils.authentication import get_current_user
 from app.api.utils.caching import cache
 from app.api.utils.filters import InstrumentFilters
 from app.api.utils.pagination import (
@@ -13,9 +14,8 @@ from app.api.utils.pagination import (
     SortingParams,
     build_paginated_response,
 )
-from app.api.utils.authentication import get_current_user
 from app.db.deps import get_db
-from app.db.models import Instrument
+from app.db.models import Instrument, User
 from app.schemas.instruments import (
     DividendFetchResponse,
     InstrumentCreate,
@@ -139,11 +139,11 @@ async def update_instrument(
     Update an existing instrument.
     """
     try:
-        existing_instrument = await instrument_crud.exists(db, id=id)
+        existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
         if not existing_instrument:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Instrument with ID {id} not found",
+                detail=f"Instrument with ID {id} for user {user.email} not found",
             )
 
         update_data = instrument_update.model_dump(
@@ -184,11 +184,11 @@ async def delete_instrument(
     Delete an instrument by ID.
     """
     try:
-        existing_instrument = await instrument_crud.exists(db, id=id)
+        existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
         if not existing_instrument:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Instrument with ID {id} not found",
+                detail=f"Instrument with ID {id} for user {user.email} not found",
             )
 
         await instrument_crud.delete(db, id=id)
@@ -220,6 +220,7 @@ async def search_instruments(
             schema_to_select=InstrumentRead,
             return_as_model=True,
             **filters.to_dict(),
+            user_id=user.id,
         )
 
         return build_paginated_response(
@@ -401,7 +402,9 @@ async def upload_instruments_csv(
                 instrument_data["position_size"] = 1  # Default value
                 instrument_data["next_dividend_date"] = None  # Not in CSV
 
-                instruments_data.append(InstrumentCreate(**instrument_data))
+                instruments_data.append(
+                    InstrumentCreate(**instrument_data, user_id=user.id)
+                )
 
             except (ValueError, TypeError) as e:
                 raise HTTPException(

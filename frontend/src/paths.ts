@@ -1,6 +1,7 @@
 export const paths = {
   authentication: {
     LOGIN: "/auth/login",
+    REGISTER: "/auth/register",
     RESET_PASSWORD: "/auth/reset-password",
   },
   dashboard: {

@@ -42,6 +42,7 @@ class InstrumentBase(BaseModel):
 
 
 class InstrumentCreate(InstrumentBase):
+    user_id: uuid.UUID = Field(..., description="User ID of the instrument owner")
     pass
 
 
