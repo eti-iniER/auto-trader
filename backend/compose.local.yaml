@@ -3,6 +3,7 @@ services:
     fastapi:
         build: .
         command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload --log-level trace
+        entrypoint: ["/app/entrypoint.local.sh"]
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
             - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbit_mq:5672/
