@@ -22,6 +22,33 @@ class UserSettingsRead(BaseModel):
     maximum_order_age_in_minutes: int = Field(
         ..., description="Maximum age of an order in minutes"
     )
+    maximum_open_positions: int = Field(
+        ..., description="Maximum number of open positions"
+    )
+    maximum_open_positions_and_pending_orders: int = Field(
+        ..., description="Maximum open positions and pending orders"
+    )
+    maximum_alert_age_in_seconds: int = Field(
+        ..., description="Maximum age of an alert in seconds"
+    )
+    avoid_dividend_dates: bool = Field(
+        ..., description="Avoid trading on dividend dates"
+    )
+    maximum_trades_per_instrument_per_day: int = Field(
+        ..., description="Maximum trades per instrument per day"
+    )
+    enforce_maximum_open_positions: bool = Field(
+        ..., description="Enforce maximum open positions"
+    )
+    enforce_maximum_open_positions_and_pending_orders: bool = Field(
+        ..., description="Enforce maximum open positions and pending orders"
+    )
+    enforce_maximum_alert_age_in_seconds: bool = Field(
+        ..., description="Enforce maximum alert age in seconds"
+    )
+    prevent_duplicate_positions_for_instrument: bool = Field(
+        ..., description="Prevent duplicate positions for the same instrument"
+    )
 
     class Config:
         from_attributes = True
@@ -44,6 +71,33 @@ class UserSettingsUpdate(BaseModel):
     live_webhook_url: Optional[str] = Field(None, description="Live webhook URL")
     maximum_order_age_in_minutes: Optional[int] = Field(
         None, description="Maximum age of an order in minutes"
+    )
+    maximum_open_positions: Optional[int] = Field(
+        None, description="Maximum number of open positions"
+    )
+    maximum_open_positions_and_pending_orders: Optional[int] = Field(
+        None, description="Maximum open positions and pending orders"
+    )
+    maximum_alert_age_in_seconds: Optional[int] = Field(
+        None, description="Maximum age of an alert in seconds"
+    )
+    avoid_dividend_dates: Optional[bool] = Field(
+        None, description="Avoid trading on dividend dates"
+    )
+    maximum_trades_per_instrument_per_day: Optional[int] = Field(
+        None, description="Maximum trades per instrument per day"
+    )
+    enforce_maximum_open_positions: Optional[bool] = Field(
+        None, description="Enforce maximum open positions"
+    )
+    enforce_maximum_open_positions_and_pending_orders: Optional[bool] = Field(
+        None, description="Enforce maximum open positions and pending orders"
+    )
+    enforce_maximum_alert_age_in_seconds: Optional[bool] = Field(
+        None, description="Enforce maximum alert age in seconds"
+    )
+    prevent_duplicate_positions_for_instrument: Optional[bool] = Field(
+        None, description="Prevent duplicate positions for the same instrument"
     )
 
     class Config:

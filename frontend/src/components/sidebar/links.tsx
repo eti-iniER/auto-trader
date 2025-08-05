@@ -1,7 +1,6 @@
 import { paths } from "@/paths";
 import {
   FiFileText,
-  FiGitMerge,
   FiHelpCircle,
   FiHome,
   FiPieChart,
@@ -41,12 +40,6 @@ export const sidebarLinks: SidebarLink[] = [
     href: paths.dashboard.INSTRUMENTS,
     icon: FiTrendingUp,
     description: "View and manage trading instruments",
-  },
-  {
-    text: "Rules",
-    href: paths.dashboard.RULES,
-    icon: FiGitMerge,
-    description: "Define and manage trading rules",
   },
   {
     text: "Logs",

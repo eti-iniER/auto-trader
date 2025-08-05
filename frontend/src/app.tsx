@@ -6,7 +6,6 @@ import { Instruments } from "@/app/dashboard/instruments";
 import { Logs } from "@/app/dashboard/logs";
 import { Orders } from "@/app/dashboard/orders";
 import { Overview } from "@/app/dashboard/overview";
-import { Rules } from "@/app/dashboard/rules";
 import { Settings } from "@/app/dashboard/settings";
 import { Trades } from "@/app/dashboard/trades";
 import { Toaster } from "@/components/ui/sonner";
@@ -31,7 +30,6 @@ const AppRoutes = () => {
           <Route path="orders" element={<Orders />} />
           <Route path="trades" element={<Trades />} />
           <Route path="instruments" element={<Instruments />} />
-          <Route path="rules" element={<Rules />} />
           <Route path="logs" element={<Logs />} />
           <Route path="settings" element={<Settings />} />
           <Route path="help" element={<Help />} />

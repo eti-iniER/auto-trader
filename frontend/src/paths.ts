@@ -9,7 +9,6 @@ export const paths = {
     TRADES: "/dashboard/trades",
     ORDERS: "/dashboard/orders",
     INSTRUMENTS: "/dashboard/instruments",
-    RULES: "/dashboard/rules",
     LOGS: "/dashboard/logs",
     PROFILE: "/dashboard/profile",
     SETTINGS: "/dashboard/settings",

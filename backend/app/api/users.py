@@ -69,7 +69,7 @@ async def update_user_settings(
                 detail="User settings not found",
             )
 
-        update_data = settings_update.model_dump(exclude_unset=True, exclude_none=True)
+        update_data = settings_update.model_dump(exclude_unset=True, exclude_none=False)
 
         if not update_data:
             raise HTTPException(

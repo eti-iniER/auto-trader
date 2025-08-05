@@ -34,10 +34,15 @@ class Settings(BaseSettings):
     IG_USERNAME: str = Field(..., env="IG_USERNAME")
     IG_PASSWORD: str = Field(..., env="IG_PASSWORD")
     IG_API_KEY: str = Field(..., env="IG_API_KEY")
-    IG_API_BASE_URL: str = Field(
-        ...,
-        env="IG_API_BASE_URL",
+    IG_DEMO_API_BASE_URL: str = Field(
+        "https://demo-api.ig.com/gateway/deal/",
+        env="IG_DEMO_API_BASE_URL",
         description="Base URL for the IG API",
+    )
+    IG_LIVE_API_BASE_URL: str = Field(
+        "https://api.ig.com/gateway/deal/",
+        env="IG_LIVE_API_BASE_URL",
+        description="Base URL for the IG live API",
     )
     ACCESS_TOKEN_LIFETIME_IN_SECONDS: int = Field(
         default=600,  # 10 minutes

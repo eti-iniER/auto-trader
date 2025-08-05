@@ -97,10 +97,10 @@ class OAuth2(httpx.Auth):
 class IGClient:
     def __init__(
         self,
-        username: str = settings.IG_USERNAME,
-        password: str = settings.IG_PASSWORD,
-        api_key: str = settings.IG_API_KEY,
-        base_url: str = settings.IG_API_BASE_URL,
+        username: str,
+        password: str,
+        api_key: str,
+        base_url: str = settings.IG_DEMO_API_BASE_URL,
     ):
         self.username = username
         self.password = password

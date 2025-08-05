@@ -111,3 +111,36 @@ class UserSettings(BaseDBModel):
     maximum_order_age_in_minutes: Mapped[int] = mapped_column(
         nullable=False, default=1, comment="Maximum age of an order in minutes"
     )
+    maximum_open_positions: Mapped[int] = mapped_column(
+        nullable=False, default=10, comment="Maximum number of open positions"
+    )
+    maximum_open_positions_and_pending_orders: Mapped[int] = mapped_column(
+        nullable=False, default=10, comment="Maximum open positions and pending orders"
+    )
+    maximum_alert_age_in_seconds: Mapped[int] = mapped_column(
+        nullable=False, default=10, comment="Maximum age of an alert in seconds"
+    )
+    avoid_dividend_dates: Mapped[bool] = mapped_column(
+        nullable=False, default=True, comment="Avoid trading on dividend dates"
+    )
+    maximum_trades_per_instrument_per_day: Mapped[int] = mapped_column(
+        nullable=False, default=1, comment="Maximum trades per instrument per day"
+    )
+    enforce_maximum_open_positions: Mapped[bool] = mapped_column(
+        nullable=False, default=True, comment="Enforce maximum open positions"
+    )
+    enforce_maximum_open_positions_and_pending_orders: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=True,
+        comment="Enforce maximum open positions and pending orders",
+    )
+    enforce_maximum_alert_age_in_seconds: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=True,
+        comment="Enforce maximum alert age in seconds",
+    )
+    prevent_duplicate_positions_for_instrument: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=True,
+        comment="Prevent duplicate positions for the same instrument",
+    )
