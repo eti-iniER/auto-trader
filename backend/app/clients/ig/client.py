@@ -82,7 +82,7 @@ class OAuth2(httpx.Auth):
         if response.status_code == 401:
             logger.debug("Received 401, refreshing authentication data")
             self.auth_data = self._get_auth_data_func()
-            retry_request = request.copy()
+            retry_request = request
             retry_request.headers["Authorization"] = (
                 f"Bearer {self.auth_data.access_token}"
             )
@@ -229,6 +229,50 @@ class IGClient:
             )
 
         return WorkingOrdersResponse(**data)
+
+    def create_working_order(
+        self, data: CreateWorkingOrderRequest
+    ) -> CreateWorkingOrderResponse:
+        """
+        Create a new working order in the account.
+        """
+        response = self.client.post(
+            "workingorders/otc",
+            json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
+            headers={"Version": "2"},
+        )
+        data = response.json()
+        print(data)
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=data.get("errorCode"),
+            )
+
+        return CreateWorkingOrderResponse(**data)
+
+    def get_working_order_confirmation(
+        self, data: ConfirmDealRequest
+    ) -> DealConfirmation:
+        """
+        Confirm a working order by its deal reference.
+        """
+        response = self.client.get(
+            f"confirms/{data.deal_reference}",
+            headers={"Version": "1"},
+        )
+        data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=data.get("errorCode"),
+            )
+
+        return DealConfirmation(**data)
 
     def _get_auth_data(self) -> AuthenticationData:
         """

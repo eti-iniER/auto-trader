@@ -6,8 +6,8 @@ import { Instruments } from "@/app/dashboard/instruments";
 import { Logs } from "@/app/dashboard/logs";
 import { Orders } from "@/app/dashboard/orders";
 import { Overview } from "@/app/dashboard/overview";
+import { Positions } from "@/app/dashboard/positions";
 import { Settings } from "@/app/dashboard/settings";
-import { Trades } from "@/app/dashboard/trades";
 import { Toaster } from "@/components/ui/sonner";
 import DashboardLayout from "@/layouts/dashboard";
 import { RootLayout } from "@/layouts/root";
@@ -28,7 +28,7 @@ const AppRoutes = () => {
           <Route index element={<Navigate to={paths.dashboard.OVERVIEW} />} />
           <Route path="overview" element={<Overview />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="trades" element={<Trades />} />
+          <Route path="positions" element={<Positions />} />
           <Route path="instruments" element={<Instruments />} />
           <Route path="logs" element={<Logs />} />
           <Route path="settings" element={<Settings />} />

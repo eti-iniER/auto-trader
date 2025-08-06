@@ -24,16 +24,16 @@ export const sidebarLinks: SidebarLink[] = [
     description: "View app statistics and general info",
   },
   {
-    text: "Trades",
-    href: paths.dashboard.TRADES,
+    text: "Positions",
+    href: paths.dashboard.POSITIONS,
     icon: FiPieChart,
-    description: "Manage your open trades",
+    description: "Manage your open positions",
   },
   {
     text: "Orders",
     href: paths.dashboard.ORDERS,
     icon: FiShoppingCart,
-    description: "Manage your pending orders",
+    description: "Manage your pending/working orders",
   },
   {
     text: "Instruments",

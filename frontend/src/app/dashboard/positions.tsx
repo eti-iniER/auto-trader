@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/page-header";
 
-export const Trades = () => {
+export const Positions = () => {
   return (
     <div className="flex-1 p-8">
-      <PageHeader title="Trades" description="View your open trades" />
+      <PageHeader title="Positions" description="View your open positions" />
     </div>
   );
 };

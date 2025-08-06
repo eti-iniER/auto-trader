@@ -6,7 +6,7 @@ export const paths = {
   },
   dashboard: {
     OVERVIEW: "/dashboard/overview",
-    TRADES: "/dashboard/trades",
+    POSITIONS: "/dashboard/positions",
     ORDERS: "/dashboard/orders",
     INSTRUMENTS: "/dashboard/instruments",
     LOGS: "/dashboard/logs",

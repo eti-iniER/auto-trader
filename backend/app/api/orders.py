@@ -98,7 +98,7 @@ async def get_all_orders_from_ig(user: User) -> List[Order]:
     return orders
 
 
-@router.get("/", response_model=PaginatedResponse[Order])
+@router.get("", response_model=PaginatedResponse[Order])
 @cache_with_pagination(ttl=30, namespace="orders")
 async def list_orders(
     request: Request,
