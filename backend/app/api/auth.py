@@ -328,14 +328,38 @@ async def get_current_user_endpoint(
 @router.post("/logout", summary="User logout")
 async def logout(
     response: Response,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
     Endpoint to log out the user by clearing the access and refresh tokens.
+    Also invalidates the refresh token by generating a new one.
     """
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
 
-    return JSONResponse(
+    new_refresh_token = create_refresh_token(
+        data={"sub": user.email},
+        expires_delta=timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS),
+    )
+    await update_user(
+        db, email=user.email, user_data={"refresh_token": new_refresh_token}
+    )
+
+    response = JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "User logged out successfully."},
     )
+
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="None",
+        secure=True,
+    )
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        samesite="None",
+        secure=True,
+    )
+
+    return response
