@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     DRAMATIQ_BROKER_URL: str = Field(..., env="DRAMATIQ_BROKER_URL")
     SECRET_KEY: str = Field(..., env="SECRET_KEY")
     BASE_DIR: str = Field(
-        default=Path(__file__).resolve().parent.parent.as_posix(),
+        default=Path(__file__).resolve().parent.as_posix(),
         env="BASE_DIR",
         description="Base directory for the application",
     )
@@ -63,6 +63,15 @@ class Settings(BaseSettings):
         default=3600,  # 1 hour
         env="DEV_ACCESS_TOKEN_LIFETIME_IN_SECONDS",
         description="Lifetime of access tokens in development mode in seconds",
+    )
+    SMTP_USERNAME: str = Field(..., env="SMTP_USERNAME")
+    SMTP_PASSWORD: str = Field(..., env="SMTP_PASSWORD")
+    SMTP_HOST: str = Field(..., env="SMTP_HOST")
+    SMTP_PORT: int = Field(..., env="SMTP_PORT")
+    FROM_EMAIL: str = Field(
+        "admin@autotrader.eti-ini.me",
+        env="FROM_EMAIL",
+        description="Email address from which emails are sent",
     )
 
     model_config = SettingsConfigDict(env_file=".env")

@@ -148,3 +148,83 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def create_password_reset_token(
+    email: str, expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Create a signed JWT token for password reset.
+
+    Args:
+        email: User email address
+        expires_delta: Token expiration time (defaults to 1 hour)
+
+    Returns:
+        Signed JWT token
+    """
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+
+    to_encode = {"sub": email, "exp": expire, "purpose": "password_reset"}
+
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
+    return encoded_jwt
+
+
+async def verify_password_reset_token(token: str) -> User:
+    """
+    Verify and decode a password reset token.
+
+    Args:
+        token: JWT token to verify
+
+    Returns:
+        User object if token is valid
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired reset token",
+    )
+
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+
+        email: str = payload.get("sub")
+        purpose: str = payload.get("purpose")
+
+        if email is None or purpose != "password_reset":
+            raise credentials_exception
+
+    except jwt.InvalidTokenError:
+        raise credentials_exception
+
+    async with get_db_context() as db:
+        user = await get_user_by_email(db, email)
+        if user is None:
+            raise credentials_exception
+
+    return user
+
+
+def generate_reset_link(token: str, origin: str) -> str:
+    """
+    Generate a password reset link with the token.
+
+    Args:
+        token: Password reset token
+        origin: The origin URL from the request
+
+    Returns:
+        Complete reset link URL
+    """
+    return f"{origin}/auth/change-password?token={token}"

@@ -20,6 +20,8 @@ import { LoaderWrapper } from "@/components/ui/loader-wrapper";
 import { images } from "@/constants/images";
 import { paths } from "@/paths";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { motion, AnimatePresence } from "motion/react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -32,6 +34,8 @@ const resetPasswordSchema = z.object({
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export const ResetPassword = () => {
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const resetPassword = useResetPassword();
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -44,6 +48,8 @@ export const ResetPassword = () => {
   const onSubmit = async (data: ResetPasswordFormData) => {
     resetPassword.mutate(data, {
       onSuccess: () => {
+        setSubmittedEmail(data.email);
+        setIsSuccess(true);
         toast.success("Password reset email sent!", {
           description:
             "Check your inbox for instructions to reset your password.",
@@ -70,57 +76,96 @@ export const ResetPassword = () => {
             />
             <div className="space-y-1">
               <CardTitle className="text-2xl font-semibold">
-                Reset your password
+                {isSuccess ? "Check your email" : "Reset your password"}
               </CardTitle>
               <CardDescription className="text-sm text-gray-500">
-                Enter the email address associated with your account
+                {isSuccess
+                  ? `We've sent password reset instructions to ${submittedEmail}`
+                  : "Enter the email address associated with your account"}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter your email address"
-                        autoComplete="email"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={resetPassword.isPending}
+          <AnimatePresence mode="wait">
+            {!isSuccess ? (
+              <motion.div
+                key="form"
+                initial={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
               >
-                <LoaderWrapper isLoading={resetPassword.isPending}>
-                  Send reset email
-                </LoaderWrapper>
-              </Button>
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="Enter your email address"
+                              autoComplete="email"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-              <Button
-                asChild
-                variant="ghost"
-                type="button"
-                className="-mt-3 w-full"
-                disabled={resetPassword.isPending}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={resetPassword.isPending}
+                    >
+                      <LoaderWrapper isLoading={resetPassword.isPending}>
+                        Send reset email
+                      </LoaderWrapper>
+                    </Button>
+
+                    <Button
+                      asChild
+                      variant="ghost"
+                      type="button"
+                      className="-mt-3 w-full"
+                      disabled={resetPassword.isPending}
+                    >
+                      <Link to={paths.authentication.LOGIN}>Back to login</Link>
+                    </Button>
+                  </form>
+                </Form>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-2"
               >
-                <Link to={paths.authentication.LOGIN}>Back to login</Link>
-              </Button>
-            </form>
-          </Form>
+                <Button asChild className="w-full">
+                  <Link to={paths.authentication.LOGIN}>Back to login</Link>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full text-sm"
+                  onClick={() => {
+                    setIsSuccess(false);
+                    setSubmittedEmail("");
+                  }}
+                >
+                  Send to a different email
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </CardContent>
       </Card>
     </div>

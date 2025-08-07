@@ -8,7 +8,8 @@ from app.config import settings
 from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
 from app.db.deps import get_db
 from app.db.models import User, UserSettings
-from fastapi import APIRouter, Depends, Response, status
+from app.services.email import send_reset_password_email
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
@@ -17,10 +18,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .utils.authentication import (
     authenticate_user,
     create_access_token,
+    create_password_reset_token,
     create_refresh_token,
+    generate_reset_link,
     get_current_user,
     get_refresh_token_from_cookie,
     hash_password,
+    verify_password_reset_token,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -51,6 +55,10 @@ class RegisterPayload(BaseModel):
 
 class ResetPasswordPayload(BaseModel):
     email: EmailStr
+
+
+class ConfirmResetPasswordPayload(BaseModel):
+    token: str
 
 
 @router.post("/register", response_model=UserSchema, summary="User registration")
@@ -166,8 +174,11 @@ async def login(
     summary="Send reset password email",
     response_model=SimpleResponseSchema,
 )
-async def send_reset_password_email(
-    payload: ResetPasswordPayload, db: Annotated[AsyncSession, Depends(get_db)]
+async def send_reset_password_email_endpoint(
+    payload: ResetPasswordPayload,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
     Endpoint to send a reset password email to the user.
@@ -179,14 +190,69 @@ async def send_reset_password_email(
             detail="User not found",
         )
 
-    # Here you would typically send an email with a reset link
-    # For simplicity, we will just log the action
-    logger.info(f"Reset password email sent to {payload.email}")
+    # Generate password reset token
+    reset_token = create_password_reset_token(user.email)
+
+    # Get the origin from the request headers
+    origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip(
+        "/"
+    )
+    if not origin:
+        # Fallback to settings if no origin is found
+        origin = settings.FRONTEND_URL
+
+    reset_link = generate_reset_link(reset_token, origin)
+
+    # Send email in background
+    background_tasks.add_task(
+        send_reset_password_email, user.email, user.first_name, reset_link
+    )
+
+    logger.info(f"Reset password email queued for {payload.email}")
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "Reset password email sent successfully."},
     )
+
+
+@router.post(
+    "/validate-password-reset-token",
+    summary="Confirm password reset token",
+    response_model=SimpleResponseSchema,
+)
+async def validate_password_reset_token(
+    payload: ConfirmResetPasswordPayload,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """
+    Endpoint to validate the password reset token and generate access token.
+    """
+    user = await verify_password_reset_token(payload.token)
+
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=timedelta(seconds=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS),
+    )
+
+    response = JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "Password reset confirmed. You are now logged in."},
+    )
+
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite="None",
+        secure=True,
+        max_age=settings.ACCESS_TOKEN_LIFETIME_IN_SECONDS,
+    )
+
+    logger.info(f"Password reset confirmed for {user.email}")
+
+    return response
 
 
 @router.post("/token", summary="Generate access token")

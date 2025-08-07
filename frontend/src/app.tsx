@@ -1,6 +1,7 @@
 import { Login } from "@/app/authentication/login";
 import { Register } from "@/app/authentication/register";
 import { ResetPassword } from "@/app/authentication/reset-password";
+import { ChangePassword } from "@/app/authentication/change-password";
 import { Help } from "@/app/dashboard/help";
 import { Instruments } from "@/app/dashboard/instruments";
 import { Logs } from "@/app/dashboard/logs";
@@ -22,6 +23,7 @@ const AppRoutes = () => {
         <Route path="auth">
           <Route path="login" element={<Login />} />
           <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="change-password" element={<ChangePassword />} />
           <Route path="register" element={<Register />} />
         </Route>
         <Route path="dashboard" element={<DashboardLayout />}>

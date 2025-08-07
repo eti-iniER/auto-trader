@@ -3,6 +3,7 @@ export const paths = {
     LOGIN: "/auth/login",
     REGISTER: "/auth/register",
     RESET_PASSWORD: "/auth/reset-password",
+    CHANGE_PASSWORD: "/auth/change-password",
   },
   dashboard: {
     OVERVIEW: "/dashboard/overview",
