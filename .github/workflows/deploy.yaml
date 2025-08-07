@@ -49,5 +49,6 @@ jobs:
                   username: ${{ secrets.SERVER_USERNAME }}
                   key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
                   script: |
+                      cd app
                       docker compose pull
                       docker compose up -d --force-recreate
