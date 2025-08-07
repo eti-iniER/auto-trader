@@ -34,8 +34,6 @@ services:
     periodiq_scheduler:
         image: etinier/auto-trader
         restart: unless-stopped
-        volumes:
-            - .:/app
         command: periodiq -v app.tasks.broker
         env_file:
             - .env
