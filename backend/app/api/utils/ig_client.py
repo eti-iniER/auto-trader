@@ -7,6 +7,9 @@ from app.db.models import User
 from app.db.enums import UserSettingsMode
 from app.clients.ig.client import IGClient
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_ig_client_for_user(user: User) -> IGClient:
@@ -33,19 +36,28 @@ def get_ig_client_for_user(user: User) -> IGClient:
         username = user.settings.demo_username
         password = user.settings.demo_password
         base_url = settings.IG_DEMO_API_BASE_URL
+        account_id = user.settings.demo_account_id
     else:  # LIVE mode
         api_key = settings.live_api_key
         username = settings.live_username
         password = settings.live_password
         base_url = settings.IG_LIVE_API_BASE_URL
+        account_id = user.settings.live_account_id
 
     if not all([api_key, username, password]):
         mode_str = user.settings.mode.value.lower()
+        logger.error(
+            f"Credentials are: {api_key}, {username}, {password}, {account_id}"
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Missing {mode_str} mode IG credentials. Please configure your {mode_str} API key, username, and password.",
         )
 
     return IGClient(
-        username=username, password=password, api_key=api_key, base_url=base_url
+        username=username,
+        password=password,
+        api_key=api_key,
+        base_url=base_url,
+        account_id=account_id,
     )

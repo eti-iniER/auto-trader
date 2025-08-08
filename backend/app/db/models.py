@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from app.db.enums import LogType, UserSettingsMode
+from app.services.utils import generate_webhook_secret
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -103,11 +104,17 @@ class UserSettings(BaseDBModel):
     demo_api_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     demo_username: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     demo_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    demo_webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    demo_webhook_secret: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, default=generate_webhook_secret
+    )
+    demo_account_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     live_api_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     live_username: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     live_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    live_webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    live_webhook_secret: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, default=generate_webhook_secret
+    )
+    live_account_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     maximum_order_age_in_minutes: Mapped[int] = mapped_column(
         nullable=False, default=1, comment="Maximum age of an order in minutes"
     )

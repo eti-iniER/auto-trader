@@ -5,12 +5,13 @@ from app.api.schemas.generic import SimpleResponseSchema
 from app.api.utils.authentication import (
     get_current_user,
     hash_password,
-    verify_password,
 )
 from app.db.crud import update_user
 from app.db.deps import get_db
+from app.db.enums import UserSettingsMode
 from app.db.models import User, UserSettings
 from app.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
+from app.services.utils import generate_webhook_secret
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastcrud import FastCRUD
@@ -26,6 +27,37 @@ logger = logging.getLogger(__name__)
 
 class ChangePasswordPayload(BaseModel):
     new_password: str
+
+
+class NewWebhookSecretResponse(BaseModel):
+    secret: str
+
+
+@router.get(
+    "/me/settings/new-webhook-secret",
+    summary="Generate a new webhook secret",
+    response_model=NewWebhookSecretResponse,
+)
+async def new_webhook_secret(
+    user: Annotated[User, Depends(get_current_user)],
+) -> NewWebhookSecretResponse:
+    """
+    Generate and return a new webhook secret.
+    """
+    try:
+        new_webhook_secret = generate_webhook_secret()
+
+        logger.info(f"New webhook secret generated for user {user.email}")
+
+        return NewWebhookSecretResponse(secret=new_webhook_secret)
+    except Exception as e:
+        logger.error(
+            f"Failed to generate webhook secret for user {user.email}: {str(e)}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate webhook secret: {str(e)}",
+        )
 
 
 @router.get(

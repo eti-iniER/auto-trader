@@ -10,3 +10,5 @@ export const defaultUserSettings = {
   enforceMaximumAlertAgeInSeconds: true,
   preventDuplicatePositionsForInstrument: true,
 };
+
+export const defaultCurrency = "GBP";

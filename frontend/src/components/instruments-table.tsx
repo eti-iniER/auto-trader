@@ -1,5 +1,6 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
+import { formatDecimal, formatDateOnly, formatNumber } from "@/lib/formatting";
 
 // The Instrument type is available globally from api/types/global.d.ts
 
@@ -16,26 +17,6 @@ interface InstrumentsTableProps {
   className?: string;
   additionalInputs?: React.ReactNode; // For any additional inputs like search
 }
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "decimal",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
-
-const formatDate = (date: Date | null) => {
-  if (!date) {
-    return <span className="text-muted-foreground text-sm">N/A</span>;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-};
 
 const columns: ColumnDef<Instrument>[] = [
   {
@@ -76,7 +57,7 @@ const columns: ColumnDef<Instrument>[] = [
     size: 180,
     cell: ({ row }) => (
       <div className="text-center">
-        {formatCurrency(row.getValue("atrStopLossMultiple"))}
+        {formatDecimal(row.getValue("atrStopLossMultiple"))}
       </div>
     ),
   },
@@ -93,7 +74,7 @@ const columns: ColumnDef<Instrument>[] = [
     header: "ATR Profit Multiple",
     cell: ({ row }) => (
       <div className="text-center">
-        {formatCurrency(row.getValue("atrProfitMultiple"))}
+        {formatDecimal(row.getValue("atrProfitMultiple"))}
       </div>
     ),
   },
@@ -109,7 +90,7 @@ const columns: ColumnDef<Instrument>[] = [
     header: "Max Position Size",
     cell: ({ row }) => (
       <div className="text-center">
-        {Number(row.getValue("maxPositionSize")).toLocaleString("en-GB")}
+        {formatNumber(row.getValue("maxPositionSize"))}
       </div>
     ),
   },
@@ -118,18 +99,31 @@ const columns: ColumnDef<Instrument>[] = [
     header: "Opening Price Multiple",
     cell: ({ row }) => (
       <div className="text-center">
-        {formatCurrency(row.getValue("openingPriceMultiple"))}
+        {formatDecimal(row.getValue("openingPriceMultiple"))}
       </div>
     ),
   },
   {
     accessorKey: "nextDividendDate",
     header: "Next Dividend Date",
-    cell: ({ row }) => (
-      <div className="text-center">
-        {formatDate(row.getValue("nextDividendDate"))}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const dateValue = row.getValue("nextDividendDate") as
+        | Date
+        | string
+        | null;
+      const formattedDate = formatDateOnly(dateValue);
+      return (
+        <div className="text-center">
+          {formattedDate === "N/A" ? (
+            <span className="text-muted-foreground text-sm">
+              {formattedDate}
+            </span>
+          ) : (
+            formattedDate
+          )}
+        </div>
+      );
+    },
   },
 ];
 

@@ -244,9 +244,6 @@ class GetSessionResponse(BaseModel):
 
 class AuthenticationData(BaseModel):
     access_token: str = Field(..., description="Access token for the session")
-    account_id: str = Field(
-        ..., description="ID of the account associated with the session"
-    )
 
 
 class GetHistoryFilters(BaseModel):
@@ -397,7 +394,7 @@ class CreateWorkingOrderRequest(BaseModel):
     level: Decimal
     limit_distance: Optional[Decimal] = Field(None, alias="limitDistance")
     limit_level: Optional[Decimal] = Field(None, alias="limitLevel")
-    size: Decimal
+    size: int = Field(..., description="Order size")
     stop_distance: Optional[Decimal] = Field(None, alias="stopDistance")
     stop_level: Optional[Decimal] = Field(None, alias="stopLevel")
     time_in_force: Optional[TimeInForce] = Field(None, alias="timeInForce")

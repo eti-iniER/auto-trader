@@ -14,11 +14,17 @@ class UserSettingsRead(BaseModel):
     demo_api_key: Optional[str] = Field(None, description="Demo API key")
     demo_username: Optional[str] = Field(None, description="Demo username")
     demo_password: Optional[str] = Field(None, description="Demo password")
-    demo_webhook_url: Optional[str] = Field(None, description="Demo webhook URL")
+    demo_webhook_secret: Optional[str] = Field(None, description="Demo webhook URL")
+    demo_account_id: Optional[str] = Field(
+        None, description="Demo spreadbet account ID"
+    )
     live_api_key: Optional[str] = Field(None, description="Live API key")
     live_username: Optional[str] = Field(None, description="Live username")
     live_password: Optional[str] = Field(None, description="Live password")
-    live_webhook_url: Optional[str] = Field(None, description="Live webhook URL")
+    live_webhook_secret: Optional[str] = Field(None, description="Live webhook URL")
+    live_account_id: Optional[str] = Field(
+        None, description="Live spreadbet account ID"
+    )
     maximum_order_age_in_minutes: int = Field(
         ..., description="Maximum age of an order in minutes"
     )
@@ -64,11 +70,17 @@ class UserSettingsUpdate(BaseModel):
     demo_api_key: Optional[str] = Field(None, description="Demo API key")
     demo_username: Optional[str] = Field(None, description="Demo username")
     demo_password: Optional[str] = Field(None, description="Demo password")
-    demo_webhook_url: Optional[str] = Field(None, description="Demo webhook URL")
+    demo_webhook_secret: Optional[str] = Field(None, description="Demo webhook URL")
+    demo_account_id: Optional[str] = Field(
+        None, description="Demo spreadbet account ID"
+    )
     live_api_key: Optional[str] = Field(None, description="Live API key")
     live_username: Optional[str] = Field(None, description="Live username")
     live_password: Optional[str] = Field(None, description="Live password")
-    live_webhook_url: Optional[str] = Field(None, description="Live webhook URL")
+    live_webhook_secret: Optional[str] = Field(None, description="Live webhook URL")
+    live_account_id: Optional[str] = Field(
+        None, description="Live spreadbet account ID"
+    )
     maximum_order_age_in_minutes: Optional[int] = Field(
         None, description="Maximum age of an order in minutes"
     )

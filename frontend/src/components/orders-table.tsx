@@ -1,5 +1,6 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
+import { formatCurrency, formatDate } from "@/lib/formatting";
 
 interface OrdersTableProps {
   data: Order[];
@@ -14,26 +15,6 @@ interface OrdersTableProps {
   className?: string;
   additionalInputs?: React.ReactNode; // For any additional inputs like search
 }
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "decimal",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
-
-const formatDate = (date: Date | string) => {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(dateObj);
-};
 
 const getDirectionColor = (direction: OrderDirection) => {
   return direction === "BUY"
@@ -84,7 +65,7 @@ const columns: ColumnDef<Order>[] = [
     header: "Size",
     size: 100,
     cell: ({ row }) => (
-      <div className="text-right">{formatCurrency(row.getValue("size"))}</div>
+      <div className="text-center">{formatCurrency(row.getValue("size"))}</div>
     ),
   },
   {
@@ -94,7 +75,7 @@ const columns: ColumnDef<Order>[] = [
     cell: ({ row }) => {
       const stopLevel = row.getValue("stopLevel") as number;
       return (
-        <div className="text-right">
+        <div className="text-center">
           {stopLevel ? formatCurrency(stopLevel) : "—"}
         </div>
       );
@@ -107,7 +88,7 @@ const columns: ColumnDef<Order>[] = [
     cell: ({ row }) => {
       const profitLevel = row.getValue("profitLevel") as number;
       return (
-        <div className="text-right">
+        <div className="text-center">
           {profitLevel ? formatCurrency(profitLevel) : "—"}
         </div>
       );

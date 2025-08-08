@@ -1,8 +1,17 @@
 import { useLogout } from "@/api/hooks/authentication/use-logout";
 import { useUpdateUserSettings } from "@/api/hooks/user-settings/use-update-user-settings";
+import { useNewWebhookSecret } from "@/api/hooks/user-settings/use-new-webhook-secret";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -19,6 +28,12 @@ import {
   SegmentedControlItem,
 } from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { defaultUserSettings } from "@/constants/defaults";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
 import { paths } from "@/paths";
@@ -27,6 +42,8 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
+import { RotateCcw } from "lucide-react";
+import { useState } from "react";
 
 const settingsSchema = z.object({
   mode: z.enum(["DEMO", "LIVE"], {
@@ -36,12 +53,14 @@ const settingsSchema = z.object({
   demoApiKey: z.string().optional(),
   demoUsername: z.string().optional(),
   demoPassword: z.string().optional(),
-  demoWebhookUrl: z.url().optional().or(z.literal("")),
+  demoAccountId: z.string().optional(),
+  demoWebhookSecret: z.string().or(z.literal("")),
   // Live credentials
   liveApiKey: z.string().optional(),
   liveUsername: z.string().optional(),
   livePassword: z.string().optional(),
-  liveWebhookUrl: z.string().url().optional().or(z.literal("")),
+  liveAccountId: z.string().optional(),
+  liveWebhookSecret: z.string().optional().or(z.literal("")),
   // Trading settings
   maximumOrderAgeInMinutes: z.number().int().min(1).max(1440).optional(),
   maximumOpenPositions: z.number().int().min(0).max(100).optional(),
@@ -65,8 +84,11 @@ type SettingsFormData = z.infer<typeof settingsSchema>;
 export const Settings = () => {
   const { settings } = useDashboardContext();
   const updateSettings = useUpdateUserSettings();
+  const newWebhookSecret = useNewWebhookSecret();
   const logoutMutation = useLogout();
   const navigate = useNavigate();
+  const [showWebhookModal, setShowWebhookModal] = useState(false);
+  const [pendingData, setPendingData] = useState<SettingsFormData | null>(null);
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
@@ -75,11 +97,13 @@ export const Settings = () => {
       demoApiKey: settings.demoApiKey || "",
       demoUsername: settings.demoUsername || "",
       demoPassword: settings.demoPassword || "",
-      demoWebhookUrl: settings.demoWebhookUrl || "",
+      demoAccountId: settings.demoAccountId || "",
+      demoWebhookSecret: settings.demoWebhookSecret || "",
       liveApiKey: settings.liveApiKey || "",
       liveUsername: settings.liveUsername || "",
       livePassword: settings.livePassword || "",
-      liveWebhookUrl: settings.liveWebhookUrl || "",
+      liveAccountId: settings.liveAccountId || "",
+      liveWebhookSecret: settings.liveWebhookSecret || "",
       maximumOrderAgeInMinutes:
         settings.maximumOrderAgeInMinutes ||
         defaultUserSettings.maximumOrderAgeInMinutes,
@@ -114,16 +138,33 @@ export const Settings = () => {
   });
 
   const onSubmit = (data: SettingsFormData) => {
+    // Check if webhook secrets have changed
+    const webhookSecretsChanged =
+      data.demoWebhookSecret !== (settings.demoWebhookSecret || "") ||
+      data.liveWebhookSecret !== (settings.liveWebhookSecret || "");
+
+    if (webhookSecretsChanged) {
+      setPendingData(data);
+      setShowWebhookModal(true);
+      return;
+    }
+
+    processUpdate(data);
+  };
+
+  const processUpdate = (data: SettingsFormData) => {
     const processedData: UserSettings = {
       mode: data.mode,
       demoApiKey: data.demoApiKey || null,
       demoUsername: data.demoUsername || null,
       demoPassword: data.demoPassword || null,
-      demoWebhookUrl: data.demoWebhookUrl || null,
+      demoAccountId: data.demoAccountId || null,
+      demoWebhookSecret: data.demoWebhookSecret || null,
       liveApiKey: data.liveApiKey || null,
       liveUsername: data.liveUsername || null,
       livePassword: data.livePassword || null,
-      liveWebhookUrl: data.liveWebhookUrl || null,
+      liveAccountId: data.liveAccountId || null,
+      liveWebhookSecret: data.liveWebhookSecret || null,
       maximumOrderAgeInMinutes:
         data.maximumOrderAgeInMinutes ||
         defaultUserSettings.maximumOrderAgeInMinutes,
@@ -169,6 +210,35 @@ export const Settings = () => {
         });
       },
     });
+  };
+
+  const handleRotateWebhookSecret = (
+    fieldName: "demoWebhookSecret" | "liveWebhookSecret",
+  ) => {
+    newWebhookSecret.mutate(undefined, {
+      onSuccess: (response) => {
+        form.setValue(fieldName, response.secret);
+        toast.success("Webhook secret rotated successfully!");
+      },
+      onError: (error) => {
+        toast.error("Failed to rotate webhook secret", {
+          description: error.message || "An unexpected error occurred.",
+        });
+      },
+    });
+  };
+
+  const handleConfirmWebhookUpdate = () => {
+    if (pendingData) {
+      processUpdate(pendingData);
+      setShowWebhookModal(false);
+      setPendingData(null);
+    }
+  };
+
+  const handleCancelWebhookUpdate = () => {
+    setShowWebhookModal(false);
+    setPendingData(null);
   };
 
   return (
@@ -298,7 +368,7 @@ export const Settings = () => {
                     />
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-1">
                     <FormField
                       control={form.control}
                       name="demoPassword"
@@ -317,17 +387,76 @@ export const Settings = () => {
                         </FormItem>
                       )}
                     />
+                  </div>
 
+                  <div className="grid gap-4 md:grid-cols-1">
                     <FormField
                       control={form.control}
-                      name="demoWebhookUrl"
+                      name="demoWebhookSecret"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Webhook URL</FormLabel>
+                          <FormLabel>Webhook secret</FormLabel>
+                          <FormDescription>
+                            Unique key used to verify the origin of the webhook
+                          </FormDescription>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input
+                                type="text"
+                                placeholder="my-demo-webhook-secret-123"
+                                autoComplete="off"
+                                {...field}
+                                className="flex-1"
+                              />
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="default"
+                                      onClick={() =>
+                                        handleRotateWebhookSecret(
+                                          "demoWebhookSecret",
+                                        )
+                                      }
+                                      disabled={newWebhookSecret.isPending}
+                                      className="h-9.4 w-10 shrink-0 p-0"
+                                    >
+                                      <LoaderWrapper
+                                        isLoading={newWebhookSecret.isPending}
+                                      >
+                                        <RotateCcw className="h-4 w-4" />
+                                      </LoaderWrapper>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Rotate secret</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-1">
+                    <FormField
+                      control={form.control}
+                      name="demoAccountId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account ID</FormLabel>
+                          <FormDescription>
+                            The ID of the account (either spreadbet or CFD) to
+                            be used for trading
+                          </FormDescription>
                           <FormControl>
                             <Input
-                              type="url"
-                              placeholder="https://example.com/webhook"
+                              type="text"
+                              placeholder="Enter demo account ID"
                               autoComplete="off"
                               {...field}
                             />
@@ -392,7 +521,7 @@ export const Settings = () => {
                     />
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-1">
                     <FormField
                       control={form.control}
                       name="livePassword"
@@ -411,17 +540,76 @@ export const Settings = () => {
                         </FormItem>
                       )}
                     />
+                  </div>
 
+                  <div className="grid gap-4 md:grid-cols-1">
                     <FormField
                       control={form.control}
-                      name="liveWebhookUrl"
+                      name="liveWebhookSecret"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Webhook URL</FormLabel>
+                          <FormLabel>Webhook secret</FormLabel>
+                          <FormDescription>
+                            Unique key used to verify the origin of the webhook
+                          </FormDescription>
+                          <FormControl>
+                            <div className="flex gap-2">
+                              <Input
+                                type="text"
+                                placeholder="my-live-webhook-secret-123"
+                                {...field}
+                                className="flex-1"
+                              />
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="default"
+                                      onClick={() =>
+                                        handleRotateWebhookSecret(
+                                          "liveWebhookSecret",
+                                        )
+                                      }
+                                      disabled={newWebhookSecret.isPending}
+                                      className="h-9.4 w-10 shrink-0 p-0"
+                                    >
+                                      <LoaderWrapper
+                                        isLoading={newWebhookSecret.isPending}
+                                      >
+                                        <RotateCcw className="h-4 w-4" />
+                                      </LoaderWrapper>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Rotate secret</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-1">
+                    <FormField
+                      control={form.control}
+                      name="liveAccountId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account ID</FormLabel>
+                          <FormDescription>
+                            The ID of the account (either spreadbet or CFD) to
+                            be used for trading
+                          </FormDescription>
                           <FormControl>
                             <Input
-                              type="url"
-                              placeholder="https://example.com/webhook"
+                              type="text"
+                              placeholder="Enter live account ID"
+                              autoComplete="off"
                               {...field}
                             />
                           </FormControl>
@@ -768,6 +956,36 @@ export const Settings = () => {
           </form>
         </Form>
       </div>
+
+      {/* Webhook Secret Change Confirmation Modal */}
+      <Dialog open={showWebhookModal} onOpenChange={setShowWebhookModal}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Update webhook secret</DialogTitle>
+            <DialogDescription>
+              Since you rotated your webhook secret, you will have to update the
+              webhook secret in the TradingView webhook body as well.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelWebhookUpdate}
+              disabled={updateSettings.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmWebhookUpdate}
+              disabled={updateSettings.isPending}
+            >
+              <LoaderWrapper isLoading={updateSettings.isPending}>
+                Yes, I understand
+              </LoaderWrapper>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

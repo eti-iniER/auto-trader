@@ -73,7 +73,6 @@ class OAuth2(httpx.Auth):
             self.auth_data = self._get_auth_data_func()
 
         request.headers["Authorization"] = f"Bearer {self.auth_data.access_token}"
-        request.headers["Ig-Account-Id"] = self.auth_data.account_id
 
         log_request(request)
         response = yield request
@@ -86,7 +85,6 @@ class OAuth2(httpx.Auth):
             retry_request.headers["Authorization"] = (
                 f"Bearer {self.auth_data.access_token}"
             )
-            retry_request.headers["Ig-Account-Id"] = self.auth_data.account_id
 
             logger.debug("Retrying request with new authentication")
             log_request(retry_request)
@@ -99,6 +97,7 @@ class IGClient:
         self,
         username: str,
         password: str,
+        account_id: str,
         api_key: str,
         base_url: str = settings.IG_DEMO_API_BASE_URL,
     ):
@@ -106,12 +105,14 @@ class IGClient:
         self.password = password
         self.api_key = api_key
         self.base_url = base_url
+        self.account_id = account_id
 
         self.client = httpx.Client(
             auth=OAuth2(self._get_auth_data),
             base_url=base_url,
             headers={
                 "X-IG-API-KEY": self.api_key,
+                "IG-ACCOUNT-ID": self.account_id,
                 "Content-Type": "application/json",
                 "Accept": "application/json",
                 "Version": "3",
@@ -285,5 +286,4 @@ class IGClient:
 
         return AuthenticationData(
             access_token=session.oauth_token.access_token,
-            account_id=session.account_id,
         )
