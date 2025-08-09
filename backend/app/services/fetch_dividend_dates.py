@@ -40,7 +40,7 @@ async def fetch_dividend_date_for_symbol(
 
 
 async def bulk_update_dividend_dates(
-    session: AsyncSession, updates: List[Tuple[uuid.UUID, Optional[datetime]]]
+    db: AsyncSession, updates: List[Tuple[uuid.UUID, Optional[datetime]]]
 ) -> int:
     """
     Efficiently bulk update dividend dates using individual update statements.
@@ -98,20 +98,20 @@ async def bulk_update_dividend_dates(
                     .values(next_dividend_date=case_stmt)
                 )
 
-                result = await session.execute(stmt)
+                result = await db.execute(stmt)
                 updated_count += result.rowcount
 
-        await session.commit()
+        await db.commit()
         logger.info(f"Updated dividend dates for {updated_count} instruments")
         return updated_count
 
     except Exception as e:
         logger.error(f"Error in bulk update: {str(e)}")
-        await session.rollback()
+        await db.rollback()
         raise
 
 
-async def fetch_and_update_all_dividend_dates(session: AsyncSession) -> int:
+async def fetch_and_update_all_dividend_dates(db: AsyncSession) -> int:
     """
     Fetch and update dividend dates for all instruments with Yahoo symbols.
     Uses parallel processing for efficient data fetching.
@@ -130,7 +130,7 @@ async def fetch_and_update_all_dividend_dates(session: AsyncSession) -> int:
     stmt = select(Instrument.id, Instrument.yahoo_symbol).where(
         Instrument.yahoo_symbol.isnot(None), Instrument.yahoo_symbol != ""
     )
-    result = await session.execute(stmt)
+    result = await db.execute(stmt)
     instruments = result.all()
 
     if not instruments:
@@ -170,7 +170,7 @@ async def fetch_and_update_all_dividend_dates(session: AsyncSession) -> int:
     logger.info(f"Completed fetching dividend dates. Got {len(updates)} results")
 
     # Bulk update the database
-    updated_count = await bulk_update_dividend_dates(session, updates)
+    updated_count = await bulk_update_dividend_dates(db, updates)
     logger.info(f"Successfully updated dividend dates for {updated_count} instruments")
 
     return updated_count

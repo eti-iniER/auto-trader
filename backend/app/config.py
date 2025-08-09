@@ -73,6 +73,11 @@ class Settings(BaseSettings):
         env="FROM_EMAIL",
         description="Email address from which emails are sent",
     )
+    DIVIDEND_DATE_UPDATE_SCHEDULE: str = Field(
+        default="0 0 * * 6",
+        env="DIVIDEND_DATE_UPDATE_SCHEDULE",
+        description="Cron expression for dividend date update schedule (default: midnight on Saturday)",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

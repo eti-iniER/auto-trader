@@ -20,7 +20,7 @@ services:
         build: .
         volumes:
             - .:/app
-        command: dramatiq app.tasks.broker --processes 1 --threads 1
+        command: dramatiq app.tasks --processes 1 --threads 1
         env_file:
             - .env
         environment:
@@ -38,7 +38,7 @@ services:
         build: .
         volumes:
             - .:/app
-        command: periodiq -v app.tasks.broker
+        command: periodiq -v app.tasks
         env_file:
             - .env
         environment:

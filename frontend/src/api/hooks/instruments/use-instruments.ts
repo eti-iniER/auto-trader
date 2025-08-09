@@ -26,7 +26,7 @@ export const useInstruments = (params: InstrumentsParams = {}) => {
   return useQuery({
     queryKey: ["instruments", params],
     queryFn: () => getInstruments(params),
-    refetchInterval: 1000 * 30,
+    refetchInterval: 1000 * 10,
     placeholderData: (previousData) => {
       if (previousData) {
         return {

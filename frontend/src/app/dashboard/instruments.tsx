@@ -83,7 +83,10 @@ export const Instruments = () => {
   const handleFetchDividendDates = () => {
     fetchDividendDates.mutate(undefined, {
       onSuccess: () => {
-        toast.success("Dividend dates updated!");
+        toast.success("Success!", {
+          description:
+            "Dividend dates are being fetched in the background. Please check back in a few minutes.",
+        });
       },
       onError: (error) => {
         toast.error(`Failed to fetch dividend dates: ${error.message}`);
@@ -180,7 +183,7 @@ export const Instruments = () => {
                 ) : (
                   <>
                     <FiClock />
-                    Fetch Dividend Dates
+                    Fetch dividend dates
                   </>
                 )}
               </Button>

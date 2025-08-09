@@ -4,7 +4,7 @@ import logging
 import uuid
 from decimal import Decimal
 from typing import Annotated
-
+from app.tasks import update_dividend_dates
 from app.api.utils.authentication import get_current_user
 from app.api.utils.caching import cache, cache_with_pagination
 from app.api.utils.filters import InstrumentFilters
@@ -23,7 +23,16 @@ from app.schemas.instruments import (
     InstrumentUpdate,
     InstrumentUploadResponse,
 )
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+    BackgroundTasks,
+)
 from fastcrud import FastCRUD
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -248,6 +257,7 @@ async def search_instruments(
 )
 async def fetch_dividend_dates(
     db: Annotated[AsyncSession, Depends(get_db)],
+    background_tasks: BackgroundTasks,
     user: Annotated[User, Depends(get_current_user)],
 ) -> DividendFetchResponse:
     """
@@ -255,12 +265,7 @@ async def fetch_dividend_dates(
     This endpoint will fetch the latest dividend dates from Yahoo Finance and update the database.
     """
     try:
-        from app.services.fetch_dividend_dates import (
-            fetch_and_update_all_dividend_dates,
-        )
-
-        updated_count = await fetch_and_update_all_dividend_dates(db)
-
+        background_tasks.add_task(update_dividend_dates.send)
         return DividendFetchResponse(
             message="Successfully updated dividend dates for all instruments",
         )
@@ -269,53 +274,6 @@ async def fetch_dividend_dates(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch dividend dates: {str(e)}",
-        )
-
-
-@router.post(
-    "/{id}/fetch-dividend-date",
-    response_model=DividendFetchResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def fetch_single_dividend_date(
-    id: uuid.UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
-) -> DividendFetchResponse:
-    """
-    Trigger fetching and updating of dividend date for a specific instrument.
-    This endpoint will fetch the latest dividend date from Yahoo Finance for the specified instrument.
-    """
-    try:
-        from app.services.fetch_dividend_dates import (
-            fetch_and_update_single_dividend_date,
-        )
-
-        # Check if instrument exists
-        existing_instrument = await instrument_crud.exists(db, id=id)
-        if not existing_instrument:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Instrument with ID {id} not found",
-            )
-
-        success = await fetch_and_update_single_dividend_date(db, id)
-
-        if success:
-            return DividendFetchResponse(
-                message=f"Successfully updated dividend date for instrument {id}",
-            )
-        else:
-            return DividendFetchResponse(
-                message=f"No dividend date found or updated for instrument {id}",
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch dividend date: {str(e)}",
         )
 
 
