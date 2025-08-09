@@ -6,12 +6,12 @@ interface UserSettings {
   demoUsername: string | null;
   demoPassword: string | null;
   demoAccountId: string | null;
-  demoWebhookSecret: string | null;
+  demoWebhookSecret: string;
   liveApiKey: string | null;
   liveUsername: string | null;
   livePassword: string | null;
   liveAccountId: string | null;
-  liveWebhookSecret: string | null;
+  liveWebhookSecret: string;
   maximumOrderAgeInMinutes: number;
   maximumOpenPositions: number;
   maximumOpenPositionsAndPendingOrders: number;

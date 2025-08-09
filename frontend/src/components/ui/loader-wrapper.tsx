@@ -27,7 +27,7 @@ export const LoaderWrapper = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="absolute inset-0 mx-3 flex items-center justify-center gap-2"
+            className="absolute inset-0 flex items-center justify-center gap-2"
           >
             <div className="loader flex-shrink-0" />
             {loadingText && <span>{loadingText}</span>}
