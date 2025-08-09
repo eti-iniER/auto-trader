@@ -1,7 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
-from pydantic import BaseModel
+from typing import Literal, Optional
+from pydantic import BaseModel, AwareDatetime
+
+# Order type can be either MARKET or LIMIT for working orders
+type WorkingOrderType = Literal["LIMIT", "MARKET"]
 
 
 class Order(BaseModel):
@@ -10,11 +13,8 @@ class Order(BaseModel):
     deal_id: str
     ig_epic: str
     direction: str
-    type: str
-    size: float
-    created_at: datetime
+    type: WorkingOrderType
+    size: int
+    created_at: AwareDatetime
     stop_level: Optional[Decimal] = None
     profit_level: Optional[Decimal] = None
-
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat()}

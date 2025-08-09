@@ -4,11 +4,62 @@ from typing import Optional
 
 import httpx
 from app.config import settings
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log,
+    after_log,
+)
 
 from .exceptions import IGAPIError, IGAuthenticationError
 from .types import *
 
 logger = logging.getLogger(__name__)
+
+
+# Common retry decorator for API methods
+def ig_api_retry(method):
+    """Decorator for retrying IG API methods with exponential backoff."""
+
+    def should_retry(exception):
+        """Custom retry condition for IG API calls."""
+        # Always retry on network-related errors
+        if isinstance(
+            exception,
+            (
+                httpx.HTTPStatusError,
+                httpx.RequestError,
+                httpx.ConnectError,
+                httpx.TimeoutException,
+            ),
+        ):
+            return True
+
+        # Retry on specific IG API errors that are transient
+        if isinstance(exception, IGAPIError):
+            # Retry on server errors (5xx) and rate limiting
+            if exception.status_code in (500, 502, 503, 504, 429):
+                return True
+            # Don't retry on client errors (4xx) except for rate limiting
+            if 400 <= exception.status_code < 500 and exception.status_code != 429:
+                return False
+
+        # Don't retry authentication errors (they need credential refresh)
+        if isinstance(exception, IGAuthenticationError):
+            return False
+
+        return False
+
+    return retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=should_retry,
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        after=after_log(logger, logging.INFO),
+        reraise=True,
+    )(method)
 
 
 def log_request(request):
@@ -67,12 +118,25 @@ class OAuth2(httpx.Auth):
         self._get_auth_data_func = get_auth_data_func
         self.auth_data: Optional[AuthenticationData] = None
 
-    def auth_flow(self, request):
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.RequestError)),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        after=after_log(logger, logging.INFO),
+    )
+    def _make_authenticated_request(self, request):
+        """Make an authenticated request with retry logic."""
         if not self.auth_data:
             logger.debug("Getting authentication data for OAuth2")
             self.auth_data = self._get_auth_data_func()
 
         request.headers["Authorization"] = f"Bearer {self.auth_data.access_token}"
+        return request
+
+    def auth_flow(self, request):
+        # Apply authentication headers with retry logic
+        request = self._make_authenticated_request(request)
 
         log_request(request)
         response = yield request
@@ -126,6 +190,7 @@ class IGClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.client.close()
 
+    @ig_api_retry
     def get_session(self) -> GetSessionResponse:
         """
         Retrieves the session information from the IG API.
@@ -149,6 +214,9 @@ class IGClient:
                 },
             )
 
+            # Raise HTTPStatusError for failed responses to trigger retry
+            response.raise_for_status()
+
         data = response.json()
 
         if response.status_code != 200:
@@ -160,6 +228,7 @@ class IGClient:
 
         return GetSessionResponse(**data)
 
+    @ig_api_retry
     def get_history(self, filters: GetHistoryFilters) -> GetHistoryResponse:
         """
         Retrieves the historical data for the account.
@@ -168,6 +237,11 @@ class IGClient:
             "history/activity",
             params=filters.model_dump(by_alias=True, mode="json", exclude_none=True),
         )
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
         data = response.json()
 
         if response.status_code != 200:
@@ -179,11 +253,17 @@ class IGClient:
 
         return GetHistoryResponse(**data)
 
+    @ig_api_retry
     def get_positions(self) -> PositionsResponse:
         """
         Retrieve open positions for the account.
         """
         response = self.client.get("positions", headers={"Version": "2"})
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
         data = response.json()
 
         if response.status_code != 200:
@@ -195,6 +275,7 @@ class IGClient:
 
         return PositionsResponse(**data)
 
+    @ig_api_retry
     def create_position(self, data: CreatePositionRequest) -> CreatePositionResponse:
         """
         Create a new position in the account.
@@ -204,6 +285,11 @@ class IGClient:
             json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
             headers={"Version": "2"},
         )
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
         data = response.json()
 
         if response.status_code != 200:
@@ -215,11 +301,17 @@ class IGClient:
 
         return CreatePositionResponse(**data)
 
+    @ig_api_retry
     def get_working_orders(self) -> WorkingOrdersResponse:
         """
         Retrieve working orders for the account.
         """
         response = self.client.get("workingorders", headers={"Version": "2"})
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
         data = response.json()
 
         if response.status_code != 200:
@@ -231,6 +323,7 @@ class IGClient:
 
         return WorkingOrdersResponse(**data)
 
+    @ig_api_retry
     def create_working_order(
         self, data: CreateWorkingOrderRequest
     ) -> CreateWorkingOrderResponse:
@@ -242,6 +335,11 @@ class IGClient:
             json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
             headers={"Version": "2"},
         )
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
         data = response.json()
         print(data)
 
@@ -254,6 +352,7 @@ class IGClient:
 
         return CreateWorkingOrderResponse(**data)
 
+    @ig_api_retry
     def get_working_order_confirmation(
         self, data: ConfirmDealRequest
     ) -> DealConfirmation:
@@ -264,6 +363,11 @@ class IGClient:
             f"confirms/{data.deal_reference}",
             headers={"Version": "1"},
         )
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
         data = response.json()
 
         if response.status_code != 200:
@@ -275,6 +379,7 @@ class IGClient:
 
         return DealConfirmation(**data)
 
+    @ig_api_retry
     def _get_auth_data(self) -> AuthenticationData:
         """
         Retrieves the authentication data for the IG API session.

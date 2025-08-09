@@ -65,7 +65,7 @@ const columns: ColumnDef<Order>[] = [
     header: "Size",
     size: 100,
     cell: ({ row }) => (
-      <div className="text-center">{formatCurrency(row.getValue("size"))}</div>
+      <div className="text-center">{row.getValue("size")}</div>
     ),
   },
   {

@@ -1,7 +1,7 @@
 import logging
 from typing import List, Annotated
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.models import User
 from app.db.enums import UserSettingsMode
@@ -49,20 +49,25 @@ async def get_all_orders_from_ig(user: User) -> List[Order]:
         ig_epic = working_order_data.get("epic", market_data.get("epic", ""))
         direction = working_order_data.get("direction", "").upper()
         order_type = working_order_data.get("orderType", "")
-        size = working_order_data.get("orderSize", 0.0)
+        size = working_order_data.get("orderSize", 0)
 
-        created_date_str = working_order_data.get(
-            "createdDateUTC"
-        ) or working_order_data.get("createdDate")
+        created_date_str = working_order_data.get("createdDateUTC")
         try:
             if created_date_str:
-                created_at = datetime.fromisoformat(
-                    created_date_str.replace("Z", "+00:00")
-                )
+                # Parse the UTC datetime and make it timezone-aware
+                if created_date_str.endswith("Z"):
+                    # Handle ISO format with Z suffix
+                    created_at = datetime.fromisoformat(
+                        created_date_str.replace("Z", "+00:00")
+                    )
+                else:
+                    # Handle UTC datetime without timezone info
+                    naive_dt = datetime.fromisoformat(created_date_str)
+                    created_at = naive_dt.replace(tzinfo=timezone.utc)
             else:
-                created_at = datetime.now()
+                created_at = datetime.now(timezone.utc)
         except (ValueError, AttributeError):
-            created_at = datetime.now()
+            created_at = datetime.now(timezone.utc)
 
         order_level = working_order_data.get("orderLevel", 0.0)
         stop_distance = working_order_data.get("stopDistance")
