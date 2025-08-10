@@ -13,3 +13,8 @@ class LogType(str, Enum):
 class UserSettingsMode(str, Enum):
     DEMO = "DEMO"
     LIVE = "LIVE"
+
+
+class UserSettingsOrderType(str, Enum):
+    LIMIT = "LIMIT"
+    MARKET = "MARKET"

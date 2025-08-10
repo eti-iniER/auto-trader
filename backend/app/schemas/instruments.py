@@ -24,16 +24,16 @@ class InstrumentBase(BaseModel):
     ig_epic: str = Field(..., description="IG trading epic")
     yahoo_symbol: str = Field(..., description="Yahoo Finance symbol")
     atr_stop_loss_period: int = Field(..., description="ATR stop loss period")
-    atr_stop_loss_multiple: Decimal = Field(
+    atr_stop_loss_multiple_percentage: Decimal = Field(
         default=Decimal("1.0"), description="ATR stop loss multiple"
     )
     atr_profit_target_period: int = Field(..., description="ATR profit target period")
-    atr_profit_multiple: Decimal = Field(
+    atr_profit_multiple_percentage: Decimal = Field(
         default=Decimal("1.0"), description="ATR profit multiple"
     )
     position_size: int = Field(default=1, description="Position size")
     max_position_size: Optional[int] = Field(None, description="Maximum position size")
-    opening_price_multiple: Decimal = Field(
+    opening_price_multiple_percentage: Decimal = Field(
         default=Decimal("1.0"), description="Opening price multiple"
     )
     next_dividend_date: Optional[AwareDatetime] = Field(
@@ -55,18 +55,18 @@ class InstrumentUpdate(BaseModel):
     atr_stop_loss_period: Optional[int] = Field(
         None, description="ATR stop loss period"
     )
-    atr_stop_loss_multiple: Optional[Decimal] = Field(
+    atr_stop_loss_multiple_percentage: Optional[Decimal] = Field(
         None, description="ATR stop loss multiple"
     )
     atr_profit_target_period: Optional[int] = Field(
         None, description="ATR profit target period"
     )
-    atr_profit_multiple: Optional[Decimal] = Field(
+    atr_profit_multiple_percentage: Optional[Decimal] = Field(
         None, description="ATR profit multiple"
     )
     position_size: Optional[int] = Field(None, description="Position size")
     max_position_size: Optional[int] = Field(None, description="Maximum position size")
-    opening_price_multiple: Optional[Decimal] = Field(
+    opening_price_multiple_percentage: Optional[Decimal] = Field(
         None, description="Opening price multiple"
     )
     next_dividend_date: Optional[AwareDatetime] = Field(

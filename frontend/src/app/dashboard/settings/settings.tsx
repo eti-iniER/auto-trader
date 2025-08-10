@@ -52,6 +52,7 @@ export const Settings = () => {
       livePassword: settings.livePassword || "",
       liveAccountId: settings.liveAccountId || "",
       liveWebhookSecret: settings.liveWebhookSecret,
+      orderType: settings.orderType,
       maximumOrderAgeInMinutes: settings.maximumOrderAgeInMinutes,
       maximumOpenPositions: settings.maximumOpenPositions,
       maximumOpenPositionsAndPendingOrders:
@@ -97,6 +98,7 @@ export const Settings = () => {
       livePassword: data.livePassword || null,
       liveAccountId: data.liveAccountId || null,
       liveWebhookSecret: data.liveWebhookSecret,
+      orderType: data.orderType,
       maximumOrderAgeInMinutes: data.maximumOrderAgeInMinutes,
       maximumOpenPositions: data.maximumOpenPositions,
       maximumOpenPositionsAndPendingOrders:

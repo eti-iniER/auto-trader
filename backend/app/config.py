@@ -78,6 +78,11 @@ class Settings(BaseSettings):
         env="DIVIDEND_DATE_UPDATE_SCHEDULE",
         description="Cron expression for dividend date update schedule (default: midnight on Saturday)",
     )
+    WEBHOOK_SECRET_LENGTH: int = Field(
+        default=32,
+        env="WEBHOOK_SECRET_LENGTH",
+        description="Length of the webhook secret key",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

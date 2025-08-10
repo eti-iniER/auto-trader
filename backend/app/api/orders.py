@@ -13,7 +13,6 @@ from app.api.utils.pagination import (
     PaginationParams,
 )
 from app.api.utils.authentication import get_current_user
-from app.api.utils.ig_client import get_ig_client_for_user
 from .utils.pagination import *
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
@@ -30,7 +29,7 @@ async def get_all_orders_from_ig(user: User) -> List[Order]:
     Fetch all working orders from IG and cache them.
     This function handles the IG API call and data transformation.
     """
-    ig_client = get_ig_client_for_user(user)
+    ig_client = IGClient.create_for_user(user)
 
     ig_response = ig_client.get_working_orders()
     ig_orders_data = [

@@ -311,11 +311,11 @@ async def upload_instruments_csv(
             "IG EPIC": "ig_epic",
             "Yahoo Symbol": "yahoo_symbol",
             "ATR Stop Loss Period": "atr_stop_loss_period",
-            "ATR Stop Loss Multiple": "atr_stop_loss_multiple",
+            "ATR Stop Loss Multiple": "atr_stop_loss_multiple_percentage",
             "ATR Profit Target Period": "atr_profit_target_period",
-            "ATR Profit Multiple": "atr_profit_multiple",
+            "ATR Profit Multiple": "atr_profit_multiple_percentage",
             "Position Size Max GBP": "max_position_size",
-            "Opening Price Multiple": "opening_price_multiple",
+            "Opening Price Multiple": "opening_price_multiple_percentage",
         }
 
         csv_headers = set(csv_reader.fieldnames or [])
@@ -350,9 +350,9 @@ async def upload_instruments_csv(
                     ]:
                         instrument_data[model_field] = int(value)
                     elif model_field in [
-                        "atr_stop_loss_multiple",
-                        "atr_profit_multiple",
-                        "opening_price_multiple",
+                        "atr_stop_loss_multiple_percentage",
+                        "atr_profit_multiple_percentage",
+                        "opening_price_multiple_percentage",
                     ]:
                         instrument_data[model_field] = Decimal(str(value))
                     else:

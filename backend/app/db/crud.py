@@ -139,3 +139,59 @@ async def get_instrument_by_ig_epic(db: AsyncSession, ig_epic: str) -> Instrumen
         )
 
     return instrument
+
+
+async def get_user_by_webhook_secret(db: AsyncSession, secret: str) -> User:
+    """
+    Retrieve a user by their webhook secret.
+
+    Args:
+        db (AsyncSession): The database session.
+        secret (str): The webhook secret of the user to retrieve.
+
+    Returns:
+        User: The user object if found, otherwise None.
+    """
+    stmt = (
+        select(User)
+        .options(selectinload(User.settings))
+        .where(
+            (User.settings.has(UserSettings.demo_webhook_secret == secret))
+            | (User.settings.has(UserSettings.live_webhook_secret == secret))
+        )
+    )
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with the provided webhook secret not found.",
+        )
+    return user
+
+
+async def get_instrument_by_market_and_symbol(
+    db: AsyncSession, market_and_symbol: str
+) -> Instrument:
+    """
+    Retrieve an instrument by its market and symbol.
+
+    Args:
+        db (AsyncSession): The database session.
+        market_and_symbol (str): The market and symbol of the instrument to retrieve.
+
+    Returns:
+        Instrument: The instrument object if found, otherwise raises an error.
+    """
+    stmt = select(Instrument).where(Instrument.market_and_symbol == market_and_symbol)
+    result = await db.execute(stmt)
+    instrument = result.scalar_one_or_none()
+
+    if not instrument:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Instrument with market and symbol '{market_and_symbol}' not found.",
+        )
+
+    return instrument

@@ -25,6 +25,7 @@ class UserSettingsRead(BaseModel):
     live_account_id: Optional[str] = Field(
         None, description="Live spreadbet account ID"
     )
+    order_type: str = Field(..., description="Order type (e.g., market, limit, stop)")
     maximum_order_age_in_minutes: int = Field(
         ..., description="Maximum age of an order in minutes"
     )
@@ -81,6 +82,7 @@ class UserSettingsUpdate(BaseModel):
     live_account_id: Optional[str] = Field(
         None, description="Live spreadbet account ID"
     )
+    order_type: str = Field(None, description="Order type (e.g., market, limit, stop)")
     maximum_order_age_in_minutes: Optional[int] = Field(
         None, description="Maximum age of an order in minutes"
     )

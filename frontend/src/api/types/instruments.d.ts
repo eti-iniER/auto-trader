@@ -3,12 +3,12 @@ interface Instrument {
   igEpic: string;
   yahooSymbol: string;
   atrStopLossPeriod: number;
-  atrStopLossMultiple: number;
+  atrstopLossMultiplePercentage: number;
   atrProfitTargetPeriod: number;
-  atrProfitMultiple: number;
+  atrProfitMultiplePercentage: number;
   positionSize: number;
   maxPositionSize: number;
-  openingPriceMultiple: number;
+  openingPriceMultiplePercentage: number;
   nextDividendDate: Date | null;
 }
 

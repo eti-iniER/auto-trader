@@ -3,22 +3,19 @@ import logging
 import dramatiq
 from app.config import settings
 from app.db.deps import get_db_context
-from app.services.fetch_dividend_dates import fetch_and_update_all_dividend_dates
+from app.services.dividend_dates import fetch_and_update_all_dividend_dates
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware import AsyncIO
 from periodiq import PeriodiqMiddleware, cron
 
-# Configure broker
 broker = RabbitmqBroker(url=settings.DRAMATIQ_BROKER_URL)
 broker.add_middleware(AsyncIO())
 broker.add_middleware(PeriodiqMiddleware(skip_delay=30))
 
 dramatiq.set_broker(broker)
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
-# Schedule configuration
 DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
 
 

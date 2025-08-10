@@ -3,7 +3,7 @@ import uuid
 from decimal import Decimal
 from typing import List, Optional
 
-from app.db.enums import LogType, UserSettingsMode
+from app.db.enums import LogType, UserSettingsMode, UserSettingsOrderType
 from app.services.utils import generate_webhook_secret
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -76,16 +76,16 @@ class Instrument(BaseDBModel):
     ig_epic: Mapped[str] = mapped_column(String(255), nullable=False)
     yahoo_symbol: Mapped[str] = mapped_column(String(255), nullable=False)
     atr_stop_loss_period: Mapped[int] = mapped_column(nullable=False)
-    atr_stop_loss_multiple: Mapped[Decimal] = mapped_column(
+    atr_stop_loss_multiple_percentage: Mapped[Decimal] = mapped_column(
         nullable=False, default=Decimal("1.0")
     )
     atr_profit_target_period: Mapped[int] = mapped_column(nullable=False)
-    atr_profit_multiple: Mapped[Decimal] = mapped_column(
+    atr_profit_multiple_percentage: Mapped[Decimal] = mapped_column(
         nullable=False, default=Decimal("1.0")
     )
     position_size: Mapped[int] = mapped_column(nullable=False, default=1)
     max_position_size: Mapped[int] = mapped_column(nullable=True)
-    opening_price_multiple: Mapped[Decimal] = mapped_column(
+    opening_price_multiple_percentage: Mapped[Decimal] = mapped_column(
         nullable=False, default=Decimal("1.0")
     )
     next_dividend_date: Mapped[Optional[datetime.datetime]] = mapped_column(
@@ -115,6 +115,9 @@ class UserSettings(BaseDBModel):
         Text, nullable=True, default=generate_webhook_secret
     )
     live_account_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    order_type: Mapped[UserSettingsOrderType] = mapped_column(
+        Enum(UserSettingsOrderType), nullable=False, default=UserSettingsOrderType.LIMIT
+    )
     maximum_order_age_in_minutes: Mapped[int] = mapped_column(
         nullable=False, default=1, comment="Maximum age of an order in minutes"
     )

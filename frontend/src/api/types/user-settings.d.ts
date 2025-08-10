@@ -1,4 +1,5 @@
 type UserSettingsMode = "DEMO" | "LIVE";
+type UserSettingsOrderType = "LIMIT" | "MARKET";
 
 interface UserSettings {
   mode: UserSettingsMode;
@@ -11,6 +12,7 @@ interface UserSettings {
   liveUsername: string | null;
   livePassword: string | null;
   liveAccountId: string | null;
+  orderType: UserSettingsOrderType;
   liveWebhookSecret: string;
   maximumOrderAgeInMinutes: number;
   maximumOpenPositions: number;

@@ -17,6 +17,9 @@ export const settingsSchema = z.object({
   liveAccountId: z.string().optional(),
   liveWebhookSecret: z.string(),
   // Trading settings
+  orderType: z.enum(["LIMIT", "MARKET"], {
+    message: "Please select an order type",
+  }),
   maximumOrderAgeInMinutes: z.number().int().min(1).max(1440),
   maximumOpenPositions: z.number().int().min(0).max(100),
   maximumOpenPositionsAndPendingOrders: z.number().int().min(0).max(100),

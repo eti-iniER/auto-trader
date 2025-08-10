@@ -13,6 +13,9 @@ services:
             - .env
         networks:
             - app-network
+        depends_on:
+            postgres:
+                condition: service_healthy
 
     dramatiq_worker:
         image: etinier/auto-trader

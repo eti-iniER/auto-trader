@@ -7,6 +7,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
 import { useFormContext } from "react-hook-form";
 import type { SettingsFormData } from "../schema";
@@ -34,6 +38,50 @@ export const TradingRulesSection = () => {
           </p>
         </div>
         <div className="space-y-6">
+          <FormField
+            control={control}
+            name="orderType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Order type</FormLabel>
+                <FormControl>
+                  <SegmentedControl
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    variant="default"
+                    size="lg"
+                    className="h-16"
+                  >
+                    <SegmentedControlItem
+                      value="LIMIT"
+                      selectedClassName="bg-slate-600 text-white shadow-sm hover:bg-slate-800"
+                      unselectedClassName="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    >
+                      <div className="py-4 text-center">
+                        <div className="font-medium">Limit</div>
+                        <div className="text-xs opacity-90">
+                          Execute at specific price or better
+                        </div>
+                      </div>
+                    </SegmentedControlItem>
+                    <SegmentedControlItem
+                      value="MARKET"
+                      selectedClassName="bg-slate-600 text-white shadow-sm hover:bg-slate-800"
+                      unselectedClassName="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    >
+                      <div className="py-4 text-center">
+                        <div className="font-medium">Market</div>
+                        <div className="text-xs opacity-90">
+                          Execute immediately at current price
+                        </div>
+                      </div>
+                    </SegmentedControlItem>
+                  </SegmentedControl>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <div className="grid gap-6 md:grid-cols-2">
             <FormField
               control={control}

@@ -52,12 +52,12 @@ const columns: ColumnDef<Instrument>[] = [
     ),
   },
   {
-    accessorKey: "atrStopLossMultiple",
-    header: "ATR Stop Loss Multiple",
+    accessorKey: "atrstopLossMultiplePercentage",
+    header: "ATR Stop Loss Multiple Percentage",
     size: 180,
     cell: ({ row }) => (
       <div className="text-center">
-        {formatDecimal(row.getValue("atrStopLossMultiple"))}
+        {formatDecimal(row.getValue("atrstopLossMultiplePercentage"))}
       </div>
     ),
   },
@@ -70,11 +70,11 @@ const columns: ColumnDef<Instrument>[] = [
     ),
   },
   {
-    accessorKey: "atrProfitMultiple",
-    header: "ATR Profit Multiple",
+    accessorKey: "atrProfitMultiplePercentage",
+    header: "ATR Profit Multiple Percentage",
     cell: ({ row }) => (
       <div className="text-center">
-        {formatDecimal(row.getValue("atrProfitMultiple"))}
+        {formatDecimal(row.getValue("atrProfitMultiplePercentage"))}
       </div>
     ),
   },
@@ -95,11 +95,11 @@ const columns: ColumnDef<Instrument>[] = [
     ),
   },
   {
-    accessorKey: "openingPriceMultiple",
-    header: "Opening Price Multiple",
+    accessorKey: "openingPriceMultiplePercentage",
+    header: "Opening Price Multiple Percentage",
     cell: ({ row }) => (
       <div className="text-center">
-        {formatDecimal(row.getValue("openingPriceMultiple"))}
+        {formatDecimal(row.getValue("openingPriceMultiplePercentage"))}
       </div>
     ),
   },

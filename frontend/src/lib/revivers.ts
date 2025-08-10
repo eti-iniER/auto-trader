@@ -11,8 +11,8 @@ const DECIMAL_KEYS = new Set([
   "marketCap",
   "peRatio",
   "eps",
-  "atrStopLossMultiple",
-  "openingPriceMultiple",
+  "atrstopLossMultiplePercentage",
+  "openingPriceMultiplePercentage",
 ]);
 
 export function revivers(_key: string, value: string) {
