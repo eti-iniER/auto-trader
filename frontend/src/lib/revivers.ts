@@ -11,7 +11,8 @@ const DECIMAL_KEYS = new Set([
   "marketCap",
   "peRatio",
   "eps",
-  "atrstopLossMultiplePercentage",
+  "atrStopLossMultiplePercentage",
+  "atrProfitMultiplePercentage",
   "openingPriceMultiplePercentage",
 ]);
 

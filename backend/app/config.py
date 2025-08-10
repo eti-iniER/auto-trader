@@ -83,6 +83,11 @@ class Settings(BaseSettings):
         env="WEBHOOK_SECRET_LENGTH",
         description="Length of the webhook secret key",
     )
+    DEFAULT_CURRENCY_CODE: str = Field(
+        default="GBP",
+        env="DEFAULT_CURRENCY_CODE",
+        description="Default currency code for the application",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

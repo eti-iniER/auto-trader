@@ -7,7 +7,7 @@ LOG_TYPE = Literal["unspecified", "authentication", "alert", "trade", "order", "
 
 
 async def log_message(
-    message: str, log_type: LOG_TYPE, extra: Optional[dict] = None
+    message: str, description: str, log_type: LOG_TYPE, extra: Optional[dict] = None
 ) -> None:
     """
     Logs a message to the database.
@@ -22,4 +22,4 @@ async def log_message(
     except ValueError:
         enum_type = LogType.UNSPECIFIED
 
-    await log_message_to_db(message, enum_type, extra)
+    await log_message_to_db(message, description, enum_type, extra)

@@ -1,7 +1,10 @@
+import logging
 from decimal import Decimal
 
 from app.schemas.alert import TradingViewAlert
 from app.schemas.webhook import WebhookPayload
+
+logger = logging.getLogger(__name__)
 
 
 async def parse_webhook_payload_to_trading_view_alert(
@@ -27,15 +30,17 @@ async def parse_webhook_payload_to_trading_view_alert(
 
 async def parse_atrs_from_message(message: str) -> list[Decimal]:
     """Extract ATRs from the message field."""
-    parts = message.split(",")
+    parts = message.split(" ")
+    logger.debug(f"Extracted parts from message: {parts}")
+    atrs = parts[-10:]
 
-    if len(parts) < 10:
+    if len(atrs) != 10:
         raise ValueError(
-            "Message format is incorrect. Expected at least 10 ATR values."
+            f"Message format is incorrect. Expected exactly 10 ATR values, got {len(atrs)}."
         )
 
     try:
-        atrs = [Decimal(part.strip()) for part in parts if part.strip()]
-        return atrs[:10]
+        atrs = [Decimal(atr.strip()) for atr in atrs if atr.strip()]
+        return atrs
     except (ValueError, TypeError) as e:
         raise ValueError(f"Failed to parse ATRs from message: {e}")

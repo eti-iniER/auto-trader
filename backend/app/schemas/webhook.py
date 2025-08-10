@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
 
@@ -8,7 +8,9 @@ class WebhookPayload(BaseModel):
     market_and_symbol: str = Field(
         ..., description="The symbol for which the webhook is triggered", alias="symbol"
     )
-    direction: str = Field(..., description="The direction of the trade (buy/sell)")
+    direction: Literal["BUY", "SELL"] = Field(
+        ..., description="The direction of the trade (buy/sell)"
+    )
     message: str = Field(..., description="The message associated with the webhook")
     secret: str = Field(..., description="Secret key for webhook validation")
     timestamp: AwareDatetime = Field(

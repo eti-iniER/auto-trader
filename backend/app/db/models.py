@@ -33,6 +33,7 @@ class Log(BaseDBModel):
     __tablename__ = "logs"
 
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
     type: Mapped[LogType] = mapped_column(
         Enum(LogType), nullable=False, default=LogType.UNSPECIFIED
     )

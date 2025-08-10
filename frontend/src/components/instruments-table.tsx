@@ -52,12 +52,12 @@ const columns: ColumnDef<Instrument>[] = [
     ),
   },
   {
-    accessorKey: "atrstopLossMultiplePercentage",
+    accessorKey: "atrStopLossMultiplePercentage",
     header: "ATR Stop Loss Multiple Percentage",
     size: 180,
     cell: ({ row }) => (
       <div className="text-center">
-        {formatDecimal(row.getValue("atrstopLossMultiplePercentage"))}
+        {formatDecimal(row.getValue("atrStopLossMultiplePercentage"))}
       </div>
     ),
   },

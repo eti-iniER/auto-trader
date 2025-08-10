@@ -41,7 +41,7 @@ type MarketStatus = Literal[
 
 type Direction = Literal["BUY", "SELL"]
 
-type OrderType = Literal["LIMIT", "STOP"]
+type OrderType = Literal["LIMIT", "MARKET", "STOP"]
 
 type TimeInForce = Literal["GOOD_TILL_CANCELLED", "GOOD_TILL_DATE"]
 

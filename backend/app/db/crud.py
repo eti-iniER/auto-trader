@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 
 async def log_message(
-    message: str, log_type: LogType, extra: Optional[dict] = None
+    message: str, description: str, log_type: LogType, extra: Optional[dict] = None
 ) -> Log:
     """
     Logs a message to the database.
@@ -25,7 +25,9 @@ async def log_message(
     """
 
     async with get_db_context() as db:
-        log_entry = Log(message=message, type=log_type, extra=extra)
+        log_entry = Log(
+            message=message, description=description, type=log_type, extra=extra
+        )
         db.add(log_entry)
         await db.commit()
         await db.refresh(log_entry)

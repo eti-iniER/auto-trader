@@ -3,7 +3,7 @@ interface Instrument {
   igEpic: string;
   yahooSymbol: string;
   atrStopLossPeriod: number;
-  atrstopLossMultiplePercentage: number;
+  atrStopLossMultiplePercentage: number;
   atrProfitTargetPeriod: number;
   atrProfitMultiplePercentage: number;
   positionSize: number;

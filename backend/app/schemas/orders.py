@@ -3,8 +3,8 @@ from decimal import Decimal
 from typing import Literal, Optional
 from pydantic import BaseModel, AwareDatetime
 
-# Order type can be either MARKET or LIMIT for working orders
-type WorkingOrderType = Literal["LIMIT", "MARKET"]
+# Order type can be either MARKET, LIMIT, or STOP
+type WorkingOrderType = Literal["LIMIT", "MARKET", "STOP"]
 
 
 class Order(BaseModel):
