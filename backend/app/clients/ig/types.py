@@ -3,6 +3,7 @@ from typing import List, Literal, Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
 
+# Core Type Definitions
 type InstrumentType = Literal[
     "BINARY",
     "BUNGEE_CAPPED",
@@ -47,8 +48,6 @@ type TimeInForce = Literal["GOOD_TILL_CANCELLED", "GOOD_TILL_DATE"]
 
 type PositionOrderType = Literal["LIMIT", "MARKET", "QUOTE"]
 
-type TimeInForce = Literal["GOOD_TILL_CANCELLED", "GOOD_TILL_DATE"]
-
 type PositionTimeInForce = Literal["EXECUTE_AND_ELIMINATE", "FILL_OR_KILL"]
 
 type AccountStatus = Literal["DISABLED", "ENABLED", "SUSPENDED_FROM_DEALING"]
@@ -58,7 +57,6 @@ type AccountType = Literal["CFD", "PHYSICAL", "SPREADBET"]
 type ActivityChannel = Literal[
     "DEALER", "MOBILE", "PUBLIC_FIX_API", "PUBLIC_WEB_API", "SYSTEM", "WEB"
 ]
-
 
 type ActivityActionType = Literal[
     "LIMIT_ORDER_AMENDED",
@@ -84,8 +82,9 @@ type ActivityActionType = Literal[
 type AffectedDealStatus = Literal[
     "AMENDED", "DELETED", "FULLY_CLOSED", "OPENED", "PARTIALLY_CLOSED"
 ]
+
 type DealStatus = Literal["ACCEPTED", "REJECTED"]
-type Direction = Literal["BUY", "SELL"]
+
 type PositionStatus = Literal[
     "AMENDED", "CLOSED", "DELETED", "OPEN", "PARTIALLY_CLOSED"
 ]
@@ -156,6 +155,7 @@ type ReasonCode = Literal[
 ]
 
 
+# Error Response Model
 class ErrorResponse(BaseModel):
     status_code: int = Field(..., description="HTTP status code of the error")
     error_code: str = Field(
@@ -163,6 +163,7 @@ class ErrorResponse(BaseModel):
     )
 
 
+# Account Models
 class AccountBalance(BaseModel):
     available: Decimal = Field(..., description="Available balance for trading")
     balance: Decimal = Field(..., description="Total balance in the account")
@@ -204,22 +205,7 @@ class Account(BaseModel):
     )
 
 
-class ActivityAction(BaseModel):
-    action_type: ActivityActionType = Field(
-        ..., description="Type of the activity action", alias="actionType"
-    )
-    affected_deal_id: str = Field(
-        ..., description="ID of the deal affected by the action", alias="affectedDealId"
-    )
-
-
-class Activity(BaseModel):
-    channel: ActivityChannel = Field(
-        ..., description="Channel through which the activity occurred"
-    )
-    date: AwareDatetime = Field(..., description="Date and time of the activity")
-
-
+# Authentication Models
 class OauthToken(BaseModel):
     access_token: str = Field(..., description="Access token for authentication")
     refresh_token: str = Field(..., description="Refresh token for renewing access")
@@ -244,6 +230,23 @@ class GetSessionResponse(BaseModel):
 
 class AuthenticationData(BaseModel):
     access_token: str = Field(..., description="Access token for the session")
+
+
+# Activity and History Models
+class ActivityAction(BaseModel):
+    action_type: ActivityActionType = Field(
+        ..., description="Type of the activity action", alias="actionType"
+    )
+    affected_deal_id: str = Field(
+        ..., description="ID of the deal affected by the action", alias="affectedDealId"
+    )
+
+
+class Activity(BaseModel):
+    channel: ActivityChannel = Field(
+        ..., description="Channel through which the activity occurred"
+    )
+    date: AwareDatetime = Field(..., description="Date and time of the activity")
 
 
 class GetHistoryFilters(BaseModel):
@@ -287,48 +290,10 @@ class GetHistoryResponse(BaseModel):
     )
 
 
-class Price(BaseModel):
-    bid: Decimal = Field(..., description="Bid price")
-    ask: Decimal = Field(..., description="Ask price")
-    last_traded: Optional[Decimal] = Field(
-        None, description="Last traded price", alias="lastTraded"
-    )
-
-
-class Position(BaseModel):
-    deal_reference: str = Field(
-        ..., description="Deal reference identifier", alias="dealReference"
-    )
-    epic: str = Field(..., description="Instrument epic identifier", alias="epic")
-    direction: Literal["BUY", "SELL"] = Field(
-        ..., description="Position direction", alias="direction"
-    )
-    size: Decimal = Field(..., description="Position size", alias="size")
-    level: Decimal = Field(..., description="Entry level price", alias="level")
-    limit_level: Optional[Decimal] = Field(
-        None, description="Limit order level", alias="limitLevel"
-    )
-    stop_level: Optional[Decimal] = Field(
-        None, description="Stop order level", alias="stopLevel"
-    )
-    trailing_step: Optional[Decimal] = Field(
-        None, description="Trailing step distance", alias="trailingStep"
-    )
-    trailing_stop_distance: Optional[Decimal] = Field(
-        None, description="Trailing stop distance", alias="trailingStopDistance"
-    )
-    price: Optional[Price] = Field(
-        None, description="Current price snapshot at time of response", alias="price"
-    )
-
-
-class PositionsResponse(BaseModel):
-    positions: List[Position] = Field(
-        ..., description="List of open positions", alias="positions"
-    )
-
-
+# Market Data Models (Unified)
 class MarketData(BaseModel):
+    """Unified market data model used across positions and working orders"""
+
     bid: Optional[Decimal] = None
     delay_time: Optional[Decimal] = Field(None, alias="delayTime")
     epic: Optional[str] = None
@@ -351,7 +316,64 @@ class MarketData(BaseModel):
     update_time_utc: Optional[str] = Field(None, alias="updateTimeUTC")
 
 
-class WorkingOrderData(BaseModel):
+# Position Models
+class PositionDetail(BaseModel):
+    """Details of a trading position"""
+
+    contract_size: float = Field(
+        ..., alias="contractSize", description="Size of the contract"
+    )
+    controlled_risk: bool = Field(
+        ..., alias="controlledRisk", description="True if position is risk controlled"
+    )
+    created_date: str = Field(
+        ..., alias="createdDate", description="Local date the position was opened"
+    )
+    created_date_utc: str = Field(
+        ..., alias="createdDateUTC", description="Date the position was opened"
+    )
+    currency: str = Field(..., description="Position currency ISO code")
+    deal_id: str = Field(..., alias="dealId", description="Deal identifier")
+    deal_reference: str = Field(
+        ..., alias="dealReference", description="Deal reference"
+    )
+    direction: Direction = Field(..., description="Position direction")
+    level: float = Field(..., description="Level at which the position was opened")
+    limit_level: Optional[float] = Field(
+        None, alias="limitLevel", description="Limit level"
+    )
+    limited_risk_premium: Optional[float] = Field(
+        None, alias="limitedRiskPremium", description="Limited Risk Premium"
+    )
+    size: float = Field(..., description="Deal size")
+    stop_level: Optional[float] = Field(
+        None, alias="stopLevel", description="Stop level"
+    )
+    trailing_step: Optional[float] = Field(
+        None, alias="trailingStep", description="Trailing step size"
+    )
+    trailing_stop_distance: Optional[float] = Field(
+        None, alias="trailingStopDistance", description="Trailing stop distance"
+    )
+
+
+class PositionData(BaseModel):
+    """Complete position data including market information"""
+
+    market: MarketData = Field(..., description="Market data for the position")
+    position: PositionDetail = Field(..., description="Position details")
+
+
+class PositionsResponse(BaseModel):
+    """Response containing list of positions"""
+
+    positions: List[PositionData] = Field(..., description="List of position data")
+
+
+# Working Order Models
+class WorkingOrderDetail(BaseModel):
+    """Details of a working order"""
+
     created_date: Optional[str] = Field(None, alias="createdDate")
     created_date_utc: Optional[str] = Field(None, alias="createdDateUTC")
     currency_code: Optional[str] = Field(None, alias="currencyCode")
@@ -371,18 +393,25 @@ class WorkingOrderData(BaseModel):
     time_in_force: Optional[TimeInForce] = Field(None, alias="timeInForce")
 
 
-class WorkingOrder(BaseModel):
+class WorkingOrderData(BaseModel):
+    """Complete working order data including market information"""
+
     market_data: Optional[MarketData] = Field(None, alias="marketData")
-    working_order_data: Optional[WorkingOrderData] = Field(
+    working_order_data: Optional[WorkingOrderDetail] = Field(
         None, alias="workingOrderData"
     )
 
 
 class WorkingOrdersResponse(BaseModel):
-    working_orders: List[WorkingOrder] = Field(alias="workingOrders")
+    """Response containing list of working orders"""
+
+    working_orders: List[WorkingOrderData] = Field(alias="workingOrders")
 
 
+# Request Models for Creating Orders and Positions
 class CreateWorkingOrderRequest(BaseModel):
+    """Request to create a working order"""
+
     currency_code: str = Field(alias="currencyCode")
     deal_reference: Optional[str] = Field(None, alias="dealReference")
     direction: Direction
@@ -405,10 +434,14 @@ class CreateWorkingOrderRequest(BaseModel):
 
 
 class CreateWorkingOrderResponse(BaseModel):
+    """Response after creating a working order"""
+
     deal_reference: Optional[str] = Field(None, alias="dealReference")
 
 
 class CreatePositionRequest(BaseModel):
+    """Request to create a position"""
+
     currency_code: str = Field(alias="currencyCode")
     deal_reference: Optional[str] = Field(None, alias="dealReference")
     direction: Direction
@@ -435,10 +468,15 @@ class CreatePositionRequest(BaseModel):
 
 
 class CreatePositionResponse(BaseModel):
+    """Response after creating a position"""
+
     deal_reference: Optional[str] = Field(None, alias="dealReference")
 
 
+# Deal Confirmation Models
 class ConfirmDealRequest(BaseModel):
+    """Request to confirm a deal"""
+
     deal_reference: str = Field(
         ..., description="Reference of the deal to confirm", alias="dealReference"
     )
@@ -448,78 +486,56 @@ class ConfirmDealRequest(BaseModel):
 
 
 class AffectedDeal(BaseModel):
-    """Model for affected deal information."""
+    """Information about a deal affected by a transaction"""
 
     deal_id: str = Field(..., alias="dealId", description="Deal identifier")
-
     status: AffectedDealStatus = Field(..., description="Affected deal status")
 
 
 class DealConfirmation(BaseModel):
-    """Model for deal confirmation response."""
+    """Confirmation details of a completed deal"""
 
     affected_deals: Optional[List[AffectedDeal]] = Field(
         None, alias="affectedDeals", description="List of affected deals"
     )
-
     date: str = Field(..., description="Transaction date")
-
     deal_id: str = Field(..., alias="dealId", description="Deal identifier")
-
     deal_reference: str = Field(
         ..., alias="dealReference", description="Deal reference"
     )
-
     deal_status: DealStatus = Field(..., alias="dealStatus", description="Deal status")
-
     direction: Direction = Field(..., description="Deal direction")
-
     epic: str = Field(..., description="Instrument epic identifier")
-
     expiry: str = Field(..., description="Instrument expiry")
-
     guaranteed_stop: bool = Field(
         ..., alias="guaranteedStop", description="True if guaranteed stop"
     )
-
     level: Decimal = Field(..., description="Level")
-
     limit_distance: Optional[Decimal] = Field(
         None, alias="limitDistance", description="Limit distance"
     )
-
     limit_level: Optional[Decimal] = Field(
         None, alias="limitLevel", description="Limit level"
     )
-
     profit: Decimal = Field(..., description="Profit")
-
     profit_currency: str = Field(
         ..., alias="profitCurrency", description="Profit currency"
     )
-
     reason: ReasonCode = Field(
         ...,
         description="Describes the error (or success) condition for the specified trading operation",
     )
-
     size: Decimal = Field(..., description="Size")
-
     status: PositionStatus = Field(..., description="Position status")
-
     stop_distance: Optional[Decimal] = Field(
         None, alias="stopDistance", description="Stop distance"
     )
-
     stop_level: Optional[Decimal] = Field(
         None, alias="stopLevel", description="Stop level"
     )
-
     trailing_stop: bool = Field(
         ..., alias="trailingStop", description="True if trailing stop"
     )
 
     class Config:
-        """Pydantic model configuration."""
-
         populate_by_name = True

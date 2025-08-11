@@ -5,7 +5,7 @@ from app.services.core.calculation_helpers import *
 from app.services.core.payload_parser import parse_webhook_payload_to_trading_view_alert
 from app.services.core.payload_validator import validate_webhook_payload
 from app.services.core.trade_executor import create_order
-from app.services.logging import log_message
+from backend.app.services.logging.helper import log_message
 
 
 async def handle_alert(payload: WebhookPayload):

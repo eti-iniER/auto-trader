@@ -3,6 +3,7 @@ from typing import Literal
 
 type SignalDirection = Literal["BUY", "SELL"]
 TWO_DECIMAL_PLACES = Decimal("0.01")
+INTEGER = Decimal("1")
 
 
 def calculate_limit_price(
@@ -17,7 +18,7 @@ def calculate_limit_price(
 
 
 def calculate_bet_size(limit_price: Decimal, size: int):
-    return (size / limit_price).quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_UP")
+    return max(1, int((size / limit_price).quantize(INTEGER, rounding="ROUND_HALF_UP")))
 
 
 def calculate_profit_target_price(
