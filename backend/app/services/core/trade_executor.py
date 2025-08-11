@@ -4,7 +4,7 @@ from app.clients.ig import IGClient
 from decimal import Decimal
 from app.config import settings
 from typing import Literal
-from backend.app.services.logging.helper import log_message
+from app.services.logging import log_message
 
 
 async def create_order(
