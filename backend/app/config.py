@@ -39,6 +39,11 @@ class Settings(BaseSettings):
         env="IG_DEMO_API_BASE_URL",
         description="Base URL for the IG API",
     )
+    IG_ACCOUNT_ID: str = Field(
+        ...,
+        env="IG_ACCOUNT_ID",
+        description="Account ID for IG trading",
+    )
     IG_LIVE_API_BASE_URL: str = Field(
         "https://api.ig.com/gateway/deal/",
         env="IG_LIVE_API_BASE_URL",

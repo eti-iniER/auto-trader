@@ -50,14 +50,14 @@ export const TradingRulesSection = () => {
                     onValueChange={field.onChange}
                     variant="default"
                     size="lg"
-                    className="h-16"
+                    className="h-fit min-h-16"
                   >
                     <SegmentedControlItem
                       value="LIMIT"
                       selectedClassName="bg-slate-600 text-white shadow-sm hover:bg-slate-800"
                       unselectedClassName="text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     >
-                      <div className="py-4 text-center">
+                      <div className="text-center">
                         <div className="font-medium">Limit</div>
                         <div className="text-xs opacity-90">
                           Execute at specific price or better
@@ -69,7 +69,7 @@ export const TradingRulesSection = () => {
                       selectedClassName="bg-slate-600 text-white shadow-sm hover:bg-slate-800"
                       unselectedClassName="text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     >
-                      <div className="py-4 text-center">
+                      <div className="text-center">
                         <div className="font-medium">Market</div>
                         <div className="text-xs opacity-90">
                           Execute immediately at current price

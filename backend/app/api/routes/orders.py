@@ -1,22 +1,16 @@
 import logging
-from typing import List, Annotated
-import json
 from datetime import datetime, timezone
+from typing import Annotated, List
 
-from app.db.models import User
-from app.db.enums import UserSettingsMode
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from aiocache import Cache
-from app.api.utils.caching import cache_with_pagination, cache_user_data
-from app.api.utils.pagination import (
-    build_paginated_response,
-    PaginationParams,
-)
 from app.api.utils.authentication import get_current_user
-from .utils.pagination import *
+from app.api.utils.caching import cache_user_data, cache_with_pagination
+from app.api.utils.pagination import *
+from app.api.utils.pagination import PaginationParams, build_paginated_response
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
+from app.db.models import User
 from app.schemas.orders import Order
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 

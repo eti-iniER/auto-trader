@@ -8,6 +8,7 @@ from app.config import settings
 from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
 from app.db.deps import get_db
 from app.db.models import User, UserSettings
+from app.api.exceptions import APIException
 from app.services.email import send_reset_password_email
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from fastapi.exceptions import HTTPException
@@ -15,7 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .utils.authentication import (
+from ..utils.authentication import (
     authenticate_user,
     create_access_token,
     create_password_reset_token,
@@ -71,10 +72,12 @@ async def register_user(
     Endpoint for user registration.
     """
     existing_user = await get_user_by_email(db, payload.email)
+
     if existing_user:
-        raise HTTPException(
+        raise APIException(
+            message="Email already registered",
+            code="EMAIL_ALREADY_EXISTS",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
         )
 
     hashed_password = hash_password(payload.password)
@@ -135,9 +138,11 @@ async def login(
     user = await authenticate_user(db, email=payload.email, password=payload.password)
 
     if not user:
-        raise HTTPException(
+        raise APIException(
+            message="Invalid credentials",
+            code="INVALID_CREDENTIALS",
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            details="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
@@ -185,9 +190,11 @@ async def send_reset_password_email_endpoint(
     """
     user = await get_user_by_email(db, payload.email)
     if not user:
-        raise HTTPException(
+        raise APIException(
+            message="User not found",
+            code="USER_NOT_FOUND",
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            details="No user found with the provided email address.",
         )
 
     # Generate password reset token
@@ -271,9 +278,11 @@ async def generate_access_token(
     if not user:
         response.delete_cookie("refresh_token")
 
-        return JSONResponse(
+        raise APIException(
+            message="Invalid refresh token",
+            code="INVALID_REFRESH_TOKEN",
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"message": "Invalid refresh token."},
+            details="The provided refresh token is invalid or expired.",
         )
 
     access_token = create_access_token(

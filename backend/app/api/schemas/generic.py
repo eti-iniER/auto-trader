@@ -12,6 +12,6 @@ class ErrorResponseSchema(BaseModel):
     details: Optional[Dict[str, str]] = Field(
         None, description="Optional details about the error"
     )
-    error_code: Optional[str] = Field(
+    code: Optional[str] = Field(
         None, description="Optional error code for programmatic handling"
     )

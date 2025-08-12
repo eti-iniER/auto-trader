@@ -48,12 +48,18 @@ export const Login = () => {
     login.mutate(data, {
       onSuccess: () => {
         toast.success("Login successful!");
-        navigate(paths.dashboard.OVERVIEW);
       },
       onError: (error) => {
+        console.log("Login error:", error);
         toast.error("Login failed", {
           description: error.message || "An unexpected error occurred.",
         });
+      },
+
+      onSettled: (data) => {
+        if (data) {
+          navigate(paths.dashboard.OVERVIEW);
+        }
       },
     });
   };

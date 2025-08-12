@@ -72,15 +72,28 @@ def log_request(request):
     logger.debug(f"URL: {request.url}")
     logger.debug(f"Headers: {dict(request.headers)}")
 
-    if hasattr(request, "content") and request.content:
-        try:
-            if request.headers.get("content-type", "").startswith("application/json"):
-                body = json.loads(request.content.decode("utf-8"))
-                logger.debug(f"Body: {json.dumps(body, indent=2)}")
+    # For httpx, check if request has content to log
+    try:
+        if hasattr(request, "content") and request.content:
+            content = request.content
+            if isinstance(content, bytes):
+                try:
+                    if request.headers.get("content-type", "").startswith(
+                        "application/json"
+                    ):
+                        body = json.loads(content.decode("utf-8"))
+                        logger.debug(f"Body: {json.dumps(body, indent=2)}")
+                    else:
+                        logger.debug(f"Body: {content.decode('utf-8')}")
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    logger.debug(f"Body (raw): {content}")
             else:
-                logger.debug(f"Body: {request.content.decode('utf-8')}")
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            logger.debug(f"Body (raw): {request.content}")
+                logger.debug(f"Body: {content}")
+        elif hasattr(request, "stream") and request.stream:
+            # For streamed requests, we can't easily log the body without consuming it
+            logger.debug("Body: <streamed content>")
+    except Exception as e:
+        logger.debug(f"Could not log request body: {e}")
     logger.debug("=== END REQUEST ===")
 
 
@@ -91,14 +104,29 @@ def log_response(response):
     logger.debug(f"Headers: {dict(response.headers)}")
 
     try:
+        # Ensure the response content is read
+        if not response.is_closed:
+            # Read the content if it hasn't been read yet
+            if hasattr(response, "_content") and response._content is None:
+                response.read()
+
         if response.content:
             if response.headers.get("content-type", "").startswith("application/json"):
-                body = response.json()
-                logger.debug(f"Body: {json.dumps(body, indent=2)}")
+                try:
+                    body = response.json()
+                    logger.debug(f"Body: {json.dumps(body, indent=2)}")
+                except json.JSONDecodeError:
+                    # Fallback to text if JSON parsing fails
+                    logger.debug(f"Body: {response.text}")
             else:
                 logger.debug(f"Body: {response.text}")
+        else:
+            logger.debug("Body: <empty>")
     except (json.JSONDecodeError, UnicodeDecodeError):
-        logger.debug(f"Body (raw): {response.content}")
+        try:
+            logger.debug(f"Body (raw): {response.content}")
+        except Exception:
+            logger.debug("Body: <could not decode>")
     except Exception as e:
         logger.debug(f"Could not log response body: {e}")
     logger.debug("=== END RESPONSE ===")
@@ -269,18 +297,32 @@ class IGClient:
                 },
             )
 
-            response.raise_for_status()
+            # Process the response while the client is still open
+            try:
+                data = response.json()
+            except Exception as e:
+                logger.error(f"Failed to parse response JSON: {e}")
+                logger.error(f"Response status: {response.status_code}")
+                logger.error(f"Response content: {response.content}")
+                raise IGAPIError(
+                    message="Failed to parse response",
+                    status_code=response.status_code,
+                    error_code="PARSE_ERROR",
+                )
 
-        data = response.json()
+            if response.status_code != 200:
+                logger.error(
+                    f"Session request failed with status {response.status_code}"
+                )
+                logger.error(f"Error response body: {data}")
+                raise IGAPIError(
+                    message=data.get("errorCode", "Unknown error"),
+                    status_code=response.status_code,
+                    error_code=data.get("errorCode"),
+                )
 
-        if response.status_code != 200:
-            raise IGAPIError(
-                message=data.get("errorCode", "Unknown error"),
-                status_code=response.status_code,
-                error_code=data.get("errorCode"),
-            )
-
-        return GetSessionResponse(**data)
+            logger.info("Session data retrieved successfully")
+            return GetSessionResponse(**data)
 
     @ig_api_retry
     def get_history(self, filters: GetHistoryFilters) -> GetHistoryResponse:

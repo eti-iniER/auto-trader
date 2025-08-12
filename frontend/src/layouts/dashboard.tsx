@@ -5,7 +5,7 @@ import { DashboardContext } from "@/contexts/dashboard";
 import { paths } from "@/paths";
 import { AnimatePresence, motion } from "motion/react";
 import React from "react";
-import { Outlet, useNavigate } from "react-router";
+import { Navigate, Outlet } from "react-router";
 import { toast } from "sonner";
 import { DesktopSidebar, MobileSidebar } from "../components/sidebar";
 
@@ -20,15 +20,13 @@ const DashboardLayout: React.FC = () => {
     isPending: isSettingsPending,
     isError: isSettingsError,
   } = useUserSettings();
-  const navigate = useNavigate();
 
   const isError = isUserError || isSettingsError;
   const isPending = isUserPending || isSettingsPending;
 
   if (isError) {
     toast.error("Authentication failed. Please sign in again.");
-    navigate(paths.authentication.LOGIN);
-    return null;
+    return <Navigate to={paths.authentication.LOGIN} replace />;
   }
 
   return (
