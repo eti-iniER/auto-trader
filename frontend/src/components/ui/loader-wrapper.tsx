@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import "./loader.css";
+import { Loader } from "./loader";
 
 interface LoaderWrapperProps {
   isLoading: boolean;
@@ -29,7 +29,7 @@ export const LoaderWrapper = ({
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="absolute inset-0 flex items-center justify-center gap-2"
           >
-            <div className="loader flex-shrink-0" />
+            <Loader />
             {loadingText && <span>{loadingText}</span>}
           </motion.div>
         ) : (

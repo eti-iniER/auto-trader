@@ -1,8 +1,9 @@
 import logging
-from datetime import datetime
-from typing import Annotated, List, Optional
+from datetime import datetime, timezone
+from typing import Annotated
 
 from app.api.utils.authentication import get_current_user
+from app.api.utils.filters import LogFilterParams
 from app.api.utils.pagination import (
     PaginatedResponse,
     PaginationParams,
@@ -11,12 +12,11 @@ from app.api.utils.pagination import (
 from app.db.deps import get_db
 from app.db.enums import LogType
 from app.db.models import Log, User
-from app.schemas.logs import LogRead, LogFilters
+from app.schemas.logs import LogRead
 from app.services.logging.file_helpers import prepare_logs_file
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from fastcrud import FastCRUD
-from sqlalchemy import and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/logs", tags=["logs"])
@@ -27,7 +27,7 @@ logs_crud = FastCRUD(Log)
 
 
 @router.get(
-    "/",
+    "",
     summary="Get logs with filtering and pagination",
     response_model=PaginatedResponse[LogRead],
 )
@@ -36,48 +36,43 @@ async def get_logs(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
     pagination: Annotated[PaginationParams, Depends()],
-    from_date: Optional[datetime] = Query(
-        None, description="Filter logs from this date"
-    ),
-    to_date: Optional[datetime] = Query(
-        None, description="Filter logs until this date"
-    ),
-    log_type: Optional[LogType] = Query(None, description="Filter logs by type"),
+    filters: Annotated[LogFilterParams, Depends()],
 ) -> PaginatedResponse[LogRead]:
     """
     Retrieve logs with optional filtering by date range and log type.
     Returns up to 100 logs by default with pagination support.
     """
-    # Build filters
-    filters = []
 
-    if from_date:
-        filters.append(Log.created_at >= from_date)
+    logger.info(
+        f"Fetching logs for user {user.email} with filters: "
+        f"from_date={filters.from_date} (type: {type(filters.from_date)}), "
+        f"to_date={filters.to_date} (type: {type(filters.to_date)}), "
+        f"type={filters.log_type} (type: {type(filters.log_type)}), "
+        f"pagination offset={pagination.offset}, limit={pagination.limit}"
+    )
 
-    if to_date:
-        filters.append(Log.created_at <= to_date)
+    filter_kwargs = {"user_id": user.id}
+    filter_kwargs.update(filters.to_dict())
 
-    if log_type:
-        filters.append(Log.type == log_type)
-
-    # Combine filters
-    where_clause = and_(*filters) if filters else None
-
-    # Get logs with pagination, ordered by created_at descending (newest first)
     result = await logs_crud.get_multi(
         db=db,
         offset=pagination.offset,
         limit=pagination.limit,
-        where=where_clause,
-        order_by=[desc(Log.created_at)],
+        sort_columns=["created_at"],
+        sort_orders=["desc"],
+        schema_to_select=LogRead,
+        return_as_model=True,
+        **filter_kwargs,
     )
+
+    logger.info(str(filter_kwargs))
 
     logger.info(
         f"Retrieved {len(result['data'])} logs for user {user.email} "
         f"(offset: {pagination.offset}, limit: {pagination.limit})"
+        f" with filters: ",
     )
 
-    # Build paginated response
     return build_paginated_response(
         request=request,
         result=result,
@@ -85,9 +80,9 @@ async def get_logs(
         limit=pagination.limit,
         endpoint="/api/v1/logs/",
         response_class=LogRead,
-        from_date=from_date.isoformat() if from_date else None,
-        to_date=to_date.isoformat() if to_date else None,
-        log_type=log_type.value if log_type else None,
+        from_date=filters.from_date.isoformat() if filters.from_date else None,
+        to_date=filters.to_date.isoformat() if filters.to_date else None,
+        type=filters.log_type,
     )
 
 
@@ -99,13 +94,7 @@ async def get_logs(
 async def download_logs(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
-    from_date: Optional[datetime] = Query(
-        None, description="Filter logs from this date"
-    ),
-    to_date: Optional[datetime] = Query(
-        None, description="Filter logs until this date"
-    ),
-    log_type: Optional[LogType] = Query(None, description="Filter logs by type"),
+    filters: Annotated[LogFilterParams, Depends()],
     limit: int = Query(
         1000, ge=1, le=10000, description="Maximum number of logs to download"
     ),
@@ -113,28 +102,21 @@ async def download_logs(
     """
     Download logs as a formatted text file with the same filtering options as the main logs endpoint.
     """
-    # Build filters (same as get_logs endpoint)
-    filters = []
+    logger.info(
+        f"Preparing to download logs for user {user.email} with filters: "
+        f"from_date={filters.from_date}, to_date={filters.to_date}, type={filters.log_type}, limit={limit}"
+    )
 
-    if from_date:
-        filters.append(Log.created_at >= from_date)
+    filter_kwargs = {"user_id": user.id}
+    filter_kwargs.update(filters.to_dict())
 
-    if to_date:
-        filters.append(Log.created_at <= to_date)
-
-    if log_type:
-        filters.append(Log.type == log_type)
-
-    # Combine filters
-    where_clause = and_(*filters) if filters else None
-
-    # Get logs without pagination but with a reasonable limit for file download
     result = await logs_crud.get_multi(
         db=db,
         offset=0,
         limit=limit,
-        where=where_clause,
-        order_by=[desc(Log.created_at)],
+        sort_columns=["created_at"],
+        sort_orders=["desc"],
+        **filter_kwargs,
     )
 
     logs = result["data"]
@@ -143,23 +125,20 @@ async def download_logs(
         f"Preparing log file download for user {user.email} " f"with {len(logs)} logs"
     )
 
-    # Prepare file content using the helper function
     file_content = prepare_logs_file(logs)
 
-    # Generate filename with timestamp and filters
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     filename = f"logs_{timestamp}"
 
-    if from_date:
-        filename += f"_from_{from_date.strftime('%Y%m%d')}"
-    if to_date:
-        filename += f"_to_{to_date.strftime('%Y%m%d')}"
-    if log_type:
-        filename += f"_{log_type.value.lower()}"
+    if filters.from_date:
+        filename += f"_from_{filters.from_date.strftime('%Y%m%d')}"
+    if filters.to_date:
+        filename += f"_to_{filters.to_date.strftime('%Y%m%d')}"
+    if filters.log_type:
+        filename += f"_{filters.log_type.lower()}"
 
     filename += ".txt"
 
-    # Return file as download
     return Response(
         content=file_content,
         media_type="text/plain",

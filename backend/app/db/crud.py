@@ -7,10 +7,15 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+import uuid
 
 
 async def log_message(
-    message: str, description: str, log_type: LogType, extra: Optional[dict] = None
+    message: str,
+    description: Optional[str],
+    log_type: LogType,
+    user_id: uuid.UUID,
+    extra: Optional[dict] = None,
 ) -> Log:
     """
     Logs a message to the database.
@@ -26,7 +31,11 @@ async def log_message(
 
     async with get_db_context() as db:
         log_entry = Log(
-            message=message, description=description, type=log_type, extra=extra
+            message=message,
+            description=description,
+            type=log_type,
+            extra=extra,
+            user_id=user_id,
         )
         db.add(log_entry)
         await db.commit()

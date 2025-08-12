@@ -1,5 +1,5 @@
 from typing import Literal, Optional
-
+import uuid
 from app.db.crud import log_message as log_message_to_db
 from app.db.enums import LogType
 
@@ -7,7 +7,11 @@ LOG_TYPE = Literal["unspecified", "authentication", "alert", "trade", "order", "
 
 
 async def log_message(
-    message: str, description: str, log_type: LOG_TYPE, extra: Optional[dict] = None
+    message: str,
+    description: Optional[str] = None,
+    log_type: LOG_TYPE = "unspecified",
+    user_id: Optional[uuid.UUID] = None,
+    extra: Optional[dict] = None,
 ) -> None:
     """
     Logs a message to the database.
@@ -18,8 +22,8 @@ async def log_message(
         extra (Optional[dict]): Additional information to log.
     """
     try:
-        enum_type = LogType(log_type)
+        enum_type = LogType(log_type.upper())
     except ValueError:
         enum_type = LogType.UNSPECIFIED
 
-    await log_message_to_db(message, description, enum_type, extra)
+    await log_message_to_db(message, description, enum_type, user_id, extra)

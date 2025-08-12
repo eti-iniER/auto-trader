@@ -40,6 +40,7 @@ async def create_order(
             "Order created",
             f"Order for user [{user.email}] on instrument {instrument.ig_epic} created successfully.",
             "order",
+            user_id=user.id,
             extra={
                 "order_request": order_request.model_dump(mode="json"),
                 "user_email": user.email,
@@ -51,6 +52,7 @@ async def create_order(
             "Failed to create order",
             f"Error creating order for user [{user.email}] on instrument {instrument.ig_epic}: {str(e)}",
             "order",
+            user_id=user.id,
             extra={
                 "order_request": order_request.model_dump(mode="json"),
                 "user_email": user.email,

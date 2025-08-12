@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -177,7 +178,7 @@ export const Instruments = () => {
               >
                 {fetchDividendDates.isPending ? (
                   <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current" />
+                    <Loader variant="light" />
                     Fetching...
                   </>
                 ) : (

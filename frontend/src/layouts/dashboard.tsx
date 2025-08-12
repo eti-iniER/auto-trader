@@ -1,6 +1,6 @@
 import { useCurrentUser } from "@/api/hooks/authentication/use-current-user";
 import { useUserSettings } from "@/api/hooks/user-settings/use-user-settings";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Loader } from "@/components/ui/loader";
 import { DashboardContext } from "@/contexts/dashboard";
 import { paths } from "@/paths";
 import { AnimatePresence, motion } from "motion/react";
@@ -41,7 +41,7 @@ const DashboardLayout: React.FC = () => {
           className="flex h-screen w-full flex-1 bg-gray-50"
         >
           <div className="flex flex-1 flex-col items-center justify-center gap-2">
-            <LoadingSpinner />
+            <Loader />
             <motion.p
               className="text-center text-sm font-medium text-neutral-700"
               initial={{ opacity: 0, y: 10 }}

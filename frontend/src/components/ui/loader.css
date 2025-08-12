@@ -11,6 +11,19 @@
   animation: loader-animation 1s infinite linear;
 }
 
+.loader-dark {
+  width: 32px;
+  height: 16px;
+  aspect-ratio: 2;
+  --_g: no-repeat radial-gradient(circle closest-side, #000000 90%, transparent);
+  background:
+    var(--_g) 0% 50%,
+    var(--_g) 50% 50%,
+    var(--_g) 100% 50%;
+  background-size: calc(100% / 3) 50%;
+  animation: loader-animation 1s infinite linear;
+}
+
 @keyframes loader-animation {
   20% {
     background-position:

@@ -31,9 +31,11 @@ class BaseDBModel(Base):
 
 class Log(BaseDBModel):
     __tablename__ = "logs"
-
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     type: Mapped[LogType] = mapped_column(
         Enum(LogType), nullable=False, default=LogType.UNSPECIFIED
     )

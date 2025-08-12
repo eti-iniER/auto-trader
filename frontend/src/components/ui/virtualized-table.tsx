@@ -1,20 +1,6 @@
-import * as React from "react";
-import {
-  type ColumnDef,
-  type SortingState,
-  type ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type Row,
-} from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader } from "@/components/ui/loader";
 import {
   Select,
   SelectContent,
@@ -30,6 +16,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type Row,
+  type SortingState,
+} from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
+import * as React from "react";
 
 export interface VirtualizedTableProps<TData, TValue = unknown> {
   columns: ColumnDef<TData, TValue>[];
@@ -185,9 +186,9 @@ function VirtualizedTable<TData, TValue = unknown>({
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    <div className="flex items-center justify-center">
-                      <div className="border-primary h-6 w-6 animate-spin rounded-full border-b-2" />
-                      <span className="ml-2">Loading...</span>
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader variant="dark" />
+                      <span>Loading</span>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -2,21 +2,10 @@ import logging
 from datetime import timedelta
 from typing import Annotated
 
+from app.api.exceptions import APIException
 from app.api.schemas.generic import SimpleResponseSchema
 from app.api.schemas.user import UserSchema
-from app.config import settings
-from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
-from app.db.deps import get_db
-from app.db.models import User, UserSettings
-from app.api.exceptions import APIException
-from app.services.email import send_reset_password_email
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
-from fastapi.exceptions import HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ..utils.authentication import (
+from app.api.utils.authentication import (
     authenticate_user,
     create_access_token,
     create_password_reset_token,
@@ -27,6 +16,16 @@ from ..utils.authentication import (
     hash_password,
     verify_password_reset_token,
 )
+from app.config import settings
+from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
+from app.db.deps import get_db
+from app.db.models import User, UserSettings
+from app.services.email import send_reset_password_email
+from app.services.logging import log_message
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -110,6 +109,12 @@ async def register_user(
         db, email=new_user.email, user_data={"refresh_token": refresh_token}
     )
 
+    await log_message(
+        user_id=new_user.id,
+        message=f"Account created",
+        log_type="authentication",
+    )
+
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -155,6 +160,11 @@ async def login(
     )
     await update_user(db, email=user.email, user_data={"refresh_token": refresh_token})
 
+    await log_message(
+        user_id=user.id,
+        message=f"Logged in",
+        log_type="authentication",
+    )
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -216,6 +226,12 @@ async def send_reset_password_email_endpoint(
     )
 
     logger.info(f"Reset password email queued for {payload.email}")
+
+    await log_message(
+        message=f"You requested a password reset",
+        user_id=user.id,
+        log_type="authentication",
+    )
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -351,6 +367,12 @@ async def logout(
     )
     await update_user(
         db, email=user.email, user_data={"refresh_token": new_refresh_token}
+    )
+
+    await log_message(
+        user_id=user.id,
+        message=f"Logged out",
+        log_type="authentication",
     )
 
     response = JSONResponse(

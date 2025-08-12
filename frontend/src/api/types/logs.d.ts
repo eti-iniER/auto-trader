@@ -6,10 +6,13 @@ type LogType =
   | "ORDER"
   | "ERROR";
 
+type LogExtra = string | number | boolean | null | { [key: string]: LogExtra };
+
 interface Log {
+  id: string;
   createdAt: Date;
   message: string;
   description: string;
   type: LogType;
-  extra: Record<string, string | number | boolean | null> | null;
+  extra: LogExtra;
 }

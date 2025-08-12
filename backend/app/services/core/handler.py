@@ -16,28 +16,30 @@ async def handle_alert(payload: WebhookPayload):
             "Invalid webhook payload received",
             error_message or "Unknown error",
             "error",
+            None,
             {
                 "payload": payload.model_dump(mode="json"),
             },
         )
         return
 
+    async with get_db_context() as db:
+        user = await get_user_by_webhook_secret(db, alert.secret)
+        instrument = await get_instrument_by_market_and_symbol(
+            db, alert.market_and_symbol
+        )
+
     log_message(
         "Received valid webhook payload",
         "Alert has been scheduled for processing",
         "alert",
+        user.id,
         {
             "payload": payload.model_dump(mode="json"),
         },
     )
 
     alert = await parse_webhook_payload_to_trading_view_alert(payload)
-
-    async with get_db_context() as db:
-        user = await get_user_by_webhook_secret(db, alert.secret)
-        instrument = await get_instrument_by_market_and_symbol(
-            db, alert.market_and_symbol
-        )
 
     open_price = alert.open_price
 
