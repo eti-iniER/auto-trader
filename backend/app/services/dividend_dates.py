@@ -2,13 +2,15 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
+from collections import defaultdict
 
 from sqlalchemy import select, update, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.yahoo.client import YahooFinanceClient
 from app.db.models import Instrument
+from app.services.logging.helper import log_message
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,7 @@ async def fetch_and_update_all_dividend_dates(db: AsyncSession) -> int:
     """
     Fetch and update dividend dates for all instruments with Yahoo symbols.
     Uses parallel processing for efficient data fetching.
+    Logs the update action per user when updating their instruments.
 
     Args:
         session: Database session
@@ -126,10 +129,13 @@ async def fetch_and_update_all_dividend_dates(db: AsyncSession) -> int:
 
     yahoo_client = YahooFinanceClient()
 
-    # Fetch all instruments that have Yahoo symbols
-    stmt = select(Instrument.id, Instrument.yahoo_symbol).where(
-        Instrument.yahoo_symbol.isnot(None), Instrument.yahoo_symbol != ""
-    )
+    # Fetch all instruments that have Yahoo symbols, including user_id and market_and_symbol for logging
+    stmt = select(
+        Instrument.id,
+        Instrument.yahoo_symbol,
+        Instrument.user_id,
+        Instrument.market_and_symbol,
+    ).where(Instrument.yahoo_symbol.isnot(None), Instrument.yahoo_symbol != "")
     result = await db.execute(stmt)
     instruments = result.all()
 
@@ -169,8 +175,54 @@ async def fetch_and_update_all_dividend_dates(db: AsyncSession) -> int:
 
     logger.info(f"Completed fetching dividend dates. Got {len(updates)} results")
 
+    # Group instruments by user for logging purposes
+    instrument_user_map = {
+        instrument.id: instrument.user_id for instrument in instruments
+    }
+    instrument_market_symbol_map = {
+        instrument.id: instrument.market_and_symbol for instrument in instruments
+    }
+
+    # Filter updates to only include successful ones
+    successful_updates = [
+        (instrument_id, dividend_datetime)
+        for instrument_id, dividend_datetime in updates
+        if dividend_datetime is not None
+    ]
+
+    # Group successful updates by user
+    user_updates = defaultdict(list)
+    for instrument_id, dividend_datetime in successful_updates:
+        user_id = instrument_user_map.get(instrument_id)
+        market_symbol = instrument_market_symbol_map.get(instrument_id)
+        if user_id and market_symbol:
+            user_updates[user_id].append(
+                (instrument_id, dividend_datetime, market_symbol)
+            )
+
     # Bulk update the database
     updated_count = await bulk_update_dividend_dates(db, updates)
+
+    # Log the action for each user
+    for user_id, user_update_list in user_updates.items():
+        updated_instruments_count = len(user_update_list)
+        await log_message(
+            message=f"Dividend dates updated for {updated_instruments_count} instruments",
+            description=f"Updated dividend dates for your instruments. {updated_instruments_count} instruments had their dividend dates refreshed from Yahoo Finance.",
+            log_type="unspecified",
+            user_id=user_id,
+            extra={
+                "action": "dividend_dates_update",
+                "instruments_updated": updated_instruments_count,
+                "updated_instruments": [
+                    market_symbol for _, _, market_symbol in user_update_list
+                ],
+            },
+        )
+        logger.info(
+            f"Logged dividend date update for user {user_id}: {updated_instruments_count} instruments"
+        )
+
     logger.info(f"Successfully updated dividend dates for {updated_count} instruments")
 
     return updated_count
@@ -181,6 +233,7 @@ async def fetch_and_update_single_dividend_date(
 ) -> bool:
     """
     Fetch and update dividend date for a single instrument.
+    Logs the update action for the user who owns the instrument.
 
     Args:
         session: Database session
@@ -193,8 +246,13 @@ async def fetch_and_update_single_dividend_date(
 
     yahoo_client = YahooFinanceClient()
 
-    # Fetch the specific instrument
-    stmt = select(Instrument.id, Instrument.yahoo_symbol).where(
+    # Fetch the specific instrument, including user_id and market_and_symbol for logging
+    stmt = select(
+        Instrument.id,
+        Instrument.yahoo_symbol,
+        Instrument.user_id,
+        Instrument.market_and_symbol,
+    ).where(
         Instrument.id == instrument_id,
         Instrument.yahoo_symbol.isnot(None),
         Instrument.yahoo_symbol != "",
@@ -216,6 +274,25 @@ async def fetch_and_update_single_dividend_date(
         updated_count = await bulk_update_dividend_dates(
             session, [(instrument_id_uuid, dividend_datetime)]
         )
+
+        # Log the action for the user
+        if updated_count > 0:
+            await log_message(
+                message=f"Dividend date updated for instrument",
+                description=f"Dividend date for instrument {instrument.market_and_symbol} was updated to {dividend_datetime.strftime('%Y-%m-%d')} from Yahoo Finance.",
+                log_type="unspecified",
+                user_id=instrument.user_id,
+                extra={
+                    "action": "single_dividend_date_update",
+                    "instrument": instrument.market_and_symbol,
+                    "yahoo_symbol": instrument.yahoo_symbol,
+                    "dividend_date": dividend_datetime.isoformat(),
+                },
+            )
+            logger.info(
+                f"Logged dividend date update for user {instrument.user_id}, instrument {instrument_id}"
+            )
+
         logger.info(
             f"Successfully updated dividend date for instrument {instrument_id}: {dividend_datetime}"
         )

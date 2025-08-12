@@ -22,7 +22,7 @@ def prepare_logs_file(logs: List[Log]) -> bytes:
     header_lines = [
         "=" * 80,
         f"Log Export - {len(logs)} entries",
-        f"Generated on: {logs[0].created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC",
+        f"Generated on: {logs[0].created_at.strftime('%Y-%m-%d at %H:%M:%S')} UTC",
         "=" * 80,
         "",
     ]

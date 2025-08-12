@@ -93,6 +93,11 @@ class Settings(BaseSettings):
         env="DEFAULT_CURRENCY_CODE",
         description="Default currency code for the application",
     )
+    LOGFILE_NAME_PREFIX: str = Field(
+        default="auto_trader_",
+        env="LOGFILE_NAME_PREFIX",
+        description="Prefix for log file names",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

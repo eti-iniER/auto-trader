@@ -1,6 +1,7 @@
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,9 +14,11 @@ interface LogsFilterBarProps {
   fromDate?: Date;
   toDate?: Date;
   type?: LogType | "ALL";
+  lastHours?: number;
   onFromDateChange: (date: Date | undefined) => void;
   onToDateChange: (date: Date | undefined) => void;
   onTypeChange: (logType: LogType | "ALL") => void;
+  onLastHoursChange: (hours: number | undefined) => void;
   onDownload: () => void;
 }
 
@@ -33,11 +36,24 @@ export const LogsFilterBar = ({
   fromDate,
   toDate,
   type,
+  lastHours,
   onFromDateChange,
   onToDateChange,
   onTypeChange,
+  onLastHoursChange,
   onDownload,
 }: LogsFilterBarProps) => {
+  const handleLastHoursChange = (value: string) => {
+    const hours = value === "" ? undefined : parseInt(value, 10);
+    if (hours && hours > 0) {
+      const now = new Date();
+      const from = new Date(now.getTime() - hours * 60 * 60 * 1000);
+      onFromDateChange(from);
+      onToDateChange(now);
+    }
+    onLastHoursChange(hours);
+  };
+
   return (
     <div className="bg-background flex items-center gap-4 rounded-lg border p-4">
       <div className="flex items-center gap-2">
@@ -60,6 +76,25 @@ export const LogsFilterBar = ({
           onDateChange={onToDateChange}
           placeholder="Select end date"
         />
+      </div>
+
+      {/* Vertical separator */}
+      <div className="bg-border h-6 w-px"></div>
+
+      <div className="flex items-center gap-2">
+        <label htmlFor="last-hours" className="text-sm font-medium">
+          Last
+        </label>
+        <Input
+          id="last-hours"
+          type="number"
+          min="1"
+          placeholder="24"
+          value={lastHours || ""}
+          onChange={(e) => handleLastHoursChange(e.target.value)}
+          className="w-20"
+        />
+        <span className="text-muted-foreground text-sm">hours</span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -86,7 +121,7 @@ export const LogsFilterBar = ({
       <div className="ml-auto">
         <Button onClick={onDownload} variant="default">
           <DownloadIcon className="h-4 w-4" />
-          Download
+          Download logs
         </Button>
       </div>
     </div>

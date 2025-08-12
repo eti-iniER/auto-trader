@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 interface LogsParams {
   offset?: number;
   limit?: number;
-  from_date?: Date;
-  to_date?: Date;
+  fromDate?: Date;
+  toDate?: Date;
   type?: LogType;
 }
 
@@ -18,11 +18,11 @@ const getLogs = async (params: LogsParams = {}) => {
   if (params.limit) {
     searchParams.append("limit", params.limit.toString());
   }
-  if (params.from_date) {
-    searchParams.append("from_date", params.from_date.toISOString());
+  if (params.fromDate) {
+    searchParams.append("from_date", params.fromDate.toISOString());
   }
-  if (params.to_date) {
-    searchParams.append("to_date", params.to_date.toISOString());
+  if (params.toDate) {
+    searchParams.append("to_date", params.toDate.toISOString());
   }
   if (params.type) {
     searchParams.append("type", params.type);

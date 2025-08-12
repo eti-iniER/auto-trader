@@ -36,7 +36,11 @@ export const formatDate = (date: Date | string) => {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(dateObj);
+    second: "2-digit",
+    hour12: true,
+  })
+    .format(dateObj)
+    .replace(/am|pm/g, (match) => match.toUpperCase());
 };
 
 /**

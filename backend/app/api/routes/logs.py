@@ -9,8 +9,8 @@ from app.api.utils.pagination import (
     PaginationParams,
     build_paginated_response,
 )
+from app.config import settings
 from app.db.deps import get_db
-from app.db.enums import LogType
 from app.db.models import Log, User
 from app.schemas.logs import LogRead
 from app.services.logging.file_helpers import prepare_logs_file
@@ -116,6 +116,8 @@ async def download_logs(
         limit=limit,
         sort_columns=["created_at"],
         sort_orders=["desc"],
+        schema_to_select=LogRead,
+        return_as_model=True,
         **filter_kwargs,
     )
 
@@ -127,8 +129,8 @@ async def download_logs(
 
     file_content = prepare_logs_file(logs)
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    filename = f"logs_{timestamp}"
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d at %H-%M-%S")
+    filename = f"{settings.LOGFILE_NAME_PREFIX}_logs_{timestamp}"
 
     if filters.from_date:
         filename += f"_from_{filters.from_date.strftime('%Y%m%d')}"
@@ -137,7 +139,7 @@ async def download_logs(
     if filters.log_type:
         filename += f"_{filters.log_type.lower()}"
 
-    filename += ".txt"
+    filename += ".log"
 
     return Response(
         content=file_content,
