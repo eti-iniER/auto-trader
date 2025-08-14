@@ -14,6 +14,11 @@ const DECIMAL_KEYS = new Set([
   "atrStopLossMultiplePercentage",
   "atrProfitMultiplePercentage",
   "openingPriceMultiplePercentage",
+  "size",
+  "openLevel",
+  "currentLevel",
+  "profitLoss",
+  "profitLossPercentage",
 ]);
 
 export function revivers(_key: string, value: string) {
@@ -24,7 +29,7 @@ export function revivers(_key: string, value: string) {
   const isDecimal =
     DECIMAL_KEYS.has(_key) &&
     typeof value === "string" &&
-    /^\d+(\.\d+)?$/.test(value);
+    /^-?\d+(\.\d+)?$/.test(value);
 
   if (isDate) {
     const date = new Date(value);

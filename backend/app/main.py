@@ -2,7 +2,7 @@ import logging
 import logging.config
 from contextlib import asynccontextmanager
 
-from app.api.routes import auth, instruments, orders, users, webhook, logs
+from app.api.routes import auth, instruments, orders, positions, users, webhook, logs
 from app.config import LOGGING_CONFIG, settings
 from app.db.models import Base
 from app.db.session import engine
@@ -32,6 +32,7 @@ v1 = APIRouter()
 v1.include_router(webhook.router)
 v1.include_router(instruments.router)
 v1.include_router(orders.router)
+v1.include_router(positions.router)
 v1.include_router(auth.router)
 v1.include_router(users.router)
 v1.include_router(logs.router)

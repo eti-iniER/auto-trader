@@ -9,18 +9,10 @@ from app.services.logging import log_message
 
 
 async def handle_alert(payload: WebhookPayload):
-    is_valid, error_message = await validate_webhook_payload(payload)
+    is_valid, _ = await validate_webhook_payload(payload)
 
     if not is_valid:
-        log_message(
-            "Invalid webhook payload received",
-            error_message or "Unknown error",
-            "error",
-            None,
-            {
-                "payload": payload.model_dump(mode="json"),
-            },
-        )
+        # the validator already logs the error
         return
 
     async with get_db_context() as db:

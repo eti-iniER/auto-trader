@@ -10,6 +10,29 @@ from sqlalchemy.orm import selectinload
 import uuid
 
 
+async def get_market_and_symbol_by_ig_epic(
+    db: AsyncSession, user_id: str, ig_epic: str
+) -> Optional[str]:
+    """
+    Get market_and_symbol for a given ig_epic from user's instruments.
+
+    Args:
+        db: Database session
+        user_id: User ID
+        ig_epic: IG epic to search for
+
+    Returns:
+        market_and_symbol if found, None otherwise
+    """
+    stmt = select(Instrument).where(
+        Instrument.user_id == user_id, Instrument.ig_epic == ig_epic
+    )
+    result = await db.execute(stmt)
+    instrument = result.scalar_one_or_none()
+
+    return instrument.market_and_symbol if instrument else None
+
+
 async def log_message(
     message: str,
     description: Optional[str],
@@ -184,7 +207,7 @@ async def get_user_by_webhook_secret(db: AsyncSession, secret: str) -> User:
 
 async def get_instrument_by_market_and_symbol(
     db: AsyncSession, market_and_symbol: str
-) -> Instrument:
+) -> Optional[Instrument]:
     """
     Retrieve an instrument by its market and symbol.
 
@@ -198,11 +221,5 @@ async def get_instrument_by_market_and_symbol(
     stmt = select(Instrument).where(Instrument.market_and_symbol == market_and_symbol)
     result = await db.execute(stmt)
     instrument = result.scalar_one_or_none()
-
-    if not instrument:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Instrument with market and symbol '{market_and_symbol}' not found.",
-        )
 
     return instrument
