@@ -29,19 +29,6 @@ class BaseDBModel(Base):
     )
 
 
-class Log(BaseDBModel):
-    __tablename__ = "logs"
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    type: Mapped[LogType] = mapped_column(
-        Enum(LogType), nullable=False, default=LogType.UNSPECIFIED
-    )
-    extra: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
-
-
 class User(BaseDBModel):
     __tablename__ = "users"
 
@@ -65,9 +52,30 @@ class User(BaseDBModel):
     instruments: Mapped[List["Instrument"]] = relationship(
         "Instrument",
         back_populates="user",
-        cascade="all, delete",
+        cascade="all, delete-orphan",
         order_by="desc(Instrument.updated_at)",
     )
+    logs: Mapped[List["Log"]] = relationship(
+        "Log",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Log.created_at)",
+    )
+
+
+class Log(BaseDBModel):
+    __tablename__ = "logs"
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    type: Mapped[LogType] = mapped_column(
+        Enum(LogType), nullable=False, default=LogType.UNSPECIFIED
+    )
+    identifier: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    user: Mapped[User] = relationship("User", back_populates="logs", uselist=False)
+    extra: Mapped[Optional[JSON]] = mapped_column(JSON, nullable=True)
 
 
 class Instrument(BaseDBModel):

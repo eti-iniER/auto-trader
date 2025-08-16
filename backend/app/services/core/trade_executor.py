@@ -48,6 +48,7 @@ async def create_order(
             f"Order for instrument with IG Epic {instrument.ig_epic} created successfully.",
             "order",
             user_id=user.id,
+            identifier="order_created",
             extra={
                 "order_request": order_request.model_dump(mode="json"),
                 "instrument_ig_epic": instrument.ig_epic,

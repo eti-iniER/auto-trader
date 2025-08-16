@@ -1,13 +1,13 @@
+import uuid
 from typing import Optional
 
 from app.db.deps import get_db_context
 from app.db.enums import LogType
-from app.db.models import Instrument, Log, User, UserSettings, Order
+from app.db.models import Instrument, Log, Order, User, UserSettings
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-import uuid
 
 
 async def get_market_and_symbol_by_ig_epic(
@@ -39,6 +39,7 @@ async def log_message(
     log_type: LogType,
     user_id: uuid.UUID,
     extra: Optional[dict] = None,
+    identifier: Optional[str] = None,
 ) -> Log:
     """
     Logs a message to the database.
@@ -59,6 +60,7 @@ async def log_message(
             type=log_type,
             extra=extra,
             user_id=user_id,
+            identifier=identifier,
         )
         db.add(log_entry)
         await db.commit()
