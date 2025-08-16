@@ -6,6 +6,7 @@ import {
   StatCardSkeleton,
 } from "@/components/overview";
 import { PageHeader } from "@/components/page-header";
+import { pluralize } from "@/lib/utils";
 import { FileChartColumn } from "lucide-react";
 import { FiPieChart, FiShoppingCart } from "react-icons/fi";
 import { MdAccessTime, MdErrorOutline } from "react-icons/md";
@@ -83,21 +84,21 @@ export const Overview = () => {
             title="Open positions"
             value={stats?.openPositionsCount || 0}
             icon={FiPieChart}
-            description="Currently active trades"
+            description={`open ${pluralize(stats.openPositionsCount, "position")}`}
             variant={stats?.openPositionsCount ? "success" : "default"}
           />
           <StatCard
             title="Pending orders"
             value={stats?.openOrdersCount || 0}
             icon={FiShoppingCart}
-            description="Orders waiting execution"
+            description={`${pluralize(stats.openOrdersCount, "order")} awaiting execution`}
             variant={stats?.openOrdersCount ? "warning" : "default"}
           />
           <StatCard
-            title="Activities in the last 6 hours"
+            title="Actions in the last 6 hours"
             value={stats?.recentActivities?.length || 0}
             icon={FileChartColumn}
-            description="Latest activities"
+            description={`recent ${pluralize(stats?.recentActivities?.length || 0, "action")}`}
           />
           <StatCard
             title="Last updated"
