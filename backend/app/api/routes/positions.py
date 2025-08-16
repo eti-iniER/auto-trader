@@ -25,12 +25,11 @@ async def get_all_positions_from_ig(user: User, db: AsyncSession) -> List[Positi
     Fetch all open positions from IG and cache them.
     This function handles the IG API call and data transformation.
     """
-    ig_client = IGClient.create_for_user(user)
-
-    ig_response = ig_client.get_positions()
-    ig_positions_data = [
-        position.model_dump(by_alias=True) for position in ig_response.positions
-    ]
+    with IGClient.create_for_user(user) as ig_client:
+        ig_response = ig_client.get_positions()
+        ig_positions_data = [
+            position.model_dump(by_alias=True) for position in ig_response.positions
+        ]
 
     positions = await parse_ig_positions_to_schema(ig_positions_data, user, db)
     return positions

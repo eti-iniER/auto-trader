@@ -23,12 +23,11 @@ async def get_all_orders_from_ig(user: User) -> List[Order]:
     Fetch all working orders from IG and cache them.
     This function handles the IG API call and data transformation.
     """
-    ig_client = IGClient.create_for_user(user)
-
-    ig_response = ig_client.get_working_orders()
-    ig_orders_data = [
-        order.model_dump(by_alias=True) for order in ig_response.working_orders
-    ]
+    with IGClient.create_for_user(user) as ig_client:
+        ig_response = ig_client.get_working_orders()
+        ig_orders_data = [
+            order.model_dump(by_alias=True) for order in ig_response.working_orders
+        ]
 
     orders = parse_ig_orders_to_schema(ig_orders_data)
     return orders

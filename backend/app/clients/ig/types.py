@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List, Literal, Optional
 
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, NaiveDatetime
 
 # Core Type Definitions
 type InstrumentType = Literal[
@@ -88,6 +88,8 @@ type DealStatus = Literal["ACCEPTED", "REJECTED"]
 type PositionStatus = Literal[
     "AMENDED", "CLOSED", "DELETED", "OPEN", "PARTIALLY_CLOSED"
 ]
+
+type ActivityType = Literal["POSITION", "WORKING_ORDER", "SYSTEM"]
 
 type ReasonCode = Literal[
     "ACCOUNT_NOT_ENABLED_TO_TRADING",
@@ -243,10 +245,17 @@ class ActivityAction(BaseModel):
 
 
 class Activity(BaseModel):
+    date: NaiveDatetime = Field(..., description="Date and time of the activity")
+    epic: str = Field(..., description="Epic identifier for the instrument")
+    period: str = Field(..., description="Time period (e.g., DFB)")
+    deal_id: str = Field(..., alias="dealId", description="Deal identifier")
     channel: ActivityChannel = Field(
         ..., description="Channel through which the activity occurred"
     )
-    date: AwareDatetime = Field(..., description="Date and time of the activity")
+    type: ActivityType = Field(..., description="Type of activity")
+    status: DealStatus = Field(..., description="Status of the activity")
+    description: str = Field(..., description="Activity description")
+    details: Optional[dict] = Field(None, description="Additional activity details")
 
 
 class GetHistoryFilters(BaseModel):
@@ -269,9 +278,12 @@ class GetHistoryFilters(BaseModel):
         100, description="Number of records to return per page", alias="pageSize"
     )
 
+    class Config:
+        populate_by_name = True
+
 
 class Paging(BaseModel):
-    next: str = Field(..., description="Token for the next page of results")
+    next: Optional[str] = Field(None, description="Token for the next page of results")
     size: int = Field(..., description="Number of records per page")
 
 
@@ -555,4 +567,19 @@ class DeleteWorkingOrderResponse(BaseModel):
 
     deal_reference: str = Field(
         ..., description="Deal reference", alias="dealReference"
+    )
+
+
+class UserQuickStats(BaseModel):
+    """Quick stats summary for a user account"""
+
+    open_positions_count: int = Field(
+        ..., description="Number of currently open positions"
+    )
+    open_orders_count: int = Field(..., description="Number of open working orders")
+    recent_activities: List[Activity] = Field(
+        ..., description="Recent account activities from the last day"
+    )
+    stats_timestamp: AwareDatetime = Field(
+        ..., description="Timestamp when these stats were generated"
     )

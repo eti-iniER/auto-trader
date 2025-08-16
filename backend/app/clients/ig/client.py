@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -500,6 +501,46 @@ class IGClient:
             )
 
         return DealConfirmation(**data)
+
+    @ig_api_retry
+    def get_user_quick_stats(self) -> UserQuickStats:
+        """
+        Get quick stats about the user account including:
+        - Number of open positions
+        - Number of open working orders
+        - Recent activities from the last day
+
+        This method combines multiple API calls to provide a summary dashboard view.
+        """
+        # Get current timestamp
+        current_time = datetime.now(timezone.utc)
+
+        # Get open positions
+        positions_response = self.get_positions()
+        open_positions_count = len(positions_response.positions)
+
+        # Get working orders
+        orders_response = self.get_working_orders()
+        open_orders_count = len(orders_response.working_orders)
+
+        # Get recent activity (last 24 hours)
+        from_date = current_time - timedelta(days=1)
+        history_filters = GetHistoryFilters(
+            from_date=from_date,
+            to_date=current_time,
+            detailed=True,
+            page_size=50,
+        )
+
+        history_response = self.get_history(history_filters)
+        recent_activities = history_response.activities
+
+        return UserQuickStats(
+            open_positions_count=open_positions_count,
+            open_orders_count=open_orders_count,
+            recent_activities=recent_activities,
+            stats_timestamp=current_time,
+        )
 
     @ig_api_retry
     def _get_auth_data(self) -> AuthenticationData:
