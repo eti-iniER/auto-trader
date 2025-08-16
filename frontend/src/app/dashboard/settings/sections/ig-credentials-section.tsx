@@ -120,6 +120,31 @@ export const IGCredentialsSection = ({
           <div className="grid gap-4 md:grid-cols-1">
             <FormField
               control={control}
+              name="demoAccountId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account ID</FormLabel>
+                  <FormDescription>
+                    The ID of the account (either spreadbet or CFD) to be used
+                    for trading
+                  </FormDescription>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Enter demo account ID"
+                      autoComplete="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-1">
+            <FormField
+              control={control}
               name="demoWebhookSecret"
               render={({ field }) => (
                 <FormItem>
@@ -179,31 +204,6 @@ export const IGCredentialsSection = ({
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-1">
-            <FormField
-              control={control}
-              name="demoAccountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account ID</FormLabel>
-                  <FormDescription>
-                    The ID of the account (either spreadbet or CFD) to be used
-                    for trading
-                  </FormDescription>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="Enter demo account ID"
-                      autoComplete="off"
-                      {...field}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -288,6 +288,31 @@ export const IGCredentialsSection = ({
           <div className="grid gap-4 md:grid-cols-1">
             <FormField
               control={control}
+              name="liveAccountId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account ID</FormLabel>
+                  <FormDescription>
+                    The ID of the account (either spreadbet or CFD) to be used
+                    for trading
+                  </FormDescription>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Enter live account ID"
+                      autoComplete="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-1">
+            <FormField
+              control={control}
               name="liveWebhookSecret"
               render={({ field }) => (
                 <FormItem>
@@ -346,31 +371,6 @@ export const IGCredentialsSection = ({
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-1">
-            <FormField
-              control={control}
-              name="liveAccountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account ID</FormLabel>
-                  <FormDescription>
-                    The ID of the account (either spreadbet or CFD) to be used
-                    for trading
-                  </FormDescription>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="Enter live account ID"
-                      autoComplete="off"
-                      {...field}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

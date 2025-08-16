@@ -1,7 +1,7 @@
 import logging
-from datetime import datetime, timezone
 from typing import Annotated, List
 
+from app.api.helpers.orders_parser import parse_ig_orders_to_schema
 from app.api.utils.authentication import get_current_user
 from app.api.utils.caching import cache_user_data, cache_with_pagination
 from app.api.utils.pagination import *
@@ -30,69 +30,7 @@ async def get_all_orders_from_ig(user: User) -> List[Order]:
         order.model_dump(by_alias=True) for order in ig_response.working_orders
     ]
 
-    orders = []
-    for ig_order in ig_orders_data:
-        working_order_data = ig_order.get("workingOrderData", {})
-        market_data = ig_order.get("marketData", {})
-
-        deal_id = working_order_data.get("dealId", "")
-        if not deal_id:
-            continue  # Skip orders without deal ID
-
-        ig_epic = working_order_data.get("epic", market_data.get("epic", ""))
-        direction = working_order_data.get("direction", "").upper()
-        order_type = working_order_data.get("orderType", "")
-        size = working_order_data.get("orderSize", 0)
-
-        created_date_str = working_order_data.get("createdDateUTC")
-        try:
-            if created_date_str:
-                # Parse the UTC datetime and make it timezone-aware
-                if created_date_str.endswith("Z"):
-                    # Handle ISO format with Z suffix
-                    created_at = datetime.fromisoformat(
-                        created_date_str.replace("Z", "+00:00")
-                    )
-                else:
-                    # Handle UTC datetime without timezone info
-                    naive_dt = datetime.fromisoformat(created_date_str)
-                    created_at = naive_dt.replace(tzinfo=timezone.utc)
-            else:
-                created_at = datetime.now(timezone.utc)
-        except (ValueError, AttributeError):
-            created_at = datetime.now(timezone.utc)
-
-        order_level = working_order_data.get("orderLevel", 0.0)
-        stop_distance = working_order_data.get("stopDistance")
-        limit_distance = working_order_data.get("limitDistance")
-
-        stop_level = None
-        profit_level = None
-
-        if stop_distance and order_level:
-            if direction == "BUY":
-                stop_level = order_level - stop_distance
-            else:  # SELL
-                stop_level = order_level + stop_distance
-
-        if limit_distance and order_level:
-            if direction == "BUY":
-                profit_level = order_level + limit_distance
-            else:
-                profit_level = order_level - limit_distance
-
-        order = Order(
-            deal_id=deal_id,
-            ig_epic=ig_epic,
-            direction=direction,
-            type=order_type,
-            size=size,
-            created_at=created_at,
-            stop_level=stop_level,
-            profit_level=profit_level,
-        )
-        orders.append(order)
-
+    orders = parse_ig_orders_to_schema(ig_orders_data)
     return orders
 
 

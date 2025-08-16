@@ -21,7 +21,7 @@ async def handle_alert(payload: WebhookPayload):
             db, alert.market_and_symbol
         )
 
-    log_message(
+    await log_message(
         "Received valid webhook payload",
         "Alert has been scheduled for processing",
         "alert",

@@ -14,6 +14,7 @@ async def validate_webhook_payload(
     async with get_db_context() as db:
         user = await get_user_by_webhook_secret(db, payload.secret)
 
+        # Validate webhook secret
         if user.settings.mode == UserSettingsMode.DEMO:
             if payload.secret != user.settings.demo_webhook_secret:
                 await log_message(
@@ -49,6 +50,7 @@ async def validate_webhook_payload(
                     "MISMATCHED_LIVE_WEBHOOK_SECRET",
                 )
 
+        # Validate payload age
         payload_age = datetime.now(timezone.utc) - payload.timestamp
 
         if (
@@ -72,6 +74,7 @@ async def validate_webhook_payload(
                 "MAX_ALERT_AGE_EXCEEDED",
             )
 
+        # Validate market and symbol
         instrument = await get_instrument_by_market_and_symbol(
             db, payload.market_and_symbol
         )
@@ -88,6 +91,7 @@ async def validate_webhook_payload(
             )
             return False, "INSTRUMENT_NOT_FOUND"
 
+        # Validate next dividend date
         if instrument.next_dividend_date.date() == date.today():
             await log_message(
                 "Alert received on dividend date",

@@ -19,8 +19,6 @@ export const Positions = () => {
     limit: pageSize,
   });
 
-  console.log("Positions response:", positionsResponse);
-
   const positions = positionsResponse?.results || [];
   const totalCount = positionsResponse?.count || 0;
 

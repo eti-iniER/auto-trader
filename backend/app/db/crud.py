@@ -2,7 +2,7 @@ from typing import Optional
 
 from app.db.deps import get_db_context
 from app.db.enums import LogType
-from app.db.models import Instrument, Log, User, UserSettings
+from app.db.models import Instrument, Log, User, UserSettings, Order
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -223,3 +223,49 @@ async def get_instrument_by_market_and_symbol(
     instrument = result.scalar_one_or_none()
 
     return instrument
+
+
+async def create_order_for_instrument(
+    db: AsyncSession, instrument: Instrument
+) -> Order:
+    """
+    Create an order for a given instrument.
+
+    Args:
+        db (AsyncSession): The database session.
+        instrument_id (uuid.UUID): The ID of the instrument to create an order for.
+
+    Returns:
+        Order: The created order object.
+    """
+
+    order = Order(instrument_id=instrument.id)
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+async def delete_order(db: AsyncSession, order_id: uuid.UUID) -> None:
+    """
+    Delete an order by its ID.
+
+    Args:
+        db (AsyncSession): The database session.
+        order_id (uuid.UUID): The ID of the order to delete.
+
+    Returns:
+        None
+    """
+    stmt = select(Order).where(Order.id == order_id)
+    result = await db.execute(stmt)
+    order = result.scalar_one_or_none()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with ID '{order_id}' not found.",
+        )
+
+    await db.delete(order)
+    await db.commit()

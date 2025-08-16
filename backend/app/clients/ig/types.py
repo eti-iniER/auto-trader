@@ -539,3 +539,20 @@ class DealConfirmation(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class DeleteWorkingOrderRequest(BaseModel):
+    """Request to delete a working order"""
+
+    deal_id: str = Field(..., description="Deal identifier", alias="dealId")
+
+    class Config:
+        populate_by_name = True
+
+
+class DeleteWorkingOrderResponse(BaseModel):
+    """Response after deleting a working order"""
+
+    deal_reference: str = Field(
+        ..., description="Deal reference", alias="dealReference"
+    )

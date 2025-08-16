@@ -26,7 +26,7 @@ export const usePositions = (params: PositionsParams = {}) => {
   return useQuery({
     queryKey: ["positions", params],
     queryFn: () => getPositions(params),
-    refetchInterval: 1000 * 30,
+    refetchInterval: 1000 * 10, // Refetch every 10 seconds
     placeholderData: (previousData) => {
       if (previousData) {
         return {

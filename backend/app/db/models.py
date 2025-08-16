@@ -94,6 +94,12 @@ class Instrument(BaseDBModel):
     next_dividend_date: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    orders: Mapped[List["Order"]] = relationship(
+        "Order",
+        back_populates="instrument",
+        cascade="all, delete-orphan",
+        order_by="desc(Order.created_at)",
+    )
 
 
 class UserSettings(BaseDBModel):
@@ -157,3 +163,12 @@ class UserSettings(BaseDBModel):
         default=True,
         comment="Prevent duplicate positions for the same instrument",
     )
+
+
+class Order(BaseDBModel):
+    __tablename__ = "orders"
+
+    instrument_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("instruments.id"), nullable=False
+    )
+    instrument: Mapped[Instrument] = relationship("Instrument", back_populates="orders")

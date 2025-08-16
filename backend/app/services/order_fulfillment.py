@@ -1,0 +1,131 @@
+import logging
+from typing import Dict, List, Optional, Tuple
+
+from app.clients.ig.client import IGClient
+from app.clients.ig.types import ConfirmDealRequest, DealConfirmation
+from app.db.models import Order
+from app.db.crud import delete_order
+from app.services.logging import log_message
+
+logger = logging.getLogger(__name__)
+
+
+async def confirm_multiple_orders_deal_references(
+    orders: List[Order],
+) -> Tuple[int, int]:
+    """
+    Confirm deal references for multiple orders using cached IG clients.
+
+    Args:
+        orders: List of orders to confirm deal references for
+
+    Returns:
+        Tuple of (confirmed_count, error_count)
+    """
+    if not orders:
+        logger.info("No orders provided to confirm")
+        return 0, 0
+
+    # Cache IG clients by user to avoid creating multiple clients for the same user
+    ig_clients_cache: Dict[str, IGClient] = {}
+    confirmed_count = 0
+    error_count = 0
+
+    try:
+        for order in orders:
+            try:
+                user = order.instrument.user
+                user_id_str = str(user.id)
+
+                if user_id_str not in ig_clients_cache:
+                    ig_clients_cache[user_id_str] = IGClient.create_for_user(user)
+
+                ig_client = ig_clients_cache[user_id_str]
+
+                confirmation = await confirm_order_deal_reference(order, ig_client)
+
+                if confirmation:
+                    confirmed_count += 1
+
+                    if confirmation.deal_status == "REJECTED":
+                        await log_message(
+                            f"Order {order.id} deal rejected: {confirmation.reason}",
+                            description=confirmation.reason,
+                            user_id=user.id,
+                            extra={
+                                "confirmation_payload": confirmation.model_dump(
+                                    mode="json"
+                                ),
+                                "order_in_db_id": str(order.id),
+                                "deal_reference": confirmation.deal_reference,
+                                "deal_id": confirmation.deal_id,
+                                "deal_status": confirmation.deal_status,
+                            },
+                        )
+                        await delete_order(order.id)
+
+            except Exception as e:
+                logger.error(
+                    f"Error confirming deal reference for order {order.id}: {str(e)}"
+                )
+                error_count += 1
+
+    finally:
+        for ig_client in ig_clients_cache.values():
+            try:
+                ig_client.client.close()
+            except Exception as e:
+                logger.warning(f"Error closing IG client: {str(e)}")
+
+    return confirmed_count, error_count
+
+
+async def confirm_order_deal_reference(
+    order: Order, ig_client: Optional[IGClient] = None
+) -> Optional[DealConfirmation]:
+    """
+    Confirm the deal reference for a given order using the IG API.
+
+    Args:
+        order: The order to confirm the deal reference for
+        ig_client: Optional IG client to use. If not provided, will create one for the order's user
+
+    Returns:
+        DealConfirmation if successful, None if failed
+
+    Raises:
+        Exception: If there's an error during the confirmation process
+    """
+    try:
+        # Create IG client if not provided
+        client_provided = ig_client is not None
+        if not client_provided:
+            ig_client = IGClient.create_for_user(order.instrument.user)
+
+        # Use the order ID as the deal reference
+        deal_reference = str(order.id)
+
+        # Create the confirm deal request
+        confirm_request = ConfirmDealRequest(deal_reference=deal_reference)
+
+        # Call the confirmation method
+        confirmation = ig_client.get_working_order_confirmation(confirm_request)
+
+        logger.info(
+            f"Successfully confirmed deal reference {deal_reference} "
+            f"for user {order.instrument.user.email} - Status: {confirmation.deal_status}"
+        )
+
+        return confirmation
+
+    except Exception as e:
+        logger.error(f"Error confirming deal reference for order {order.id}: {str(e)}")
+        raise
+
+    finally:
+        # Only close the client if we created it ourselves
+        if not client_provided and ig_client:
+            try:
+                ig_client.client.close()
+            except Exception as e:
+                logger.warning(f"Error closing IG client: {str(e)}")

@@ -449,6 +449,32 @@ class IGClient:
         return CreateWorkingOrderResponse(**data)
 
     @ig_api_retry
+    def delete_working_order(
+        self, data: DeleteWorkingOrderRequest
+    ) -> DeleteWorkingOrderResponse:
+        """
+        Delete a working order by its deal reference.
+        """
+        response = self.client.delete(
+            f"workingorders/otc/{data.deal_id}",
+            headers={"Version": "2"},
+        )
+
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
+        data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=data.get("errorCode"),
+            )
+
+        return DeleteWorkingOrderResponse(**data)
+
+    @ig_api_retry
     def get_working_order_confirmation(
         self, data: ConfirmDealRequest
     ) -> DealConfirmation:
