@@ -1,10 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  MdOutlineLocalActivity,
-  MdBarChart,
-  MdCalendarToday,
-} from "react-icons/md";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileChartColumnIncreasing } from "lucide-react";
+import { MdBarChart, MdCalendarToday } from "react-icons/md";
 
 interface ActivityData {
   date: Date;
@@ -85,7 +82,7 @@ export const ActivityCard = ({ activities }: ActivityCardProps) => {
       <CardContent className="min-h-0 flex-1">
         {!activities || activities.length === 0 ? (
           <div className="py-8 text-center">
-            <MdOutlineLocalActivity className="text-muted-foreground/30 mx-auto mb-4 h-12 w-12" />
+            <FileChartColumnIncreasing className="text-muted-foreground/30 mx-auto mb-4 h-12 w-12" />
             <p className="text-muted-foreground text-sm">No recent activity</p>
             <p className="text-muted-foreground mt-1 text-xs">
               Your trading activities will appear here
