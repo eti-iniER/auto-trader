@@ -14,7 +14,7 @@ class Order(BaseModel):
     ig_epic: str
     direction: str
     type: WorkingOrderType
-    size: int
+    size: Decimal
     created_at: AwareDatetime
     stop_level: Optional[Decimal] = None
     profit_level: Optional[Decimal] = None

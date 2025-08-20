@@ -16,7 +16,7 @@ async def create_order(
     profit_target: Decimal,
     limit_price: Decimal,
     stop_loss: Decimal,
-    size: int,
+    size: Decimal,
 ) -> None:
     ig_client = IGClient.create_for_user(user)
 

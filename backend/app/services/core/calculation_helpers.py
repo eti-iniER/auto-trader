@@ -18,7 +18,12 @@ def calculate_limit_price(
 
 
 def calculate_bet_size(limit_price: Decimal, size: int):
-    return max(1, int((size / limit_price).quantize(INTEGER, rounding="ROUND_HALF_UP")))
+    return max(
+        1,
+        int(
+            (size / limit_price).quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_UP")
+        ),
+    )
 
 
 def calculate_profit_target_price(
