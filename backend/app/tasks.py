@@ -1,16 +1,18 @@
 import logging
+from datetime import datetime, timezone, timedelta
+from typing import List
 
 import dramatiq
 from app.config import settings
 from app.db.deps import get_db_context
-from app.db.models import Order, Instrument, User
+from app.db.models import Instrument, Order, User
 from app.services.dividend_dates import fetch_and_update_all_dividend_dates
 from app.services.order_fulfillment import confirm_multiple_orders_deal_references
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware import AsyncIO
 from periodiq import PeriodiqMiddleware, cron
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload, join
+from sqlalchemy import delete
 
 broker = RabbitmqBroker(url=settings.DRAMATIQ_BROKER_URL)
 broker.add_middleware(AsyncIO())
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
 ORDER_CONFIRMATION_SCHEDULE = cron("* * * * *")  # Every minute
+ORDER_CLEANUP_SCHEDULE = cron(settings.ORDER_CLEANUP_SCHEDULE)
 
 
 @dramatiq.actor(periodic=ORDER_CONFIRMATION_SCHEDULE)
@@ -34,12 +37,11 @@ async def confirm_deal_references():
 
     async with get_db_context() as db:
         try:
-            # Fetch all orders with their associated instruments and users
             stmt = (
                 select(Order).join_from(Order, Instrument).join_from(Instrument, User)
             )
             result = await db.execute(stmt)
-            orders = result.scalars().all()
+            orders: List[Order] = result.scalars().all()
 
             if not orders:
                 logger.info("No orders found to confirm")
@@ -76,4 +78,40 @@ async def update_dividend_dates():
             )
         except Exception as e:
             logger.error(f"Error in update_dividend_dates: {str(e)}")
+            raise
+
+
+@dramatiq.actor(periodic=ORDER_CLEANUP_SCHEDULE)
+async def cleanup_old_orders():
+    """
+    Delete orders that are older than the configured number of hours.
+    Runs on a configurable schedule (default: every 1 hours).
+    """
+    logger.info("Starting old orders cleanup task")
+
+    async with get_db_context() as db:
+        try:
+            # Calculate the cutoff time
+            cutoff_time = datetime.now(timezone.utc) - timedelta(
+                hours=settings.ORDER_CLEANUP_HOURS
+            )
+
+            # Create delete statement for orders older than cutoff time
+            stmt = delete(Order).where(Order.created_at < cutoff_time)
+
+            # Execute the deletion
+            result = await db.execute(stmt)
+            deleted_count = result.rowcount
+
+            # Commit the changes
+            await db.commit()
+
+            logger.info(
+                f"Successfully completed old orders cleanup task - "
+                f"{deleted_count} orders older than {settings.ORDER_CLEANUP_HOURS} hours deleted"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in cleanup_old_orders task: {str(e)}")
+            await db.rollback()
             raise

@@ -503,6 +503,31 @@ class IGClient:
         return DealConfirmation(**data)
 
     @ig_api_retry
+    def get_position_by_deal_id(self, data: GetPositionByDealIdRequest) -> PositionData:
+        """
+        Get position details by deal ID.
+        """
+        response = self.client.get(
+            f"positions/{data.deal_id}",
+            headers={"Version": "2"},
+        )
+
+        # Handle non-200 responses appropriately for retry logic
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
+        data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=data.get("errorCode"),
+            )
+
+        return PositionData(**data)
+
+    @ig_api_retry
     def get_user_quick_stats(self) -> UserQuickStats:
         """
         Get quick stats about the user account including:

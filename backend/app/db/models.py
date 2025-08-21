@@ -102,11 +102,11 @@ class Instrument(BaseDBModel):
     next_dividend_date: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    orders: Mapped[List["Order"]] = relationship(
+    order: Mapped[Optional["Order"]] = relationship(
         "Order",
         back_populates="instrument",
         cascade="all, delete-orphan",
-        order_by="desc(Order.created_at)",
+        uselist=False,
     )
 
 
@@ -177,6 +177,6 @@ class Order(BaseDBModel):
     __tablename__ = "orders"
 
     instrument_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("instruments.id"), nullable=False
+        ForeignKey("instruments.id"), nullable=False, unique=True
     )
-    instrument: Mapped[Instrument] = relationship("Instrument", back_populates="orders")
+    instrument: Mapped[Instrument] = relationship("Instrument", back_populates="order")

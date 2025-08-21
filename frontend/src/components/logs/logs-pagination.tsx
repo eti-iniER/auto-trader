@@ -35,14 +35,12 @@ export const LogsPagination = ({
   return (
     <div className="flex items-center justify-between px-2 py-3">
       <div className="flex items-center space-x-2">
-        <p className="text-muted-foreground text-sm font-medium">
-          Rows per page
-        </p>
+        <p className="text-foreground text-sm font-medium">Rows per page</p>
         <Select
           value={pageSize.toString()}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger className="bg-muted/50 border-muted-foreground/20 h-8 w-[70px]">
+          <SelectTrigger className="bg-background border-border h-8 w-[70px]">
             <SelectValue placeholder={pageSize} />
           </SelectTrigger>
           <SelectContent side="top">
@@ -56,7 +54,7 @@ export const LogsPagination = ({
       </div>
 
       <div className="flex items-center space-x-6 lg:space-x-8">
-        <div className="text-muted-foreground flex w-[100px] items-center justify-center text-sm font-medium">
+        <div className="text-foreground flex w-[100px] items-center justify-center text-sm font-medium">
           {totalCount === 0 ? (
             "No entries"
           ) : (
@@ -69,7 +67,7 @@ export const LogsPagination = ({
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
-            className="bg-muted/50 border-muted-foreground/20 hover:bg-muted hidden h-8 w-8 p-0 lg:flex"
+            className="bg-background border-border hover:bg-accent hidden h-8 w-8 p-0 lg:flex"
             onClick={() => onPageChange(1)}
             disabled={currentPage <= 1}
           >
@@ -78,7 +76,7 @@ export const LogsPagination = ({
           </Button>
           <Button
             variant="outline"
-            className="bg-muted/50 border-muted-foreground/20 hover:bg-muted h-8 w-8 p-0"
+            className="bg-background border-border hover:bg-accent h-8 w-8 p-0"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
           >
@@ -87,14 +85,14 @@ export const LogsPagination = ({
           </Button>
 
           <div className="flex items-center space-x-2">
-            <p className="text-muted-foreground text-sm font-medium">
+            <p className="text-foreground text-sm font-medium">
               Page {currentPage} of {totalPages}
             </p>
           </div>
 
           <Button
             variant="outline"
-            className="bg-muted/50 border-muted-foreground/20 hover:bg-muted h-8 w-8 p-0"
+            className="bg-background border-border hover:bg-accent h-8 w-8 p-0"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
           >
@@ -103,7 +101,7 @@ export const LogsPagination = ({
           </Button>
           <Button
             variant="outline"
-            className="bg-muted/50 border-muted-foreground/20 hover:bg-muted hidden h-8 w-8 p-0 lg:flex"
+            className="bg-background border-border hover:bg-accent hidden h-8 w-8 p-0 lg:flex"
             onClick={() => onPageChange(totalPages)}
             disabled={currentPage >= totalPages}
           >

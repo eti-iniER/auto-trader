@@ -83,6 +83,16 @@ class Settings(BaseSettings):
         env="DIVIDEND_DATE_UPDATE_SCHEDULE",
         description="Cron expression for dividend date update schedule (default: midnight on Saturday)",
     )
+    ORDER_CLEANUP_SCHEDULE: str = Field(
+        default="0 */1 * * *",
+        env="ORDER_CLEANUP_SCHEDULE",
+        description="Cron expression for order cleanup schedule (default: every 1 hour)",
+    )
+    ORDER_CLEANUP_HOURS: int = Field(
+        default=8,
+        env="ORDER_CLEANUP_HOURS",
+        description="Number of hours after which orders should be deleted (default: 8 hours)",
+    )
     WEBHOOK_SECRET_LENGTH: int = Field(
         default=32,
         env="WEBHOOK_SECRET_LENGTH",

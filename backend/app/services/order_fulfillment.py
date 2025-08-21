@@ -1,10 +1,15 @@
+import datetime
 import logging
 from typing import Dict, List, Optional, Tuple
 
 from app.clients.ig.client import IGClient
-from app.clients.ig.types import ConfirmDealRequest, DealConfirmation
-from app.db.models import Order
+from app.clients.ig.types import (
+    ConfirmDealRequest,
+    DealConfirmation,
+    DeleteWorkingOrderRequest,
+)
 from app.db.crud import delete_order
+from app.db.models import Order
 from app.services.logging import log_message
 
 logger = logging.getLogger(__name__)
@@ -44,25 +49,50 @@ async def confirm_multiple_orders_deal_references(
 
                 confirmation = await confirm_order_deal_reference(order, ig_client)
 
-                if confirmation:
-                    confirmed_count += 1
+                # Check if order age exceeds the maximum allowed age
+                now = datetime.datetime.now(datetime.timezone.utc)
+                order_age = now - order.created_at
+                max_age = datetime.timedelta(
+                    minutes=user.settings.maximum_order_age_in_minutes
+                )
 
-                    if confirmation.deal_status == "REJECTED":
-                        await log_message(
-                            f"Order {order.id} deal rejected: {confirmation.reason}",
-                            description=confirmation.reason,
-                            user_id=user.id,
-                            extra={
-                                "confirmation_payload": confirmation.model_dump(
-                                    mode="json"
-                                ),
-                                "order_in_db_id": str(order.id),
-                                "deal_reference": confirmation.deal_reference,
-                                "deal_id": confirmation.deal_id,
-                                "deal_status": confirmation.deal_status,
-                            },
-                        )
-                        await delete_order(order.id)
+                if order_age > max_age:
+                    await log_message(
+                        f"Order {order.id} exceeded maximum age ({order_age} > {max_age}), deleting",
+                        description=f"Order created at {order.created_at}, current time {now}",
+                        user_id=user.id,
+                        extra={
+                            "order_in_db_id": str(order.id),
+                            "order_age": str(order_age),
+                            "max_age": str(max_age),
+                            "order_created_at": order.created_at.isoformat(),
+                            "current_time": now.isoformat(),
+                        },
+                    )
+                    await delete_order(order.id)
+                    await ig_client.delete_working_order(
+                        DeleteWorkingOrderRequest(deal_id=confirmation.deal_id)
+                    )
+                    continue
+
+                confirmed_count += 1
+
+                if confirmation.deal_status == "REJECTED":
+                    await log_message(
+                        f"Order {order.id} deal rejected: {confirmation.reason}",
+                        description=confirmation.reason,
+                        user_id=user.id,
+                        extra={
+                            "confirmation_payload": confirmation.model_dump(
+                                mode="json"
+                            ),
+                            "order_in_db_id": str(order.id),
+                            "deal_reference": confirmation.deal_reference,
+                            "deal_id": confirmation.deal_id,
+                            "deal_status": confirmation.deal_status,
+                        },
+                    )
+                    await delete_order(order.id)
 
             except Exception as e:
                 logger.error(

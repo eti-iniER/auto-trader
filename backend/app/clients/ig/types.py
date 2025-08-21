@@ -497,6 +497,15 @@ class ConfirmDealRequest(BaseModel):
         populate_by_name = True
 
 
+class GetPositionByDealIdRequest(BaseModel):
+    """Request to get position by deal ID"""
+
+    deal_id: str = Field(..., description="Deal identifier", alias="dealId")
+
+    class Config:
+        populate_by_name = True
+
+
 class AffectedDeal(BaseModel):
     """Information about a deal affected by a transaction"""
 

@@ -258,7 +258,7 @@ function VirtualizedTable<TData, TValue = unknown>({
             fillAvailableHeight && "flex-shrink-0",
           )}
         >
-          <div className="text-muted-foreground text-sm">
+          <div className="text-foreground text-sm">
             Showing{" "}
             {Math.min(
               (pagination.page - 1) * pagination.pageSize + 1,
@@ -273,14 +273,16 @@ function VirtualizedTable<TData, TValue = unknown>({
           </div>
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-6 lg:space-x-8">
             <div className="flex items-center justify-between space-x-2 sm:justify-start">
-              <p className="text-sm font-medium">Rows per page</p>
+              <p className="text-foreground text-sm font-medium">
+                Rows per page
+              </p>
               <Select
                 value={pagination.pageSize.toString()}
                 onValueChange={(value) =>
                   pagination.onPageSizeChange(Number(value))
                 }
               >
-                <SelectTrigger className="h-10 w-[80px] sm:h-8 sm:w-[70px]">
+                <SelectTrigger className="bg-background border-border h-10 w-[80px] sm:h-8 sm:w-[70px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -292,14 +294,14 @@ function VirtualizedTable<TData, TValue = unknown>({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-center text-sm font-medium sm:w-[100px]">
+            <div className="text-foreground flex items-center justify-center text-sm font-medium sm:w-[100px]">
               Page {pagination.page} of{" "}
               {Math.ceil(pagination.totalCount / pagination.pageSize)}
             </div>
             <div className="flex items-center justify-center space-x-1 sm:justify-start sm:space-x-2">
               <Button
                 variant="outline"
-                className="h-10 w-10 p-0 sm:h-8 sm:w-8"
+                className="bg-background border-border hover:bg-accent h-10 w-10 p-0 sm:h-8 sm:w-8"
                 onClick={() => pagination.onPageChange(1)}
                 disabled={pagination.page <= 1}
               >
@@ -308,7 +310,7 @@ function VirtualizedTable<TData, TValue = unknown>({
               </Button>
               <Button
                 variant="outline"
-                className="h-10 w-10 p-0 sm:h-8 sm:w-8"
+                className="bg-background border-border hover:bg-accent h-10 w-10 p-0 sm:h-8 sm:w-8"
                 onClick={() => pagination.onPageChange(pagination.page - 1)}
                 disabled={pagination.page <= 1}
               >
@@ -317,7 +319,7 @@ function VirtualizedTable<TData, TValue = unknown>({
               </Button>
               <Button
                 variant="outline"
-                className="h-10 w-10 p-0 sm:h-8 sm:w-8"
+                className="bg-background border-border hover:bg-accent h-10 w-10 p-0 sm:h-8 sm:w-8"
                 onClick={() => pagination.onPageChange(pagination.page + 1)}
                 disabled={
                   pagination.page >=
@@ -329,7 +331,7 @@ function VirtualizedTable<TData, TValue = unknown>({
               </Button>
               <Button
                 variant="outline"
-                className="h-10 w-10 p-0 sm:h-8 sm:w-8"
+                className="bg-background border-border hover:bg-accent h-10 w-10 p-0 sm:h-8 sm:w-8"
                 onClick={() =>
                   pagination.onPageChange(
                     Math.ceil(pagination.totalCount / pagination.pageSize),
