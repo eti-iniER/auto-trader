@@ -59,7 +59,7 @@ export const LogItemCard: React.FC<LogItemCardProps> = ({ log }) => {
             onClick={toggleExpanded}
             className="h-8 px-3 text-xs"
           >
-            {isExpanded ? "Hide extra data" : "View extra data"}
+            {isExpanded ? "Hide additional data" : "View additional data"}
           </Button>
         </div>
       )}

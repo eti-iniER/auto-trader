@@ -1,12 +1,13 @@
-from app.db.models import User, Instrument
-from app.db.deps import get_db_context
-from app.clients.ig.types import CreateWorkingOrderRequest
-from app.clients.ig import IGClient
 from decimal import Decimal
-from app.config import settings
 from typing import Literal
-from app.services.logging import log_message
+
+from app.clients.ig import IGClient
+from app.clients.ig.types import CreateWorkingOrderRequest
+from app.config import settings
 from app.db.crud import create_order_for_instrument
+from app.db.deps import get_db_context
+from app.db.models import Instrument, User
+from app.services.logging import log_message
 
 
 async def create_order(
@@ -39,7 +40,7 @@ async def create_order(
     try:
         async with get_db_context() as db:
             order_in_db = await create_order_for_instrument(db, instrument)
-            order_request.deal_reference = str(order_in_db.id)
+            order_request.deal_reference = order_in_db.deal_reference
 
         ig_client.create_working_order(order_request)
 
@@ -57,7 +58,7 @@ async def create_order(
     except Exception as e:
         await log_message(
             "Failed to create order",
-            f"Error creating order for user [{user.email}] on instrument {instrument.ig_epic}: {str(e)}",
+            f"Error creating working order for instrument {instrument.ig_epic}: {str(e)}",
             "order",
             user_id=user.id,
             extra={

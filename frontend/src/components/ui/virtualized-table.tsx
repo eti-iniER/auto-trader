@@ -126,128 +126,121 @@ function VirtualizedTable<TData, TValue = unknown>({
 
       <div
         className={cn(
-          "w-full overflow-hidden rounded-md border",
+          "relative w-full overflow-y-auto rounded-md border",
           fillAvailableHeight && "min-h-0 flex-1",
         )}
+        ref={parentRef}
+        style={{
+          height: fillAvailableHeight ? "100%" : `${maxHeight}px`,
+          maxHeight: fillAvailableHeight ? "100%" : `${maxHeight}px`,
+          willChange: "scroll-position",
+          transform: "translateZ(0)", // Force hardware acceleration
+          scrollBehavior: "auto", // Disable smooth scrolling for performance
+          WebkitOverflowScrolling: "touch", // Better mobile scrolling
+        }}
       >
-        <div
-          ref={parentRef}
-          className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative w-full overflow-auto"
-          style={{
-            height: fillAvailableHeight ? "100%" : `${maxHeight}px`,
-            maxHeight: fillAvailableHeight ? "100%" : `${maxHeight}px`,
-            willChange: "scroll-position",
-            transform: "translateZ(0)", // Force hardware acceleration
-            scrollBehavior: "auto", // Disable smooth scrolling for performance
-            WebkitOverflowScrolling: "touch", // Better mobile scrolling
-          }}
-        >
-          <Table className="w-full" style={{ minWidth: "800px" }}>
-            <TableHeader className="bg-background sticky top-0 z-10">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="relative">
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={cn(
-                            "flex items-center space-x-2",
-                            header.column.getCanSort() &&
-                              "hover:bg-accent/50 -mx-2 -my-1 cursor-pointer rounded px-2 py-1 select-none",
-                          )}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                          {header.column.getCanSort() && (
-                            <div className="ml-1 flex flex-col">
-                              {header.column.getIsSorted() === "desc" ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : header.column.getIsSorted() === "asc" ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ArrowUpDown className="h-4 w-4 opacity-50" />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader variant="dark" />
-                      <span>Loading</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : virtualItems.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {/* Top padding */}
-                  {paddingTop > 0 && (
-                    <tr>
-                      <td style={{ height: `${paddingTop}px` }} />
-                    </tr>
-                  )}
-
-                  {/* Virtual rows */}
-                  {virtualItems.map((virtualRow) => {
-                    const row = rows[virtualRow.index] as Row<TData>;
-                    return (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && "selected"}
-                        style={{
-                          height: `${virtualRow.size}px`,
-                          transform: "translateZ(0)", // Force layer creation for smoother scrolling
-                        }}
+        <Table noWrapper className="w-full" style={{ minWidth: "800px" }}>
+          <TableHeader className="bg-background border-border sticky top-0 z-10 border-b shadow-sm">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} className="bg-background relative">
+                    {header.isPlaceholder ? null : (
+                      <div
+                        className={cn(
+                          "flex items-center space-x-2",
+                          header.column.getCanSort() &&
+                            "hover:bg-accent/50 -mx-2 -my-1 cursor-pointer rounded px-2 py-1 select-none",
+                        )}
+                        onClick={header.column.getToggleSortingHandler()}
                       >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            style={{ willChange: "auto" }}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {header.column.getCanSort() && (
+                          <div className="ml-1 flex flex-col">
+                            {header.column.getIsSorted() === "desc" ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : header.column.getIsSorted() === "asc" ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 opacity-50" />
                             )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    );
-                  })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader variant="dark" />
+                    <span>Loading</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : virtualItems.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            ) : (
+              <>
+                {/* Top padding */}
+                {paddingTop > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingTop}px` }} />
+                  </tr>
+                )}
 
-                  {/* Bottom padding */}
-                  {paddingBottom > 0 && (
-                    <tr>
-                      <td style={{ height: `${paddingBottom}px` }} />
-                    </tr>
-                  )}
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                {/* Virtual rows */}
+                {virtualItems.map((virtualRow) => {
+                  const row = rows[virtualRow.index] as Row<TData>;
+                  return (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                      style={{
+                        height: `${virtualRow.size}px`,
+                        transform: "translateZ(0)", // Force layer creation for smoother scrolling
+                      }}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} style={{ willChange: "auto" }}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })}
+
+                {/* Bottom padding */}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingBottom}px` }} />
+                  </tr>
+                )}
+              </>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}

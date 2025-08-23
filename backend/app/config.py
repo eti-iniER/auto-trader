@@ -26,11 +26,6 @@ class Settings(BaseSettings):
         env="FRONTEND_URL",
         description="URL of the frontend application",
     )
-    LOG_LEVEL: int = Field(
-        default=logging.INFO,
-        env="LOG_LEVEL",
-        description="Logging level for the application",
-    )
     IG_USERNAME: str = Field(..., env="IG_USERNAME")
     IG_PASSWORD: str = Field(..., env="IG_PASSWORD")
     IG_API_KEY: str = Field(..., env="IG_API_KEY")
@@ -108,6 +103,11 @@ class Settings(BaseSettings):
         env="LOGFILE_NAME_PREFIX",
         description="Prefix for log file names",
     )
+    LOG_LEVEL: int = Field(
+        default=logging.INFO,
+        env="LOG_LEVEL",
+        description="Logging level for the application",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 
@@ -133,7 +133,7 @@ LOGGING_CONFIG = {
         "app": {
             "level": settings.LOG_LEVEL,
             "handlers": ["console"],
-            "propagate": False,
+            "propagate": True,
         },
     },
     "root": {

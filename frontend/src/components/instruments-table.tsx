@@ -40,7 +40,9 @@ const columns: ColumnDef<Instrument>[] = [
     header: "Yahoo Symbol",
     size: 130,
     cell: ({ row }) => (
-      <div className="font-mono text-sm">{row.getValue("yahooSymbol")}</div>
+      <div className="text-center font-mono text-sm">
+        {row.getValue("yahooSymbol")}
+      </div>
     ),
   },
   {

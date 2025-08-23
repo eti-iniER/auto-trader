@@ -101,7 +101,7 @@ async def parse_ig_position_to_schema(
 
     ig_epic = market_data.get("epic", "")
     direction = position_data.get("direction", "").upper()
-    size = int(position_data.get("size", 0))
+    size = Decimal(position_data.get("size", 0.00))
     open_level = Decimal(str(position_data.get("level", 0.0)))
 
     # Get market_and_symbol from user's instruments

@@ -20,7 +20,7 @@ from tenacity import (
 from .exceptions import IGAPIError, IGAuthenticationError
 from .types import *
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ig_client")
 
 
 # Common retry decorator for API methods

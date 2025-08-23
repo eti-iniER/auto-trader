@@ -132,17 +132,14 @@ async def confirm_order_deal_reference(
         if not client_provided:
             ig_client = IGClient.create_for_user(order.instrument.user)
 
-        # Use the order ID as the deal reference
-        deal_reference = str(order.id)
-
         # Create the confirm deal request
-        confirm_request = ConfirmDealRequest(deal_reference=deal_reference)
+        confirm_request = ConfirmDealRequest(deal_reference=order.deal_reference)
 
         # Call the confirmation method
         confirmation = ig_client.get_working_order_confirmation(confirm_request)
 
         logger.info(
-            f"Successfully confirmed deal reference {deal_reference} "
+            f"Successfully confirmed deal reference {order.deal_reference} "
             f"for user {order.instrument.user.email} - Status: {confirmation.deal_status}"
         )
 

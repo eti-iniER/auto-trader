@@ -1,5 +1,5 @@
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
-import { formatCurrency, formatDate } from "@/lib/formatting";
+import { formatCurrency, formatDate, formatDecimal } from "@/lib/formatting";
 import { type ColumnDef } from "@tanstack/react-table";
 
 interface PositionsTableProps {
@@ -75,7 +75,7 @@ const columns: ColumnDef<Position>[] = [
     header: "Size",
     size: 100,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue("size")}</div>
+      <div className="text-center">{formatDecimal(row.getValue("size"))}</div>
     ),
   },
   {
@@ -84,7 +84,7 @@ const columns: ColumnDef<Position>[] = [
     size: 120,
     cell: ({ row }) => {
       const openLevel = row.getValue("openLevel") as number;
-      return <div className="text-center">{formatCurrency(openLevel)}</div>;
+      return <div className="text-center">{formatDecimal(openLevel)}</div>;
     },
   },
   {
@@ -95,7 +95,7 @@ const columns: ColumnDef<Position>[] = [
       const currentLevel = row.getValue("currentLevel") as number;
       return (
         <div className="text-center">
-          {currentLevel ? formatCurrency(currentLevel) : "—"}
+          {currentLevel ? formatDecimal(currentLevel) : "—"}
         </div>
       );
     },
@@ -142,7 +142,7 @@ const columns: ColumnDef<Position>[] = [
       const stopLevel = row.getValue("stopLevel") as number;
       return (
         <div className="text-center">
-          {stopLevel ? formatCurrency(stopLevel) : "—"}
+          {stopLevel ? formatDecimal(stopLevel) : "—"}
         </div>
       );
     },
@@ -155,7 +155,7 @@ const columns: ColumnDef<Position>[] = [
       const limitLevel = row.getValue("limitLevel") as number;
       return (
         <div className="text-center">
-          {limitLevel ? formatCurrency(limitLevel) : "—"}
+          {limitLevel ? formatDecimal(limitLevel) : "—"}
         </div>
       );
     },

@@ -1,6 +1,6 @@
-import { type ColumnDef } from "@tanstack/react-table";
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
-import { formatCurrency, formatDate } from "@/lib/formatting";
+import { formatDate, formatDecimal } from "@/lib/formatting";
+import { type ColumnDef } from "@tanstack/react-table";
 
 interface OrdersTableProps {
   data: Order[];
@@ -65,7 +65,7 @@ const columns: ColumnDef<Order>[] = [
     header: "Size",
     size: 100,
     cell: ({ row }) => (
-      <div className="text-center">{row.getValue("size")}</div>
+      <div className="text-center">{formatDecimal(row.getValue("size"))}</div>
     ),
   },
   {
@@ -76,7 +76,7 @@ const columns: ColumnDef<Order>[] = [
       const stopLevel = row.getValue("stopLevel") as number;
       return (
         <div className="text-center">
-          {stopLevel ? formatCurrency(stopLevel) : "—"}
+          {stopLevel ? formatDecimal(stopLevel) : "—"}
         </div>
       );
     },
@@ -89,7 +89,7 @@ const columns: ColumnDef<Order>[] = [
       const profitLevel = row.getValue("profitLevel") as number;
       return (
         <div className="text-center">
-          {profitLevel ? formatCurrency(profitLevel) : "—"}
+          {profitLevel ? formatDecimal(profitLevel) : "—"}
         </div>
       );
     },

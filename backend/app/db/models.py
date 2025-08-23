@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from app.db.enums import LogType, UserSettingsMode, UserSettingsOrderType
-from app.services.utils import generate_webhook_secret
+from app.services.utils import generate_webhook_secret, generate_deal_reference
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -180,3 +180,6 @@ class Order(BaseDBModel):
         ForeignKey("instruments.id"), nullable=False, unique=True
     )
     instrument: Mapped[Instrument] = relationship("Instrument", back_populates="order")
+    deal_reference: Mapped[str] = mapped_column(
+        String(12), nullable=False, unique=True, default=generate_deal_reference
+    )

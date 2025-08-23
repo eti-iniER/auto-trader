@@ -6,6 +6,7 @@ from app.services.core.payload_parser import parse_webhook_payload_to_trading_vi
 from app.services.core.payload_validator import validate_webhook_payload
 from app.services.core.trade_executor import create_order
 from app.services.logging import log_message
+from app.schemas.instruments import InstrumentRead
 
 
 async def handle_alert(payload: WebhookPayload):
@@ -16,9 +17,9 @@ async def handle_alert(payload: WebhookPayload):
         return
 
     async with get_db_context() as db:
-        user = await get_user_by_webhook_secret(db, alert.secret)
+        user = await get_user_by_webhook_secret(db, payload.secret)
         instrument = await get_instrument_by_market_and_symbol(
-            db, alert.market_and_symbol
+            db, payload.market_and_symbol
         )
 
     await log_message(
@@ -35,20 +36,35 @@ async def handle_alert(payload: WebhookPayload):
 
     open_price = alert.open_price
 
-    limit_price = calculate_limit_price(
-        alert.direction, open_price, instrument.opening_price_multiple_percentage
-    )
-    bet_size = calculate_bet_size(limit_price, instrument.position_size)
-    profit_target_price = calculate_profit_target_price(
-        instrument.atr_profit_target_period,
-        alert.atrs,
-        instrument.atr_profit_multiple_percentage,
-    )
-    stop_loss_price = calculate_stop_loss_price(
-        instrument.atr_stop_loss_period,
-        alert.atrs,
-        instrument.atr_stop_loss_multiple_percentage,
-    )
+    try:
+        limit_price = calculate_limit_price(
+            alert.direction, open_price, instrument.opening_price_multiple_percentage
+        )
+        bet_size = calculate_bet_size(limit_price, instrument.position_size)
+        profit_target_price = calculate_profit_target_price(
+            instrument.atr_profit_target_period,
+            alert.atrs,
+            instrument.atr_profit_multiple_percentage,
+        )
+        stop_loss_price = calculate_stop_loss_price(
+            instrument.atr_stop_loss_period,
+            alert.atrs,
+            instrument.atr_stop_loss_multiple_percentage,
+        )
+    except Exception as e:
+        await log_message(
+            "Error calculating trade parameters",
+            f"Failed to calculate trade parameters: {str(e)}",
+            "error",
+            user.id,
+            {
+                "alert": alert.model_dump(mode="json"),
+                "instrument": InstrumentRead.model_validate(instrument).model_dump(
+                    mode="json"
+                ),
+            },
+        )
+        return
 
     await create_order(
         user=user,

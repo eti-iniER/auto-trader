@@ -14,7 +14,7 @@ class Position(BaseModel):
     ig_epic: str
     market_and_symbol: Optional[str] = None
     direction: PositionDirection
-    size: int
+    size: Decimal
     open_level: Decimal
     current_level: Optional[Decimal] = None
     profit_loss: Optional[Decimal] = None
