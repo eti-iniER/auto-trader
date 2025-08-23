@@ -1,4 +1,4 @@
-name: Build and Deploy to DockerHub
+name: Build and Deploy Backend and Frontend
 
 on:
     push:
@@ -12,6 +12,30 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: "npm"
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Install frontend dependencies
+              run: |
+                  cd frontend
+                  npm ci
+
+            - name: Build frontend
+              env:
+                  VITE_API_URL: api/v1
+              run: |
+                  cd frontend
+                  npm run build
+
+            - name: Create frontend archive
+              run: |
+                  cd frontend
+                  tar -czf ../frontend-build.tar.gz -C dist .
 
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v3
@@ -42,13 +66,33 @@ jobs:
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
 
-            - name: Deploy to server
+            - name: Deploy frontend to server
+              uses: appleboy/scp-action@v0.1.7
+              with:
+                  host: ${{ secrets.SERVER_HOST }}
+                  username: ${{ secrets.SERVER_USERNAME }}
+                  key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+                  password: ${{ secrets.SERVER_SSH_PASSWORD }}
+                  source: "frontend-build.tar.gz"
+                  target: "/tmp/"
+
+            - name: Deploy backend and extract frontend
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.SERVER_HOST }}
                   username: ${{ secrets.SERVER_USERNAME }}
                   key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+                  password: ${{ secrets.SERVER_SSH_PASSWORD }}
                   script: |
+                      # Deploy backend
                       cd app
                       docker compose pull
                       docker compose up -d --force-recreate
+
+                      # Deploy frontend
+                      sudo mkdir -p /var/www/auto-trader
+                      sudo rm -rf /var/www/auto-trader/*
+                      cd /tmp
+                      sudo tar -xzf frontend-build.tar.gz -C /var/www/auto-trader/
+                      sudo chown -R www-data:www-data /var/www/auto-trader
+                      rm -f frontend-build.tar.gz

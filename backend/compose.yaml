@@ -91,6 +91,7 @@ services:
             - "443:443"
         volumes:
             - ./config/caddy:/etc/caddy
+            - /var/www/auto-trader:/usr/share/caddy
             - caddy_data:/data
             - caddy_config:/config
         networks:
