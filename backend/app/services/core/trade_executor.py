@@ -45,11 +45,11 @@ async def create_order(
         ig_client.create_working_order(order_request)
 
         await log_message(
-            "Order created",
-            f"Order for instrument with IG Epic {instrument.ig_epic} created successfully.",
+            "Order request created",
+            f"An order request for instrument with IG Epic {instrument.ig_epic} was made successfully. We will monitor and confirm the order's acceptance shortly.",
             "order",
             user_id=user.id,
-            identifier="order_created",
+            identifier="order_request_created",
             extra={
                 "order_request": order_request.model_dump(mode="json"),
                 "instrument_ig_epic": instrument.ig_epic,

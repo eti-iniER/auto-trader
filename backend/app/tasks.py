@@ -49,7 +49,9 @@ async def confirm_deal_references():
 
             # Use the service function to handle confirmation with caching
             confirmed_count, error_count = (
-                await confirm_multiple_orders_deal_references(orders)
+                await confirm_multiple_orders_deal_references(
+                    [order.id for order in orders]
+                )
             )
 
             logger.info(

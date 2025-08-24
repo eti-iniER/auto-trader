@@ -11,10 +11,12 @@ def calculate_limit_price(
     open_price: Decimal,
     opening_price_multiple_percentage: Decimal,
 ) -> Decimal:
+    limit_price = None
     if direction == "SELL":
-        return open_price * opening_price_multiple_percentage
-    elif direction == "BUY":
-        return open_price / opening_price_multiple_percentage
+        limit_price = open_price * opening_price_multiple_percentage
+    else:  # direction == "BUY"
+        limit_price = open_price / opening_price_multiple_percentage
+    return limit_price.quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_UP")
 
 
 def calculate_bet_size(limit_price: Decimal, size: int):

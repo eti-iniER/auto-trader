@@ -181,5 +181,5 @@ class Order(BaseDBModel):
     )
     instrument: Mapped[Instrument] = relationship("Instrument", back_populates="order")
     deal_reference: Mapped[str] = mapped_column(
-        String(12), nullable=False, unique=True, default=generate_deal_reference
+        String(128), nullable=False, unique=True, default=generate_deal_reference
     )

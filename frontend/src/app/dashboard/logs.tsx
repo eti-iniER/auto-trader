@@ -98,6 +98,15 @@ export const Logs = () => {
     setCurrentPage(1);
   };
 
+  const handleReset = () => {
+    setFromDate(undefined);
+    setToDate(undefined);
+    setType("ALL");
+    setLastHours(undefined);
+    setCurrentPage(1);
+    setPageSize(DEFAULT_PAGE_SIZE);
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex-shrink-0 p-8 pb-0">
@@ -129,6 +138,7 @@ export const Logs = () => {
               resetPagination();
             }}
             onDownload={handleDownload}
+            onReset={handleReset}
           />
         </div>
       </div>

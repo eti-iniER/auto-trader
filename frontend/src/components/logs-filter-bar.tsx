@@ -1,4 +1,4 @@
-import { DownloadIcon } from "lucide-react";
+import { LuDownload, LuRotateCcw } from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ interface LogsFilterBarProps {
   onTypeChange: (logType: LogType | "ALL") => void;
   onLastHoursChange: (hours: number | undefined) => void;
   onDownload: () => void;
+  onReset: () => void;
 }
 
 const LOG_TYPE_OPTIONS: { value: LogType | "ALL"; label: string }[] = [
@@ -42,6 +43,7 @@ export const LogsFilterBar = ({
   onTypeChange,
   onLastHoursChange,
   onDownload,
+  onReset,
 }: LogsFilterBarProps) => {
   const handleLastHoursChange = (value: string) => {
     const hours = value === "" ? undefined : parseInt(value, 10);
@@ -118,9 +120,13 @@ export const LogsFilterBar = ({
         </Select>
       </div>
 
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
+        <Button onClick={onReset} variant="default">
+          <LuRotateCcw className="h-4 w-4" />
+          Reset filters
+        </Button>
         <Button onClick={onDownload} variant="default">
-          <DownloadIcon className="h-4 w-4" />
+          <LuDownload className="h-4 w-4" />
           Download logs
         </Button>
       </div>

@@ -271,3 +271,35 @@ async def delete_order(db: AsyncSession, order_id: uuid.UUID) -> None:
 
     await db.delete(order)
     await db.commit()
+
+
+async def get_order_by_id(db: AsyncSession, order_id: uuid.UUID) -> Order:
+    """
+    Retrieve an order by its ID.
+
+    Args:
+        db (AsyncSession): The database session.
+        order_id (uuid.UUID): The ID of the order to retrieve.
+
+    Returns:
+        Order: The order object if found, otherwise raises an error.
+    """
+    stmt = (
+        select(Order)
+        .options(
+            selectinload(Order.instrument)
+            .selectinload(Instrument.user)
+            .selectinload(User.settings)
+        )
+        .where(Order.id == order_id)
+    )
+    result = await db.execute(stmt)
+    order = result.scalar_one_or_none()
+
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Order with ID '{order_id}' not found.",
+        )
+
+    return order

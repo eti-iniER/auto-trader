@@ -527,27 +527,27 @@ class DealConfirmation(BaseModel):
     deal_status: DealStatus = Field(..., alias="dealStatus", description="Deal status")
     direction: Direction = Field(..., description="Deal direction")
     epic: str = Field(..., description="Instrument epic identifier")
-    expiry: str = Field(..., description="Instrument expiry")
+    expiry: Optional[str] = Field(None, description="Instrument expiry")
     guaranteed_stop: bool = Field(
         ..., alias="guaranteedStop", description="True if guaranteed stop"
     )
-    level: Decimal = Field(..., description="Level")
+    level: Optional[Decimal] = Field(None, description="Level")
     limit_distance: Optional[Decimal] = Field(
         None, alias="limitDistance", description="Limit distance"
     )
     limit_level: Optional[Decimal] = Field(
         None, alias="limitLevel", description="Limit level"
     )
-    profit: Decimal = Field(..., description="Profit")
-    profit_currency: str = Field(
-        ..., alias="profitCurrency", description="Profit currency"
+    profit: Optional[Decimal] = Field(None, description="Profit")
+    profit_currency: Optional[str] = Field(
+        None, alias="profitCurrency", description="Profit currency"
     )
     reason: ReasonCode = Field(
         ...,
         description="Describes the error (or success) condition for the specified trading operation",
     )
-    size: Decimal = Field(..., description="Size")
-    status: PositionStatus = Field(..., description="Position status")
+    size: Optional[Decimal] = Field(None, description="Size")
+    status: Optional[PositionStatus] = Field(None, description="Position status")
     stop_distance: Optional[Decimal] = Field(
         None, alias="stopDistance", description="Stop distance"
     )

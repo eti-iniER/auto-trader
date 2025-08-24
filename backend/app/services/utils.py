@@ -10,7 +10,7 @@ def generate_webhook_secret(length: int = settings.WEBHOOK_SECRET_LENGTH) -> str
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def generate_deal_reference(length: int = 32) -> str:
+def generate_deal_reference(length: int = 16) -> str:
     """Generate a secure random variable-length string for deal references."""
     alphabet = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(length))
