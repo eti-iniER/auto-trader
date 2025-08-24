@@ -18,3 +18,8 @@ class UserSettingsMode(str, Enum):
 class UserSettingsOrderType(str, Enum):
     LIMIT = "LIMIT"
     MARKET = "MARKET"
+
+
+class UserRole(str, Enum):
+    USER = "USER"
+    ADMIN = "ADMIN"

@@ -53,6 +53,8 @@ export const Settings = () => {
       liveAccountId: settings.liveAccountId || "",
       liveWebhookSecret: settings.liveWebhookSecret,
       orderType: settings.orderType,
+      instrumentTradeCooldownPeriodInHours:
+        settings.instrumentTradeCooldownPeriodInHours,
       maximumOrderAgeInMinutes: settings.maximumOrderAgeInMinutes,
       maximumOpenPositions: settings.maximumOpenPositions,
       maximumOpenPositionsAndPendingOrders:
@@ -97,6 +99,8 @@ export const Settings = () => {
       liveAccountId: data.liveAccountId || null,
       liveWebhookSecret: data.liveWebhookSecret,
       orderType: data.orderType,
+      instrumentTradeCooldownPeriodInHours:
+        data.instrumentTradeCooldownPeriodInHours,
       maximumOrderAgeInMinutes: data.maximumOrderAgeInMinutes,
       maximumOpenPositions: data.maximumOpenPositions,
       maximumOpenPositionsAndPendingOrders:

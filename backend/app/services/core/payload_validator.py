@@ -2,14 +2,15 @@ from datetime import date, datetime, timedelta, timezone
 from enum import Enum
 from typing import Optional, Tuple
 
+from app.api.schemas.webhook import WebhookPayload
 from app.config import settings
 from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
 from app.db.models import Instrument, Order, User
-from app.api.schemas.webhook import WebhookPayload
 from app.services.logging import log_message
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 # Constants
 SECONDS_PER_HOUR = 3600
@@ -139,11 +140,15 @@ async def _validate_instrument_exists(
     return True, None, instrument
 
 
-async def _validate_order_timing(
+async def _validate_trade_cooldown_timing(
     payload: WebhookPayload, user: User, instrument: Instrument, db
 ) -> Tuple[bool, Optional[str]]:
-    """Validate order creation timing constraints (8-hour rule)."""
-    stmt = select(Order).where(Order.instrument_id == instrument.id)
+    """Validate that enough time has passed since the last trade for this instrument."""
+    stmt = (
+        select(Order)
+        .where(Order.instrument_id == instrument.id)
+        .options(selectinload(Order.instrument).selectinload(Instrument.user))
+    )
     result = await db.execute(stmt)
     existing_order: Optional[Order] = result.scalar_one_or_none()
 
@@ -151,14 +156,16 @@ async def _validate_order_timing(
         return True, None
 
     time_since_order = datetime.now(timezone.utc) - existing_order.created_at
-    required_timedelta = timedelta(hours=settings.ORDER_CLEANUP_HOURS)
+    required_timedelta = timedelta(
+        hours=user.settings.instrument_trade_cooldown_period_in_hours
+    )
 
     if time_since_order < required_timedelta:
         hours_since_order = time_since_order.total_seconds() / SECONDS_PER_HOUR
 
         await _log_validation_error(
-            f"Order creation blocked by {settings.ORDER_CLEANUP_HOURS}-hour rule",
-            f"Alert has been rejected because an order for this instrument was created {hours_since_order:.1f} hours ago, which is less than the {settings.ORDER_CLEANUP_HOURS}-hour minimum",
+            "Order creation too soon after previous order",
+            "Alert has been ignored due to insufficient cooldown period since last order for this instrument",
             user.id,
             payload,
             {
@@ -166,7 +173,7 @@ async def _validate_order_timing(
                 "existing_order_id": str(existing_order.id),
                 "existing_order_created_at": existing_order.created_at.isoformat(),
                 "hours_since_order": hours_since_order,
-                "minimum_hours_required": settings.ORDER_CLEANUP_HOURS,
+                "minimum_hours_required": user.settings.instrument_trade_cooldown_period_in_hours,
             },
         )
 
@@ -231,8 +238,8 @@ async def validate_webhook_payload(
         if not is_valid:
             return is_valid, error_code
 
-        # Validate order timing constraints
-        is_valid, error_code = await _validate_order_timing(
+        # Validate trade cooldown timing
+        is_valid, error_code = await _validate_trade_cooldown_timing(
             payload, user, instrument, db
         )
         if not is_valid:

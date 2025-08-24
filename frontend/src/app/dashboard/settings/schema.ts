@@ -20,6 +20,7 @@ export const settingsSchema = z.object({
   orderType: z.enum(["LIMIT", "MARKET"], {
     message: "Please select an order type",
   }),
+  instrumentTradeCooldownPeriodInHours: z.number().int().min(0).max(120),
   maximumOrderAgeInMinutes: z.number().int().min(1).max(1440),
   maximumOpenPositions: z.number().int().min(0).max(100),
   maximumOpenPositionsAndPendingOrders: z.number().int().min(0).max(100),

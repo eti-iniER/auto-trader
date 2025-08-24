@@ -3,7 +3,7 @@ import uuid
 from decimal import Decimal
 from typing import List, Optional
 
-from app.db.enums import LogType, UserSettingsMode, UserSettingsOrderType
+from app.db.enums import LogType, UserSettingsMode, UserSettingsOrderType, UserRole
 from app.services.utils import generate_webhook_secret, generate_deal_reference
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -45,6 +45,9 @@ class User(BaseDBModel):
     )
     refresh_token: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, unique=True
+    )
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole), nullable=False, default=UserRole.USER
     )
     settings: Mapped["UserSettings"] = relationship(
         "UserSettings", back_populates="user", cascade="all, delete-orphan"
@@ -145,6 +148,11 @@ class UserSettings(BaseDBModel):
     )
     maximum_alert_age_in_seconds: Mapped[int] = mapped_column(
         nullable=False, default=10, comment="Maximum age of an alert in seconds"
+    )
+    instrument_trade_cooldown_period_in_hours: Mapped[int] = mapped_column(
+        nullable=False,
+        default=8,
+        comment="Cooldown period between trades for the same instrument in hours",
     )
     avoid_dividend_dates: Mapped[bool] = mapped_column(
         nullable=False, default=True, comment="Avoid trading on dividend dates"

@@ -186,6 +186,37 @@ export const TradingRulesSection = () => {
                 </FormItem>
               )}
             />
+            <FormField
+              control={control}
+              name="instrumentTradeCooldownPeriodInHours"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Cooldown period between trades for same instrument (hours)
+                  </FormLabel>
+                  <FormDescription className="text-muted-foreground text-sm">
+                    Minimum time to wait before allowing trades for the same
+                    instrument again
+                  </FormDescription>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="60"
+                      min="1"
+                      max="86400"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? parseInt(e.target.value) : undefined,
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
       </div>

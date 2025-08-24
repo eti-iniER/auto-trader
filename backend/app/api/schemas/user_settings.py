@@ -26,6 +26,10 @@ class UserSettingsRead(BaseModel):
         None, description="Live spreadbet account ID"
     )
     order_type: str = Field(..., description="Order type (e.g., market, limit, stop)")
+    instrument_trade_cooldown_period_in_hours: int = Field(
+        description="Cooldown period between trades for the same instrument in hours",
+        default=8,
+    )
     maximum_order_age_in_minutes: int = Field(
         ..., description="Maximum age of an order in minutes"
     )
@@ -79,7 +83,9 @@ class UserSettingsUpdate(BaseModel):
     live_account_id: Optional[str] = Field(
         None, description="Live spreadbet account ID"
     )
-    order_type: str = Field(None, description="Order type (e.g., market, limit, stop)")
+    order_type: Optional[str] = Field(
+        None, description="Order type (e.g., market, limit, stop)"
+    )
     maximum_order_age_in_minutes: Optional[int] = Field(
         None, description="Maximum age of an order in minutes"
     )
@@ -91,6 +97,10 @@ class UserSettingsUpdate(BaseModel):
     )
     maximum_alert_age_in_seconds: Optional[int] = Field(
         None, description="Maximum age of an alert in seconds"
+    )
+    instrument_trade_cooldown_period_in_hours: Optional[int] = Field(
+        None,
+        description="Cooldown period between trades for the same instrument in hours",
     )
     avoid_dividend_dates: Optional[bool] = Field(
         None, description="Avoid trading on dividend dates"

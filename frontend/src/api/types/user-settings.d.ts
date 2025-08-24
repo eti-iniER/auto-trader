@@ -14,6 +14,7 @@ interface UserSettings {
   liveAccountId: string | null;
   orderType: UserSettingsOrderType;
   liveWebhookSecret: string;
+  instrumentTradeCooldownPeriodInHours: number;
   maximumOrderAgeInMinutes: number;
   maximumOpenPositions: number;
   maximumOpenPositionsAndPendingOrders: number;
