@@ -6,7 +6,6 @@ interface Instrument {
   atrStopLossMultiplePercentage: number;
   atrProfitTargetPeriod: number;
   atrProfitMultiplePercentage: number;
-  positionSize: number;
   maxPositionSize: number;
   openingPriceMultiplePercentage: number;
   nextDividendDate: Date | null;

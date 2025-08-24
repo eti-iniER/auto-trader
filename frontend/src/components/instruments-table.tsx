@@ -81,13 +81,6 @@ const columns: ColumnDef<Instrument>[] = [
     ),
   },
   {
-    accessorKey: "positionSize",
-    header: "Position Size",
-    cell: ({ row }) => (
-      <div className="text-center">{row.getValue("positionSize")}</div>
-    ),
-  },
-  {
     accessorKey: "maxPositionSize",
     header: "Max Position Size",
     cell: ({ row }) => (

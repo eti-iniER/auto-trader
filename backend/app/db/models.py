@@ -94,7 +94,6 @@ class Instrument(BaseDBModel):
     atr_profit_multiple_percentage: Mapped[Decimal] = mapped_column(
         nullable=False, default=Decimal("1.0")
     )
-    position_size: Mapped[int] = mapped_column(nullable=False, default=1)
     max_position_size: Mapped[int] = mapped_column(nullable=True)
     opening_price_multiple_percentage: Mapped[Decimal] = mapped_column(
         nullable=False, default=Decimal("1.0")
