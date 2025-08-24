@@ -2,13 +2,19 @@ import logging
 from typing import Annotated
 
 from app.api.schemas.generic import SimpleResponseSchema
+from app.api.schemas.user import UserSchema
 from app.api.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
-from app.api.utils.authentication import get_current_user, hash_password
+from app.api.utils.authentication import get_current_user, hash_password, require_admin
+from app.api.utils.pagination import (
+    PaginationParams,
+    PaginatedResponse,
+    build_paginated_response,
+)
 from app.db.crud import update_user
 from app.db.deps import get_db
 from app.db.models import User, UserSettings
 from app.services.utils import generate_webhook_secret
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
 from fastcrud import FastCRUD
 from pydantic import BaseModel
@@ -17,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(prefix="/users", tags=["users"])
 
 user_settings_crud = FastCRUD(UserSettings)
+user_crud = FastCRUD(User)
 
 logger = logging.getLogger(__name__)
 
@@ -172,4 +179,130 @@ async def change_password(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to change password: {str(e)}",
+        )
+
+
+# Admin-only endpoints for user management
+@router.get(
+    "/",
+    summary="List all users (Admin only)",
+    response_model=PaginatedResponse[UserSchema],
+)
+async def list_users(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin_user: Annotated[User, Depends(require_admin())],
+    pagination: Annotated[PaginationParams, Depends()],
+) -> PaginatedResponse[UserSchema]:
+    """
+    List all users with pagination. Admin access required.
+    """
+    try:
+        result = await user_crud.get_multi(
+            db,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            schema_to_select=UserSchema,
+        )
+
+        return build_paginated_response(
+            request=request,
+            result=result,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            endpoint="/api/v1/users/",
+            response_class=UserSchema,
+        )
+    except Exception as e:
+        logger.error(f"Failed to retrieve users list: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve users: {str(e)}",
+        )
+
+
+@router.get(
+    "/{user_id}",
+    summary="Get user by ID (Admin only)",
+    response_model=UserSchema,
+)
+async def get_user(
+    user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin_user: Annotated[User, Depends(require_admin())],
+) -> UserSchema:
+    """
+    Get a specific user by ID. Admin access required.
+    """
+    try:
+        user = await user_crud.get(
+            db,
+            schema_to_select=UserSchema,
+            return_as_model=True,
+            id=user_id,
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve user: {str(e)}",
+        )
+
+
+@router.delete(
+    "/{user_id}",
+    summary="Delete user by ID (Admin only)",
+    response_model=SimpleResponseSchema,
+)
+async def delete_user(
+    user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin_user: Annotated[User, Depends(require_admin())],
+):
+    """
+    Delete a specific user by ID. Admin access required.
+    Cannot delete yourself.
+    """
+    try:
+        # Check if user exists
+        user_to_delete = await user_crud.get(db, id=user_id)
+        if not user_to_delete:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Prevent admin from deleting themselves
+        if str(admin_user.id) == user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete your own account",
+            )
+
+        # Delete the user
+        await user_crud.delete(db, id=user_id)
+
+        logger.info(f"User {user_id} deleted by admin {admin_user.email}")
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "User deleted successfully."},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete user: {str(e)}",
         )

@@ -1,11 +1,12 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 
 import jwt
 from app.config import settings
 from app.db.crud import get_user_by_email
 from app.db.deps import get_db, get_db_context
+from app.db.enums import UserRole
 from app.db.models import User
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyCookie
@@ -148,6 +149,44 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+def require_role(allowed_roles: List[UserRole]):
+    """
+    Dependency factory to require specific user roles.
+
+    Args:
+        allowed_roles: List of UserRole enums that are allowed to access the endpoint
+
+    Returns:
+        FastAPI dependency function that checks user role
+
+    Raises:
+        HTTPException: 403 if user doesn't have required role
+    """
+
+    def role_checker(user: Annotated[User, Depends(get_current_user)]) -> User:
+        if user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {[role.value for role in allowed_roles]}",
+            )
+        return user
+
+    return role_checker
+
+
+def require_admin():
+    """
+    Convenience dependency for admin-only routes.
+
+    Returns:
+        FastAPI dependency function that checks for admin role
+
+    Raises:
+        HTTPException: 403 if user is not an admin
+    """
+    return require_role([UserRole.ADMIN])
 
 
 def create_password_reset_token(
