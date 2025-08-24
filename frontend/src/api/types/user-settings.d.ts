@@ -19,7 +19,6 @@ interface UserSettings {
   maximumOpenPositionsAndPendingOrders: number;
   maximumAlertAgeInSeconds: number;
   avoidDividendDates: boolean;
-  maximumTradesPerInstrumentPerDay: number;
   enforceMaximumOpenPositions: boolean;
   enforceMaximumOpenPositionsAndPendingOrders: boolean;
   enforceMaximumAlertAgeInSeconds: boolean;

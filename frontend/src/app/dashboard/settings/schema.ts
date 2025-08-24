@@ -25,7 +25,6 @@ export const settingsSchema = z.object({
   maximumOpenPositionsAndPendingOrders: z.number().int().min(0).max(100),
   maximumAlertAgeInSeconds: z.number().int().min(1).max(86400),
   avoidDividendDates: z.boolean(),
-  maximumTradesPerInstrumentPerDay: z.number().int().min(0).max(100),
   enforceMaximumOpenPositions: z.boolean(),
   enforceMaximumOpenPositionsAndPendingOrders: z.boolean(),
   enforceMaximumAlertAgeInSeconds: z.boolean(),

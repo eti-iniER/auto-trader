@@ -149,9 +149,6 @@ class UserSettings(BaseDBModel):
     avoid_dividend_dates: Mapped[bool] = mapped_column(
         nullable=False, default=True, comment="Avoid trading on dividend dates"
     )
-    maximum_trades_per_instrument_per_day: Mapped[int] = mapped_column(
-        nullable=False, default=1, comment="Maximum trades per instrument per day"
-    )
     enforce_maximum_open_positions: Mapped[bool] = mapped_column(
         nullable=False, default=True, comment="Enforce maximum open positions"
     )

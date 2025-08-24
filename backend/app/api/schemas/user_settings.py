@@ -41,9 +41,6 @@ class UserSettingsRead(BaseModel):
     avoid_dividend_dates: bool = Field(
         ..., description="Avoid trading on dividend dates"
     )
-    maximum_trades_per_instrument_per_day: int = Field(
-        ..., description="Maximum trades per instrument per day"
-    )
     enforce_maximum_open_positions: bool = Field(
         ..., description="Enforce maximum open positions"
     )
@@ -97,9 +94,6 @@ class UserSettingsUpdate(BaseModel):
     )
     avoid_dividend_dates: Optional[bool] = Field(
         None, description="Avoid trading on dividend dates"
-    )
-    maximum_trades_per_instrument_per_day: Optional[int] = Field(
-        None, description="Maximum trades per instrument per day"
     )
     enforce_maximum_open_positions: Optional[bool] = Field(
         None, description="Enforce maximum open positions"

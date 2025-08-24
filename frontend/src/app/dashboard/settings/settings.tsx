@@ -59,8 +59,6 @@ export const Settings = () => {
         settings.maximumOpenPositionsAndPendingOrders,
       maximumAlertAgeInSeconds: settings.maximumAlertAgeInSeconds,
       avoidDividendDates: settings.avoidDividendDates,
-      maximumTradesPerInstrumentPerDay:
-        settings.maximumTradesPerInstrumentPerDay,
       enforceMaximumOpenPositions: settings.enforceMaximumOpenPositions,
       enforceMaximumOpenPositionsAndPendingOrders:
         settings.enforceMaximumOpenPositionsAndPendingOrders,
@@ -105,7 +103,6 @@ export const Settings = () => {
         data.maximumOpenPositionsAndPendingOrders,
       maximumAlertAgeInSeconds: data.maximumAlertAgeInSeconds,
       avoidDividendDates: data.avoidDividendDates,
-      maximumTradesPerInstrumentPerDay: data.maximumTradesPerInstrumentPerDay,
       enforceMaximumOpenPositions: data.enforceMaximumOpenPositions,
       enforceMaximumOpenPositionsAndPendingOrders:
         data.enforceMaximumOpenPositionsAndPendingOrders,

@@ -186,32 +186,6 @@ export const TradingRulesSection = () => {
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={control}
-              name="maximumTradesPerInstrumentPerDay"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Maximum trades per instrument per day</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="1"
-                      min="0"
-                      max="100"
-                      {...field}
-                      value={field.value || ""}
-                      onChange={(e) =>
-                        field.onChange(
-                          e.target.value ? parseInt(e.target.value) : undefined,
-                        )
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
         </div>
       </div>
