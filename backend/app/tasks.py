@@ -1,17 +1,14 @@
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import List
+from datetime import datetime, timedelta, timezone
 
 import dramatiq
 from app.config import settings
 from app.db.deps import get_db_context
-from app.db.models import Instrument, Order, User
+from app.db.models import Order
 from app.services.dividend_dates import fetch_and_update_all_dividend_dates
-from app.services.order_fulfillment import confirm_multiple_orders_deal_references
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware import AsyncIO
 from periodiq import PeriodiqMiddleware, cron
-from sqlalchemy.future import select
 from sqlalchemy import delete
 
 broker = RabbitmqBroker(url=settings.DRAMATIQ_BROKER_URL)
@@ -23,48 +20,44 @@ dramatiq.set_broker(broker)
 logger = logging.getLogger(__name__)
 
 DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
-ORDER_CONFIRMATION_SCHEDULE = cron("* * * * *")  # Every minute
 ORDER_CLEANUP_SCHEDULE = cron(settings.ORDER_CLEANUP_SCHEDULE)
 
 
-@dramatiq.actor(periodic=ORDER_CONFIRMATION_SCHEDULE)
-async def confirm_deal_references():
+@dramatiq.actor(max_retries=3)
+async def confirm_single_deal_reference(order_id: str):
     """
-    Confirm deal references for all orders in the database.
-    Runs every minute using the order fulfillment service.
+    Confirm deal reference for a single order.
+    This task is triggered immediately after an order is created.
+
+    Args:
+        order_id: The UUID string of the order to confirm
     """
-    logger.info("Starting deal reference confirmation task")
+    logger.info(f"Starting deal reference confirmation for order {order_id}")
 
-    async with get_db_context() as db:
-        try:
-            stmt = (
-                select(Order).join_from(Order, Instrument).join_from(Instrument, User)
-            )
-            result = await db.execute(stmt)
-            orders: List[Order] = result.scalars().all()
+    try:
+        # Convert string back to UUID
+        import uuid
 
-            if not orders:
-                logger.info("No orders found to confirm")
-                return
+        from app.services.order_fulfillment import confirm_single_order_deal_reference
 
-            # Use the service function to handle confirmation with caching
-            confirmed_count, error_count = (
-                await confirm_multiple_orders_deal_references(
-                    [order.id for order in orders]
-                )
-            )
+        order_uuid = uuid.UUID(order_id)
 
-            logger.info(
-                f"Deal reference confirmation task completed - "
-                f"{confirmed_count} confirmed, {error_count} errors"
-            )
+        # Confirm the single order
+        success = await confirm_single_order_deal_reference(order_uuid)
 
-        except Exception as e:
-            logger.error(f"Error in confirm_deal_references task: {str(e)}")
-            raise
+        if success:
+            logger.info(f"Successfully confirmed deal reference for order {order_id}")
+        else:
+            logger.warning(f"Failed to confirm deal reference for order {order_id}")
+
+    except Exception as e:
+        logger.error(
+            f"Error in confirm_single_deal_reference task for order {order_id}: {str(e)}"
+        )
+        raise
 
 
-@dramatiq.actor(periodic=DIVIDEND_DATE_UPDATE_SCHEDULE)
+@dramatiq.actor(periodic=DIVIDEND_DATE_UPDATE_SCHEDULE, max_retries=3)
 async def update_dividend_dates():
     """
     Fetch and update dividend dates for all instruments with Yahoo symbols.
@@ -83,7 +76,7 @@ async def update_dividend_dates():
             raise
 
 
-@dramatiq.actor(periodic=ORDER_CLEANUP_SCHEDULE)
+@dramatiq.actor(periodic=ORDER_CLEANUP_SCHEDULE, max_retries=3)
 async def cleanup_old_orders():
     """
     Delete orders that are older than the configured number of hours.

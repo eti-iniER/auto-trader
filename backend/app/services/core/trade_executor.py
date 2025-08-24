@@ -6,8 +6,9 @@ from app.clients.ig.types import CreateWorkingOrderRequest
 from app.config import settings
 from app.db.crud import create_order_for_instrument
 from app.db.deps import get_db_context
-from app.db.models import Instrument, User
+from app.db.models import Instrument, Order, User
 from app.services.logging import log_message
+from app.tasks import confirm_single_deal_reference
 
 
 async def create_order(
@@ -18,7 +19,7 @@ async def create_order(
     limit_price: Decimal,
     stop_loss: Decimal,
     size: Decimal,
-) -> None:
+) -> Order:
     ig_client = IGClient.create_for_user(user)
 
     order_request = CreateWorkingOrderRequest(
@@ -55,6 +56,12 @@ async def create_order(
                 "instrument_ig_epic": instrument.ig_epic,
             },
         )
+
+        # Trigger the deal reference confirmation task
+        confirm_single_deal_reference.send(str(order_in_db.id))
+
+        return order_in_db
+
     except Exception as e:
         await log_message(
             "Failed to create order",
@@ -67,3 +74,4 @@ async def create_order(
                 "instrument_ig_epic": instrument.ig_epic,
             },
         )
+        raise
