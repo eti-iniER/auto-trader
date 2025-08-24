@@ -40,7 +40,7 @@ async def handle_alert(payload: WebhookPayload):
         limit_price = calculate_limit_price(
             alert.direction, open_price, instrument.opening_price_multiple_percentage
         )
-        bet_size = calculate_bet_size(limit_price, instrument.position_size)
+        bet_size = calculate_bet_size(limit_price, instrument.max_position_size)
         profit_target_price = calculate_profit_target_price(
             instrument.atr_profit_target_period,
             alert.atrs,
