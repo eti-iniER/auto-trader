@@ -36,6 +36,7 @@ from fastapi import (
 from fastcrud import FastCRUD
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.logging import log_message
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -378,7 +379,8 @@ async def upload_instruments_csv(
                 detail="No valid instrument data found in CSV",
             )
 
-        await db.execute(delete(Instrument))
+        # this clears out all existing instruments for the user
+        await db.execute(delete(Instrument).where(Instrument.user_id == user.id))
 
         created_instruments = []
         for instrument_create in instruments_data:
@@ -386,6 +388,20 @@ async def upload_instruments_csv(
             created_instruments.append(new_instrument)
 
         await db.commit()
+        await log_message(
+            "Instruments uploaded via CSV",
+            f"You uploaded {len(created_instruments)} instruments via CSV upload.",
+            "instrument",
+            user_id=user.id,
+            identifier="instruments_csv_upload",
+            extra={
+                "instruments_created": len(created_instruments),
+                "instruments": [
+                    instrument.model_dump(mode="json")
+                    for instrument in instruments_data
+                ],
+            },
+        )
 
         return InstrumentUploadResponse(
             message=f"Successfully uploaded {len(created_instruments)} instruments",
