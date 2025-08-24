@@ -7,7 +7,7 @@ from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
 from app.db.deps import get_db
 from app.db.models import User
-from app.schemas.stats import UserQuickStatsResponse
+from app.api.schemas.stats import UserQuickStatsResponse
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 

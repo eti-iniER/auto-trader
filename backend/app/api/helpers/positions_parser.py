@@ -9,7 +9,7 @@ from typing import List, Optional
 from app.api.helpers.ig_utils import parse_ig_datetime
 from app.db.crud import get_market_and_symbol_by_ig_epic
 from app.db.models import User
-from app.schemas.positions import Position
+from app.api.schemas.positions import Position
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)

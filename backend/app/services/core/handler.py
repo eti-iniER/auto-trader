@@ -1,12 +1,12 @@
 from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
 from app.db.deps import get_db_context
-from app.schemas.webhook import WebhookPayload
+from app.api.schemas.webhook import WebhookPayload
 from app.services.core.calculation_helpers import *
 from app.services.core.payload_parser import parse_webhook_payload_to_trading_view_alert
 from app.services.core.payload_validator import validate_webhook_payload
 from app.services.core.trade_executor import create_order
 from app.services.logging import log_message
-from app.schemas.instruments import InstrumentRead
+from app.api.schemas.instruments import InstrumentRead
 
 
 async def handle_alert(payload: WebhookPayload):

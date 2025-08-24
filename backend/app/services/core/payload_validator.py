@@ -7,7 +7,7 @@ from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
 from app.db.models import Instrument, Order, User
-from app.schemas.webhook import WebhookPayload
+from app.api.schemas.webhook import WebhookPayload
 from app.services.logging import log_message
 from sqlalchemy.future import select
 

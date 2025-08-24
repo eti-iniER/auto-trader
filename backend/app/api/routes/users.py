@@ -2,15 +2,11 @@ import logging
 from typing import Annotated
 
 from app.api.schemas.generic import SimpleResponseSchema
-from app.api.utils.authentication import (
-    get_current_user,
-    hash_password,
-)
+from app.api.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
+from app.api.utils.authentication import get_current_user, hash_password
 from app.db.crud import update_user
 from app.db.deps import get_db
-from app.db.enums import UserSettingsMode
 from app.db.models import User, UserSettings
-from app.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
 from app.services.utils import generate_webhook_secret
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse

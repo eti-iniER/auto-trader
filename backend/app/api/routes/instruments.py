@@ -16,7 +16,7 @@ from app.api.utils.pagination import (
 )
 from app.db.deps import get_db
 from app.db.models import Instrument, User
-from app.schemas.instruments import (
+from app.api.schemas.instruments import (
     DividendFetchResponse,
     InstrumentCreate,
     InstrumentRead,

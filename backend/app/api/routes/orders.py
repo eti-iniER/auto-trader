@@ -9,7 +9,7 @@ from app.api.utils.pagination import PaginationParams, build_paginated_response
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
 from app.db.models import User
-from app.schemas.orders import Order
+from app.api.schemas.orders import Order
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 router = APIRouter(prefix="/orders", tags=["orders"])

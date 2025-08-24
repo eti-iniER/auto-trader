@@ -1,6 +1,6 @@
 import logging
 
-from app.schemas.webhook import WebhookPayload
+from app.api.schemas.webhook import WebhookPayload
 from app.services.core.handler import handle_alert
 from fastapi import APIRouter, Body, BackgroundTasks
 

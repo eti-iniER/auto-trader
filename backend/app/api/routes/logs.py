@@ -12,7 +12,7 @@ from app.api.utils.pagination import (
 from app.config import settings
 from app.db.deps import get_db
 from app.db.models import Log, User
-from app.schemas.logs import LogRead
+from app.api.schemas.logs import LogRead
 from app.services.logging.file_helpers import prepare_logs_file
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response

@@ -1,8 +1,8 @@
 import logging
 from decimal import Decimal
 
-from app.schemas.alert import TradingViewAlert
-from app.schemas.webhook import WebhookPayload
+from app.api.schemas.alert import TradingViewAlert
+from app.api.schemas.webhook import WebhookPayload
 
 logger = logging.getLogger(__name__)
 

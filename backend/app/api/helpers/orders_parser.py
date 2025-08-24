@@ -6,7 +6,7 @@ import logging
 from typing import List, Optional
 
 from app.api.helpers.ig_utils import parse_ig_datetime
-from app.schemas.orders import Order
+from app.api.schemas.orders import Order
 
 logger = logging.getLogger(__name__)
 
