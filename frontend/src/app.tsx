@@ -1,7 +1,7 @@
+import { ChangePassword } from "@/app/authentication/change-password";
 import { Login } from "@/app/authentication/login";
 import { Register } from "@/app/authentication/register";
 import { ResetPassword } from "@/app/authentication/reset-password";
-import { ChangePassword } from "@/app/authentication/change-password";
 import { Help } from "@/app/dashboard/help";
 import { Instruments } from "@/app/dashboard/instruments";
 import { Logs } from "@/app/dashboard/logs";
@@ -9,6 +9,8 @@ import { Orders } from "@/app/dashboard/orders";
 import { Overview } from "@/app/dashboard/overview";
 import { Positions } from "@/app/dashboard/positions";
 import { Settings } from "@/app/dashboard/settings";
+import { Users } from "@/app/dashboard/users";
+import { PageNotFound } from "@/app/error-pages/PageNotFound";
 import { Toaster } from "@/components/ui/sonner";
 import DashboardLayout from "@/layouts/dashboard";
 import { RootLayout } from "@/layouts/root";
@@ -35,9 +37,10 @@ const AppRoutes = () => {
           <Route path="logs" element={<Logs />} />
           <Route path="settings" element={<Settings />} />
           <Route path="help" element={<Help />} />
+          <Route path="admin/users" element={<Users />} />
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to={paths.authentication.LOGIN} />} />
+      <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };

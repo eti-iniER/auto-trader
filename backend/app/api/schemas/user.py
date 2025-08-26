@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
+import uuid
+
+from pydantic import AwareDatetime, BaseModel, EmailStr, Field
 
 
 class UserSchema(BaseModel):
@@ -8,8 +10,11 @@ class UserSchema(BaseModel):
     role: str = Field(..., description="User's role (e.g., USER, ADMIN)")
 
 
-class UserDetailsSchema(UserSchema):
-    id: str = Field(..., description="User's unique identifier")
-    created_at: str = Field(..., description="Timestamp when the user was created")
-    updated_at: str = Field(..., description="Timestamp when the user was last updated")
-    last_login: str = Field(..., description="Timestamp of the user's last login")
+class UserAdminSchema(UserSchema):
+    id: uuid.UUID = Field(..., description="User's unique identifier")
+    created_at: AwareDatetime = Field(
+        ..., description="Timestamp when the user was created"
+    )
+    last_login: AwareDatetime = Field(
+        ..., description="Timestamp of the user's last login"
+    )

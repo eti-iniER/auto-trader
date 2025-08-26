@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { FiMenu, FiX, FiLogOut } from "react-icons/fi";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../../lib/utils";
-import { sidebarLinks } from "./links";
+import { sidebarLinks, adminSidebarLinks } from "./links";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
 import { useLogout } from "@/api/hooks/authentication/use-logout";
 import { paths } from "@/paths";
@@ -124,6 +124,60 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ className }) => {
                 </NavLink>
               );
             })}
+
+            {user.role === "ADMIN" && (
+              <>
+                <div className="px-5 py-2">
+                  <div className="relative">
+                    <div
+                      className="absolute inset-0 flex items-center"
+                      aria-hidden="true"
+                    >
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-white px-2 text-xs font-semibold text-gray-400 uppercase">
+                        Admin
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {adminSidebarLinks.map((link) => {
+                  const Icon = link.icon;
+
+                  return (
+                    <NavLink
+                      key={link.href}
+                      to={link.href}
+                      onClick={closeSidebar}
+                      className={({ isActive }) =>
+                        cn(
+                          "group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon
+                            className={cn(
+                              "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
+                              isActive
+                                ? "text-blue-700"
+                                : "text-gray-400 group-hover:text-gray-500",
+                            )}
+                          />
+                          {link.text}
+                        </>
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </>
+            )}
           </nav>
 
           <div className="flex-shrink-0 border-t border-gray-200 px-4 py-4">

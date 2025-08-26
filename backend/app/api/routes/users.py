@@ -2,19 +2,19 @@ import logging
 from typing import Annotated
 
 from app.api.schemas.generic import SimpleResponseSchema
-from app.api.schemas.user import UserSchema
+from app.api.schemas.user import UserAdminSchema
 from app.api.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
 from app.api.utils.authentication import get_current_user, hash_password, require_admin
 from app.api.utils.pagination import (
-    PaginationParams,
     PaginatedResponse,
+    PaginationParams,
     build_paginated_response,
 )
 from app.db.crud import update_user
 from app.db.deps import get_db
 from app.db.models import User, UserSettings
 from app.services.utils import generate_webhook_secret
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastcrud import FastCRUD
 from pydantic import BaseModel
@@ -186,14 +186,14 @@ async def change_password(
 @router.get(
     "/",
     summary="List all users (Admin only)",
-    response_model=PaginatedResponse[UserSchema],
+    response_model=PaginatedResponse[UserAdminSchema],
 )
 async def list_users(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: Annotated[User, Depends(require_admin())],
     pagination: Annotated[PaginationParams, Depends()],
-) -> PaginatedResponse[UserSchema]:
+) -> PaginatedResponse[UserAdminSchema]:
     """
     List all users with pagination. Admin access required.
     """
@@ -202,7 +202,10 @@ async def list_users(
             db,
             offset=pagination.offset,
             limit=pagination.limit,
-            schema_to_select=UserSchema,
+            schema_to_select=UserAdminSchema,
+            return_as_model=True,
+            sort_columns=["last_login"],
+            sort_orders=["desc"],
         )
 
         return build_paginated_response(
@@ -211,7 +214,7 @@ async def list_users(
             offset=pagination.offset,
             limit=pagination.limit,
             endpoint="/api/v1/users/",
-            response_class=UserSchema,
+            response_class=UserAdminSchema,
         )
     except Exception as e:
         logger.error(f"Failed to retrieve users list: {str(e)}")
@@ -224,20 +227,20 @@ async def list_users(
 @router.get(
     "/{user_id}",
     summary="Get user by ID (Admin only)",
-    response_model=UserSchema,
+    response_model=UserAdminSchema,
 )
 async def get_user(
     user_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: Annotated[User, Depends(require_admin())],
-) -> UserSchema:
+) -> UserAdminSchema:
     """
     Get a specific user by ID. Admin access required.
     """
     try:
         user = await user_crud.get(
             db,
-            schema_to_select=UserSchema,
+            schema_to_select=UserAdminSchema,
             return_as_model=True,
             id=user_id,
         )

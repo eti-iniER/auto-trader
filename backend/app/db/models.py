@@ -39,7 +39,6 @@ class User(BaseDBModel):
     last_login: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.datetime.now(datetime.timezone.utc),
-        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
     refresh_token: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, unique=True

@@ -1,5 +1,6 @@
 const DATE_KEYS = new Set([
   "createdAt",
+  "lastLogin",
   "updatedAt",
   "timestamp",
   "nextDividendDate",

@@ -14,5 +14,11 @@ export const paths = {
     PROFILE: "/dashboard/profile",
     SETTINGS: "/dashboard/settings",
     HELP: "/dashboard/help",
+    admin: {
+      USERS: "/dashboard/admin/users",
+    },
+  },
+  errors: {
+    NOT_FOUND: "/404",
   },
 } as const;

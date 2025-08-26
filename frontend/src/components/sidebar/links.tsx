@@ -7,6 +7,7 @@ import {
   FiSettings,
   FiShoppingCart,
   FiTrendingUp,
+  FiUsers,
 } from "react-icons/fi";
 
 export interface SidebarLink {
@@ -59,5 +60,14 @@ export const sidebarLinks: SidebarLink[] = [
     href: paths.dashboard.HELP,
     icon: FiHelpCircle,
     description: "Info and how-tos for the app",
+  },
+];
+
+export const adminSidebarLinks: SidebarLink[] = [
+  {
+    text: "Users",
+    href: paths.dashboard.admin.USERS,
+    icon: FiUsers,
+    description: "Manage application users",
   },
 ];

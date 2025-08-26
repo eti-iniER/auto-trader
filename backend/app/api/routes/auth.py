@@ -1,3 +1,4 @@
+import datetime
 import logging
 from datetime import timedelta
 from typing import Annotated
@@ -106,7 +107,12 @@ async def register_user(
         expires_delta=timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS),
     )
     await update_user(
-        db, email=new_user.email, user_data={"refresh_token": refresh_token}
+        db,
+        email=new_user.email,
+        user_data={
+            "refresh_token": refresh_token,
+            "last_login": datetime.datetime.now(datetime.timezone.utc),
+        },
     )
 
     await log_message(
@@ -158,7 +164,14 @@ async def login(
         data={"sub": user.email},
         expires_delta=timedelta(seconds=settings.REFRESH_TOKEN_LIFETIME_IN_SECONDS),
     )
-    await update_user(db, email=user.email, user_data={"refresh_token": refresh_token})
+    await update_user(
+        db,
+        email=user.email,
+        user_data={
+            "refresh_token": refresh_token,
+            "last_login": datetime.datetime.now(datetime.timezone.utc),
+        },
+    )
 
     await log_message(
         user_id=user.id,
