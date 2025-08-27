@@ -4,7 +4,9 @@ from typing import Literal, Optional
 from app.db.crud import log_message as log_message_to_db
 from app.db.enums import LogType
 
-LOG_TYPE = Literal["unspecified", "authentication", "alert", "trade", "order", "error"]
+LOG_TYPE = Literal[
+    "unspecified", "authentication", "alert", "trade", "order", "error", "admin"
+]
 
 
 async def log_message(

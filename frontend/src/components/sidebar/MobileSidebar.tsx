@@ -24,7 +24,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ className }) => {
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
-      onSuccess: () => {
+      onSettled: () => {
         navigate(paths.authentication.LOGIN);
       },
     });
@@ -137,7 +137,7 @@ export const MobileSidebar: React.FC<MobileSidebarProps> = ({ className }) => {
                     </div>
                     <div className="relative flex justify-center">
                       <span className="bg-white px-2 text-xs font-semibold text-gray-400 uppercase">
-                        Admin
+                        {user.role === "ADMIN" ? "Admin" : "User"}
                       </span>
                     </div>
                   </div>

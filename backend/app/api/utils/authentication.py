@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Optional
 
+from app.api.exceptions import APIException
 import jwt
 from app.config import settings
 from app.db.crud import get_user_by_email
@@ -41,9 +42,11 @@ async def get_refresh_token_from_cookie(
     token: Annotated[str, Depends(refresh_token_cookie)],
 ):
     if not token:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing refresh token",
+            details="Missing refresh token",
+            message="Missing refresh token",
+            code="MISSING_TOKEN",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return token

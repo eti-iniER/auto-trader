@@ -67,14 +67,14 @@ class ConfirmResetPasswordPayload(BaseModel):
 async def register_user(
     payload: RegisterPayload,
     db: Annotated[AsyncSession, Depends(get_db)],
-    settings: Annotated[AppSettings, Depends(get_app_settings)],
+    app_settings: Annotated[AppSettings, Depends(get_app_settings)],
     response: Response,
 ) -> UserSchema:
     """
     Endpoint for user registration.
     """
 
-    if not settings.allow_user_registration:
+    if not app_settings.allow_user_registration:
         raise APIException(
             message="User registration has been disabled by the administrator",
             code="REGISTRATION_DISABLED",
@@ -315,14 +315,12 @@ async def generate_access_token(
     user = await get_user_by_refresh_token(db, token)
 
     if not user:
-        response.delete_cookie("refresh_token")
-
-        raise APIException(
-            message="Invalid refresh token",
-            code="INVALID_REFRESH_TOKEN",
+        response = JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            details="The provided refresh token is invalid or expired.",
+            content={"message": "Invalid refresh token", "code": "INVALID_TOKEN"},
         )
+        response.delete_cookie("refresh_token")
+        return response
 
     access_token = create_access_token(
         data={"sub": user.email},

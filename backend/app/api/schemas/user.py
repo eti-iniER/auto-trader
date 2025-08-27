@@ -18,3 +18,10 @@ class UserAdminSchema(UserSchema):
     last_login: AwareDatetime = Field(
         ..., description="Timestamp of the user's last login"
     )
+
+
+class UserUpdateSchema(BaseModel):
+    first_name: str = Field(..., description="User's first name")
+    last_name: str = Field(..., description="User's last name")
+    email: EmailStr = Field(..., description="User's email address")
+    role: str = Field(..., description="User's role (e.g., USER, ADMIN)")

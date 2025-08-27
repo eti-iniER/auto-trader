@@ -1,8 +1,10 @@
 import logging
+import uuid
 from typing import Annotated
 
+from app.api.exceptions import APIException
 from app.api.schemas.generic import SimpleResponseSchema
-from app.api.schemas.user import UserAdminSchema
+from app.api.schemas.user import UserAdminSchema, UserUpdateSchema
 from app.api.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
 from app.api.utils.authentication import get_current_user, hash_password, require_admin
 from app.api.utils.pagination import (
@@ -13,6 +15,7 @@ from app.api.utils.pagination import (
 from app.db.crud import update_user
 from app.db.deps import get_db
 from app.db.models import User, UserSettings
+from app.services.logging import log_message
 from app.services.utils import generate_webhook_secret
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -230,7 +233,7 @@ async def list_users(
     response_model=UserAdminSchema,
 )
 async def get_user(
-    user_id: str,
+    user_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: Annotated[User, Depends(require_admin())],
 ) -> UserAdminSchema:
@@ -262,13 +265,56 @@ async def get_user(
         )
 
 
+@router.patch(
+    "/{user_id}",
+    summary="Update user by ID (Admin only)",
+    response_model=SimpleResponseSchema,
+)
+async def update_user_endpoint(
+    user_id: uuid.UUID,
+    user_update: UserUpdateSchema,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin_user: Annotated[User, Depends(require_admin())],
+) -> SimpleResponseSchema:
+    """
+    Update a specific user by ID. Admin access required.
+    """
+    try:
+        existing_user = await user_crud.get(db, id=user_id)
+        if not existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        update_data = user_update.model_dump(exclude_unset=True, exclude_none=True)
+
+        await user_crud.update(
+            db,
+            update_data,
+            schema_to_select=UserAdminSchema,
+            return_as_model=True,
+            id=user_id,
+        )
+
+        return SimpleResponseSchema(message="User updated successfully.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update user: {str(e)}",
+        )
+
+
 @router.delete(
     "/{user_id}",
     summary="Delete user by ID (Admin only)",
     response_model=SimpleResponseSchema,
 )
 async def delete_user(
-    user_id: str,
+    user_id: uuid.UUID,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: Annotated[User, Depends(require_admin())],
 ):
@@ -278,24 +324,39 @@ async def delete_user(
     """
     try:
         # Check if user exists
-        user_to_delete = await user_crud.get(db, id=user_id)
+        user_to_delete: UserAdminSchema = await user_crud.get(
+            db, id=user_id, return_as_model=True, schema_to_select=UserAdminSchema
+        )
+
         if not user_to_delete:
-            raise HTTPException(
+            raise APIException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
+                message="User not found",
+                code="USER_NOT_FOUND",
             )
 
         # Prevent admin from deleting themselves
-        if str(admin_user.id) == user_id:
-            raise HTTPException(
+        if admin_user.id == user_id:
+            raise APIException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete your own account",
+                message="You cannot delete yourself",
+                code="CANNOT_DELETE_SELF",
             )
 
         # Delete the user
         await user_crud.delete(db, id=user_id)
 
-        logger.info(f"User {user_id} deleted by admin {admin_user.email}")
+        await log_message(
+            message=f"User deleted",
+            description=f"You deleted user {user_to_delete.first_name} {user_to_delete.last_name} ({user_to_delete.email})",
+            log_type="admin",
+            user_id=admin_user.id,
+            extra={
+                "deleted_user_data": user_to_delete.model_dump(
+                    mode="json", exclude={"password_hash", "refresh_token"}
+                ),
+            },
+        )
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,

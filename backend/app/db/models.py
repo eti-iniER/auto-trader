@@ -65,8 +65,8 @@ class User(BaseDBModel):
 
 class Log(BaseDBModel):
     __tablename__ = "logs"
-    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     message: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -81,7 +81,9 @@ class Log(BaseDBModel):
 class Instrument(BaseDBModel):
     __tablename__ = "instruments"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     user: Mapped[User] = relationship("User", back_populates="instruments")
     market_and_symbol: Mapped[str] = mapped_column(String(255), nullable=False)
     ig_epic: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -112,7 +114,9 @@ class Instrument(BaseDBModel):
 class UserSettings(BaseDBModel):
     __tablename__ = "user_settings"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     user: Mapped[User] = relationship("User", back_populates="settings", uselist=False)
     mode: Mapped[UserSettingsMode] = mapped_column(
         Enum(UserSettingsMode), nullable=False, default=UserSettingsMode.DEMO
@@ -178,7 +182,7 @@ class Order(BaseDBModel):
     __tablename__ = "orders"
 
     instrument_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("instruments.id"), nullable=False, unique=True
+        ForeignKey("instruments.id", ondelete="CASCADE"), nullable=False, unique=True
     )
     instrument: Mapped[Instrument] = relationship("Instrument", back_populates="order")
     deal_reference: Mapped[str] = mapped_column(

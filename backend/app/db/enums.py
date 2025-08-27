@@ -8,6 +8,7 @@ class LogType(str, Enum):
     TRADE = "TRADE"
     ORDER = "ORDER"
     ERROR = "ERROR"
+    ADMIN = "ADMIN"
 
 
 class UserSettingsMode(str, Enum):

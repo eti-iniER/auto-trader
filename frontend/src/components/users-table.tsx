@@ -1,6 +1,14 @@
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
 import { formatDate } from "@/lib/formatting";
 import { type ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 
 interface UsersTableProps {
   data: UserAdminDetails[];
@@ -14,6 +22,8 @@ interface UsersTableProps {
   };
   className?: string;
   additionalInputs?: React.ReactNode;
+  onEditUser?: (user: UserAdminDetails) => void;
+  onDeleteUser?: (user: UserAdminDetails) => void;
 }
 
 const getRoleColor = (role: "USER" | "ADMIN") => {
@@ -92,11 +102,48 @@ export function UsersTable({
   pagination,
   className,
   additionalInputs,
+  onEditUser,
+  onDeleteUser,
 }: UsersTableProps) {
+  // Create ActionsCell component
+  const ActionsCell = ({ user }: { user: UserAdminDetails }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onEditUser?.(user)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit user
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onDeleteUser?.(user)}
+          className="text-red-600 focus:text-red-600"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete user
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  // Add actions column to the existing columns
+  const columnsWithActions: ColumnDef<UserAdminDetails>[] = [
+    ...columns,
+    {
+      id: "actions",
+      header: "Actions",
+      size: 80,
+      cell: ({ row }) => <ActionsCell user={row.original} />,
+    },
+  ];
+
   return (
     <VirtualizedTable
       data={data}
-      columns={columns}
+      columns={columnsWithActions}
       loading={loading}
       pagination={pagination}
       className={className}

@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 )
 async def get_app_settings_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
-    admin_user: Annotated[User, Depends(require_admin())],
 ) -> AppSettingsRead:
     """
     Get current app settings. Admin access required.

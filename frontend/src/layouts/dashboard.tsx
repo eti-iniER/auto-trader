@@ -1,16 +1,15 @@
+import { useAppSettings } from "@/api/hooks/app-settings.ts/use-app-settings";
 import { useCurrentUser } from "@/api/hooks/authentication/use-current-user";
 import { useUserSettings } from "@/api/hooks/user-settings/use-user-settings";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DashboardContext } from "@/contexts/dashboard";
 import { paths } from "@/paths";
 import { AnimatePresence, motion } from "motion/react";
-import React from "react";
 import { Navigate, Outlet } from "react-router";
 import { toast } from "sonner";
 import { DesktopSidebar, MobileSidebar } from "../components/sidebar";
-import { useAppSettings } from "@/api/hooks/app-settings.ts/use-app-settings";
 
-const DashboardLayout: React.FC = () => {
+export const DashboardLayout = () => {
   const {
     data: user,
     isPending: isUserPending,
@@ -88,5 +87,3 @@ const DashboardLayout: React.FC = () => {
     </AnimatePresence>
   );
 };
-
-export default DashboardLayout;

@@ -22,7 +22,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
-      onSuccess: () => {
+      onSettled: () => {
         navigate(paths.authentication.LOGIN);
       },
     });
@@ -155,7 +155,9 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               <p className="text-sm font-medium text-gray-700">
                 {user.firstName} {user.lastName}
               </p>
-              <p className="text-xs text-gray-500">Admin</p>
+              <p className="text-xs text-gray-500">
+                {user.role === "ADMIN" ? "Admin" : "User"}
+              </p>
             </div>
           </div>
           <button
