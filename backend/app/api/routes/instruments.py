@@ -4,7 +4,15 @@ import logging
 import uuid
 from decimal import Decimal
 from typing import Annotated
-from app.tasks import update_dividend_dates
+
+from app.api.exceptions import APIException
+from app.api.schemas.instruments import (
+    DividendFetchResponse,
+    InstrumentCreate,
+    InstrumentRead,
+    InstrumentUpdate,
+    InstrumentUploadResponse,
+)
 from app.api.utils.authentication import get_current_user
 from app.api.utils.caching import cache, cache_with_pagination
 from app.api.utils.filters import InstrumentFilters
@@ -16,27 +24,21 @@ from app.api.utils.pagination import (
 )
 from app.db.deps import get_db
 from app.db.models import Instrument, User
-from app.api.schemas.instruments import (
-    DividendFetchResponse,
-    InstrumentCreate,
-    InstrumentRead,
-    InstrumentUpdate,
-    InstrumentUploadResponse,
-)
+from app.services.logging import log_message
+from app.tasks import update_dividend_dates
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     HTTPException,
     Request,
     UploadFile,
     status,
-    BackgroundTasks,
 )
 from fastcrud import FastCRUD
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.logging import log_message
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
 
@@ -89,6 +91,7 @@ async def list_instruments(
             sort_orders=sorting.sort_orders,
             schema_to_select=InstrumentRead,
             return_as_model=True,
+            user_id=user.id,
         )
 
         return build_paginated_response(
@@ -120,13 +123,18 @@ async def get_instrument(
     """
     try:
         instrument = await instrument_crud.get(
-            db, schema_to_select=InstrumentRead, return_as_model=True, id=id
+            db,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+            id=id,
+            user_id=user.id,
         )
 
         if not instrument:
-            raise HTTPException(
+            raise APIException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Instrument with ID {id} not found",
+                message=f"Instrument not found",
+                code="INSTRUMENT_NOT_FOUND",
             )
 
         return instrument
@@ -135,7 +143,8 @@ async def get_instrument(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve instrument: {str(e)}",
+            message=f"Failed to retrieve instrument: {str(e)}",
+            code="INTERNAL_SERVER_ERROR",
         )
 
 
@@ -197,18 +206,22 @@ async def delete_instrument(
     try:
         existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
         if not existing_instrument:
-            raise HTTPException(
+            raise APIException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Instrument with ID {id} for user {user.email} not found",
+                message=f"Instrument not found",
+                code="INSTRUMENT_NOT_FOUND",
             )
 
         await instrument_crud.delete(db, id=id)
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete instrument: {str(e)}",
+            message=f"Failed to delete instrument",
+            code="INTERNAL_SERVER_ERROR",
+            details={
+                "error": str(e),
+                "instrument_id": str(id),
+            },
         )
 
 
