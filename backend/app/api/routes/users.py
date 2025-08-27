@@ -289,6 +289,13 @@ async def update_user_endpoint(
 
         update_data = user_update.model_dump(exclude_unset=True, exclude_none=True)
 
+        if admin_user.id == user_id and update_data["role"] == "USER":
+            raise APIException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="You cannot disable your own admin permissions",
+                code="CANNOT_UNMAKE_ADMIN",
+            )
+
         await user_crud.update(
             db,
             update_data,

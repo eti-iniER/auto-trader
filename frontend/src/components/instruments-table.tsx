@@ -21,24 +21,35 @@ interface InstrumentsTableProps {
 const columns: ColumnDef<Instrument>[] = [
   {
     accessorKey: "marketAndSymbol",
-    header: "Market & Symbol",
-    size: 150,
+    header: () => (
+      <div className="text-center leading-tight">
+        Market &<br />
+        Symbol
+      </div>
+    ),
+    size: 120,
     cell: ({ row }) => (
       <div className="font-medium">{row.getValue("marketAndSymbol")}</div>
     ),
   },
   {
     accessorKey: "igEpic",
-    header: "IG Epic",
-    size: 180,
+    header: () => <div className="text-center leading-tight">IG Epic</div>,
+    size: 120,
     cell: ({ row }) => (
       <div className="font-mono text-sm">{row.getValue("igEpic")}</div>
     ),
   },
   {
     accessorKey: "yahooSymbol",
-    header: "Yahoo Symbol",
-    size: 130,
+    header: () => (
+      <div className="text-center leading-tight">
+        Yahoo
+        <br />
+        Symbol
+      </div>
+    ),
+    size: 100,
     cell: ({ row }) => (
       <div className="text-center font-mono text-sm">
         {row.getValue("yahooSymbol")}
@@ -47,16 +58,28 @@ const columns: ColumnDef<Instrument>[] = [
   },
   {
     accessorKey: "atrStopLossPeriod",
-    header: "ATR Stop Loss Period",
-    size: 160,
+    header: () => (
+      <div className="text-center leading-tight">
+        ATR Stop Loss
+        <br />
+        Period
+      </div>
+    ),
+    size: 120,
     cell: ({ row }) => (
       <div className="text-center">{row.getValue("atrStopLossPeriod")}</div>
     ),
   },
   {
     accessorKey: "atrStopLossMultiplePercentage",
-    header: "ATR Stop Loss Multiple Percentage",
-    size: 180,
+    header: () => (
+      <div className="text-center leading-tight">
+        ATR Stop
+        <br />
+        Loss Multiple %
+      </div>
+    ),
+    size: 120,
     cell: ({ row }) => (
       <div className="text-center">
         {formatDecimal(row.getValue("atrStopLossMultiplePercentage"))}
@@ -65,15 +88,28 @@ const columns: ColumnDef<Instrument>[] = [
   },
   {
     accessorKey: "atrProfitTargetPeriod",
-    header: "ATR Profit Target Period",
-    size: 180,
+    header: () => (
+      <div className="text-center leading-tight">
+        ATR Profit
+        <br />
+        Target Period
+      </div>
+    ),
+    size: 120,
     cell: ({ row }) => (
       <div className="text-center">{row.getValue("atrProfitTargetPeriod")}</div>
     ),
   },
   {
     accessorKey: "atrProfitMultiplePercentage",
-    header: "ATR Profit Multiple Percentage",
+    header: () => (
+      <div className="text-center leading-tight">
+        ATR Profit
+        <br />
+        Multiple %
+      </div>
+    ),
+    size: 120,
     cell: ({ row }) => (
       <div className="text-center">
         {formatDecimal(row.getValue("atrProfitMultiplePercentage"))}
@@ -82,7 +118,14 @@ const columns: ColumnDef<Instrument>[] = [
   },
   {
     accessorKey: "maxPositionSize",
-    header: "Max Position Size",
+    header: () => (
+      <div className="py-2 text-center leading-tight">
+        Max Position
+        <br />
+        Size
+      </div>
+    ),
+    size: 110,
     cell: ({ row }) => (
       <div className="text-center">
         {formatNumber(row.getValue("maxPositionSize"))}
@@ -91,7 +134,14 @@ const columns: ColumnDef<Instrument>[] = [
   },
   {
     accessorKey: "openingPriceMultiplePercentage",
-    header: "Opening Price Multiple Percentage",
+    header: () => (
+      <div className="text-center leading-tight">
+        Opening Price
+        <br />
+        Multiple %
+      </div>
+    ),
+    size: 120,
     cell: ({ row }) => (
       <div className="text-center">
         {formatDecimal(row.getValue("openingPriceMultiplePercentage"))}
@@ -100,7 +150,14 @@ const columns: ColumnDef<Instrument>[] = [
   },
   {
     accessorKey: "nextDividendDate",
-    header: "Next Dividend Date",
+    header: () => (
+      <div className="text-center leading-tight">
+        Next Dividend
+        <br />
+        Date
+      </div>
+    ),
+    size: 110,
     cell: ({ row }) => {
       const dateValue = row.getValue("nextDividendDate") as
         | Date

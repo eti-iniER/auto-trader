@@ -150,7 +150,7 @@ function VirtualizedTable<TData, TValue = unknown>({
                         className={cn(
                           "flex items-center space-x-2",
                           header.column.getCanSort() &&
-                            "hover:bg-accent/50 -mx-2 -my-1 cursor-pointer rounded px-2 py-1 select-none",
+                            "hover:bg-accent/50 -my-1 cursor-pointer rounded px-2 py-1 select-none",
                         )}
                         onClick={header.column.getToggleSortingHandler()}
                       >
