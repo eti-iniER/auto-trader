@@ -115,13 +115,13 @@ export const Instruments = () => {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col space-y-8 p-8">
+    <div className="flex h-full flex-col space-y-8 p-8">
       <PageHeader
         title="Instruments"
         description="View and edit your trading instruments and ticker data"
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="f min-h-0 flex-1">
         <InstrumentsTable
           data={instruments}
           loading={isPending}

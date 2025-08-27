@@ -48,10 +48,10 @@ export const Orders = () => {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col space-y-8 p-8">
+    <div className="flex h-full flex-col space-y-8 p-8">
       <PageHeader title="Orders" description="View your open orders" />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="min-h-0 flex-1">
         <OrdersTable
           data={orders}
           loading={isPending}

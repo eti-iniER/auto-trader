@@ -8,6 +8,7 @@ import React from "react";
 import { Navigate, Outlet } from "react-router";
 import { toast } from "sonner";
 import { DesktopSidebar, MobileSidebar } from "../components/sidebar";
+import { useAppSettings } from "@/api/hooks/app-settings.ts/use-app-settings";
 
 const DashboardLayout: React.FC = () => {
   const {
@@ -20,9 +21,14 @@ const DashboardLayout: React.FC = () => {
     isPending: isSettingsPending,
     isError: isSettingsError,
   } = useUserSettings();
+  const {
+    data: appSettings,
+    isPending: isAppSettingsPending,
+    isError: isAppSettingsError,
+  } = useAppSettings();
 
-  const isError = isUserError || isSettingsError;
-  const isPending = isUserPending || isSettingsPending;
+  const isError = isUserError || isSettingsError || isAppSettingsError;
+  const isPending = isUserPending || isSettingsPending || isAppSettingsPending;
 
   if (isError) {
     toast.error("Authentication failed. Please sign in again.");
@@ -56,7 +62,7 @@ const DashboardLayout: React.FC = () => {
           </div>
         </motion.div>
       ) : (
-        <DashboardContext.Provider value={{ user, settings }}>
+        <DashboardContext.Provider value={{ user, settings, appSettings }}>
           <motion.div
             key="content"
             initial={{ opacity: 0, filter: "blur(10px)" }}

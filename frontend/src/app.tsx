@@ -2,6 +2,7 @@ import { ChangePassword } from "@/app/authentication/change-password";
 import { Login } from "@/app/authentication/login";
 import { Register } from "@/app/authentication/register";
 import { ResetPassword } from "@/app/authentication/reset-password";
+import { AppSettings } from "@/app/dashboard/app-settings";
 import { Help } from "@/app/dashboard/help";
 import { Instruments } from "@/app/dashboard/instruments";
 import { Logs } from "@/app/dashboard/logs";
@@ -22,6 +23,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route element={<RootLayout />}>
+        <Route index element={<Navigate to={paths.authentication.LOGIN} />} />
         <Route path="auth">
           <Route path="login" element={<Login />} />
           <Route path="reset-password" element={<ResetPassword />} />
@@ -37,7 +39,10 @@ const AppRoutes = () => {
           <Route path="logs" element={<Logs />} />
           <Route path="settings" element={<Settings />} />
           <Route path="help" element={<Help />} />
-          <Route path="admin/users" element={<Users />} />
+          <Route path="admin">
+            <Route path="users" element={<Users />} />
+            <Route path="app-settings" element={<AppSettings />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

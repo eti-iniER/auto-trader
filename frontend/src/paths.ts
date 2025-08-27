@@ -16,6 +16,7 @@ export const paths = {
     HELP: "/dashboard/help",
     admin: {
       USERS: "/dashboard/admin/users",
+      APP_SETTINGS: "/dashboard/admin/app-settings",
     },
   },
   errors: {

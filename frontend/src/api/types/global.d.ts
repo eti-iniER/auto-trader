@@ -4,3 +4,7 @@ interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+interface SimpleResponse {
+  message: string;
+}

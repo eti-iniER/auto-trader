@@ -6,6 +6,7 @@ from typing import Annotated
 from app.api.exceptions import APIException
 from app.api.schemas.generic import SimpleResponseSchema
 from app.api.schemas.user import UserSchema
+from app.api.utils.admin import get_app_settings
 from app.api.utils.authentication import (
     authenticate_user,
     create_access_token,
@@ -20,7 +21,7 @@ from app.api.utils.authentication import (
 from app.config import settings
 from app.db.crud import get_user_by_email, get_user_by_refresh_token, update_user
 from app.db.deps import get_db
-from app.db.models import User, UserSettings
+from app.db.models import User, UserSettings, AppSettings
 from app.services.email import send_reset_password_email
 from app.services.logging import log_message
 from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
@@ -66,11 +67,20 @@ class ConfirmResetPasswordPayload(BaseModel):
 async def register_user(
     payload: RegisterPayload,
     db: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[AppSettings, Depends(get_app_settings)],
     response: Response,
 ) -> UserSchema:
     """
     Endpoint for user registration.
     """
+
+    if not settings.allow_user_registration:
+        raise APIException(
+            message="User registration has been disabled by the administrator",
+            code="REGISTRATION_DISABLED",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
     existing_user = await get_user_by_email(db, payload.email)
 
     if existing_user:

@@ -9,7 +9,7 @@ import {
   FiTrendingUp,
   FiUsers,
 } from "react-icons/fi";
-
+import { LuWrench } from "react-icons/lu";
 export interface SidebarLink {
   text: string;
   href: string;
@@ -69,5 +69,11 @@ export const adminSidebarLinks: SidebarLink[] = [
     href: paths.dashboard.admin.USERS,
     icon: FiUsers,
     description: "Manage application users",
+  },
+  {
+    text: "App settings",
+    href: paths.dashboard.admin.APP_SETTINGS,
+    icon: LuWrench,
+    description: "Configure application settings and preferences",
   },
 ];

@@ -3,7 +3,7 @@ from typing import Optional
 
 from app.db.deps import get_db_context
 from app.db.enums import LogType
-from app.db.models import Instrument, Log, Order, User, UserSettings
+from app.db.models import Instrument, Log, Order, User, UserSettings, AppSettings
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -303,3 +303,26 @@ async def get_order_by_id(db: AsyncSession, order_id: uuid.UUID) -> Order:
         )
 
     return order
+
+
+async def get_app_settings(db: AsyncSession) -> AppSettings:
+    """
+    Retrieve the application settings.
+
+    Args:
+        db (AsyncSession): The database session.
+
+    Returns:
+        AppSettings: The application settings object.
+    """
+    stmt = select(AppSettings).where(AppSettings.id == 1)
+    result = await db.execute(stmt)
+    app_settings = result.scalar_one_or_none()
+
+    if not app_settings:
+        app_settings = AppSettings()
+        db.add(app_settings)
+        await db.commit()
+        await db.refresh(app_settings)
+
+    return app_settings

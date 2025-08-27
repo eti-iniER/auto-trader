@@ -3,6 +3,7 @@ import logging.config
 from contextlib import asynccontextmanager
 
 from app.api.routes import (
+    admin,
     auth,
     instruments,
     orders,
@@ -44,6 +45,7 @@ v1.include_router(orders.router)
 v1.include_router(positions.router)
 v1.include_router(auth.router)
 v1.include_router(users.router)
+v1.include_router(admin.router)
 v1.include_router(logs.router)
 v1.include_router(stats.router)
 

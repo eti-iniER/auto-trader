@@ -184,3 +184,11 @@ class Order(BaseDBModel):
     deal_reference: Mapped[str] = mapped_column(
         String(128), nullable=False, unique=True, default=generate_deal_reference
     )
+
+
+class AppSettings(Base):
+    __tablename__ = "app_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    allow_user_registration: Mapped[bool] = mapped_column(nullable=False, default=True)
+    allow_multiple_admins: Mapped[bool] = mapped_column(nullable=False, default=False)
