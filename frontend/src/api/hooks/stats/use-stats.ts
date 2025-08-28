@@ -6,9 +6,10 @@ const getStats = async () => {
   return response.json();
 };
 
-export const useStats = () => {
+export const useStats = (enabled: boolean = true) => {
   return useQuery({
     queryKey: ["stats"],
+    enabled,
     queryFn: getStats,
     refetchInterval: 1000 * 30,
   });

@@ -22,11 +22,15 @@ const getPositions = async (params: PositionsParams = {}) => {
   return response.json();
 };
 
-export const usePositions = (params: PositionsParams = {}) => {
+export const usePositions = (
+  params: PositionsParams = {},
+  enabled: boolean = true,
+) => {
   return useQuery({
     queryKey: ["positions", params],
     queryFn: () => getPositions(params),
     refetchInterval: 1000 * 10, // Refetch every 10 seconds
+    enabled,
     placeholderData: (previousData) => {
       if (previousData) {
         return {

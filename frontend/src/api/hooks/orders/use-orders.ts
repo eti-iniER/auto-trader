@@ -22,11 +22,15 @@ const getOrders = async (params: OrdersParams = {}) => {
   return response.json();
 };
 
-export const useOrders = (params: OrdersParams = {}) => {
+export const useOrders = (
+  params: OrdersParams = {},
+  enabled: boolean = true,
+) => {
   return useQuery({
     queryKey: ["orders", params],
     queryFn: () => getOrders(params),
     refetchInterval: 1000 * 30,
+    enabled,
     placeholderData: (previousData) => {
       // Only preserve metadata, not the actual data
       if (previousData) {

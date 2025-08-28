@@ -6,13 +6,39 @@ import {
   StatCardSkeleton,
 } from "@/components/overview";
 import { PageHeader } from "@/components/page-header";
+import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useUserIGSettingsStatus } from "@/hooks/use-user-ig-settings-status";
 import { pluralize } from "@/lib/utils";
 import { FileChartColumn } from "lucide-react";
 import { FiPieChart, FiShoppingCart } from "react-icons/fi";
 import { MdAccessTime, MdErrorOutline } from "react-icons/md";
 
 export const Overview = () => {
-  const { data: stats, isPending, isError } = useStats();
+  const { settings } = useDashboardContext();
+  const status = useUserIGSettingsStatus(settings);
+  const { data: stats, isPending, isError } = useStats(status === "complete");
+
+  if (status === "incomplete") {
+    return (
+      <div className="flex-1 p-4 sm:p-8">
+        <PageHeader
+          title="Overview"
+          description="Everything you need to know at a glance"
+        />
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <MdErrorOutline className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
+            <p className="mb-2 font-medium text-yellow-600">
+              IG settings incomplete
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Please complete your IG settings to view overview data
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isError) {
     return (
