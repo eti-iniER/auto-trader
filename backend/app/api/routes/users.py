@@ -12,6 +12,8 @@ from app.api.utils.pagination import (
     PaginationParams,
     build_paginated_response,
 )
+from app.db.models import AppSettings
+from app.api.utils.admin import get_app_settings
 from app.db.crud import update_user
 from app.db.deps import get_db
 from app.db.models import User, UserSettings
@@ -275,12 +277,15 @@ async def update_user_endpoint(
     user_update: UserUpdateSchema,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin_user: Annotated[User, Depends(require_admin())],
+    app_settings: Annotated[AppSettings, Depends(get_app_settings)],
 ) -> SimpleResponseSchema:
     """
     Update a specific user by ID. Admin access required.
     """
     try:
-        existing_user = await user_crud.get(db, id=user_id)
+        existing_user: UserAdminSchema = await user_crud.get(
+            db, id=user_id, return_as_model=True, schema_to_select=UserAdminSchema
+        )
         if not existing_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -289,12 +294,25 @@ async def update_user_endpoint(
 
         update_data = user_update.model_dump(exclude_unset=True, exclude_none=True)
 
-        if admin_user.id == user_id and update_data["role"] == "USER":
-            raise APIException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message="You cannot disable your own admin permissions",
-                code="CANNOT_UNMAKE_ADMIN",
-            )
+        if update_data.get("role"):
+            if admin_user.id == user_id and update_data["role"] == "USER":
+                raise APIException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message="You cannot disable your own admin permissions",
+                    code="CANNOT_UNMAKE_ADMIN",
+                )
+
+            if (
+                app_settings.allow_multiple_admins is False
+                and update_data["role"] == "ADMIN"
+            ):
+                admin_count = await user_crud.count(db, role="ADMIN")
+                if admin_count >= 1 and existing_user.role != "ADMIN":
+                    raise APIException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        message="Multiple admins are not allowed by current app settings",
+                        code="MULTIPLE_ADMINS_NOT_ALLOWED",
+                    )
 
         await user_crud.update(
             db,
