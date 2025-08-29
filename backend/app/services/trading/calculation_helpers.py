@@ -13,9 +13,9 @@ def calculate_limit_price(
 ) -> Decimal:
     limit_price = None
     if direction == "SELL":
-        limit_price = open_price * opening_price_multiple_percentage
+        limit_price = open_price * (opening_price_multiple_percentage / 100)
     else:  # direction == "BUY"
-        limit_price = open_price / opening_price_multiple_percentage
+        limit_price = open_price / (opening_price_multiple_percentage / 100)
     return limit_price.quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_DOWN")
 
 
@@ -38,11 +38,11 @@ def calculate_profit_target_price(
     return profit_target_price.quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_DOWN")
 
 
-def calculate_stop_loss_price(
+def calculate_stop_loss_distance(
     atr_stop_loss_period: int,
     atrs: list[Decimal],
     atr_stop_loss_multiple_percentage: Decimal,
 ) -> Decimal:
     atr_to_use = atrs[atr_stop_loss_period - 1]
-    stop_loss_price = atr_to_use * (atr_stop_loss_multiple_percentage / 100)
-    return stop_loss_price.quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_DOWN")
+    stop_loss_distance = atr_to_use * (atr_stop_loss_multiple_percentage / 100)
+    return stop_loss_distance.quantize(TWO_DECIMAL_PLACES, rounding="ROUND_HALF_DOWN")

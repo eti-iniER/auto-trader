@@ -568,6 +568,47 @@ class IGClient:
         )
 
     @ig_api_retry
+    def get_prices(self, params: GetPricesRequest) -> GetPricesResponse:
+        """
+        Returns historical prices for a particular instrument.
+        Returns the most recent second-level price by default.
+
+        Version: 3
+        """
+        # Build query parameters
+        query_params = {
+            "resolution": params.resolution,
+            "max": params.max_points,
+            "pageSize": params.page_size,
+            "pageNumber": params.page_number,
+        }
+
+        # Add optional date parameters if provided
+        if params.from_date:
+            query_params["from"] = params.from_date
+        if params.to_date:
+            query_params["to"] = params.to_date
+
+        response = self.client.get(
+            f"prices/{params.epic}",
+            headers={"Version": "3"},
+            params=query_params,
+        )
+
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
+        data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                status_code=response.status_code,
+                error_code=data.get("errorCode", "UNKNOWN_ERROR"),
+            )
+
+        return GetPricesResponse(**data)
+
+    @ig_api_retry
     def _get_auth_data(self) -> AuthenticationData:
         """
         Retrieves the authentication data for the IG API session.

@@ -1,8 +1,8 @@
 import logging
 
 from app.api.schemas.webhook import WebhookPayload
-from app.services.core.handler import handle_alert
-from fastapi import APIRouter, Body, BackgroundTasks
+from app.services.trading.handler import handle_alert
+from fastapi import APIRouter, BackgroundTasks
 
 logger = logging.getLogger(__name__)
 

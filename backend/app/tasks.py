@@ -23,7 +23,7 @@ DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
 ORDER_CLEANUP_SCHEDULE = cron(settings.ORDER_CLEANUP_SCHEDULE)
 
 
-@dramatiq.actor(max_retries=3)
+@dramatiq.actor(max_retries=0)
 async def confirm_single_deal_reference(order_id: str):
     """
     Confirm deal reference for a single order.
@@ -37,18 +37,17 @@ async def confirm_single_deal_reference(order_id: str):
     try:
         # Convert string back to UUID
         import uuid
-
-        from app.services.order_fulfillment import confirm_single_order_deal_reference
+        from app.services.order_fulfillment import (
+            confirm_single_order_deal_reference_with_retry,
+        )
 
         order_uuid = uuid.UUID(order_id)
 
-        # Confirm the single order
-        success = await confirm_single_order_deal_reference(order_uuid)
-
-        if success:
-            logger.info(f"Successfully confirmed deal reference for order {order_id}")
-        else:
-            logger.warning(f"Failed to confirm deal reference for order {order_id}")
+        # Use the enhanced confirmation function with retry logic and user logging
+        await confirm_single_order_deal_reference_with_retry(order_uuid)
+        logger.info(
+            f"Successfully completed deal reference confirmation for order {order_id}"
+        )
 
     except Exception as e:
         logger.error(

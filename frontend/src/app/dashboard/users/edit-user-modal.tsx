@@ -175,7 +175,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
+                {loading ? "Saving..." : "Save changes"}
               </Button>
             </DialogFooter>
           </form>

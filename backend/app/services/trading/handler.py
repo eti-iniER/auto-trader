@@ -1,10 +1,12 @@
 from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
 from app.db.deps import get_db_context
 from app.api.schemas.webhook import WebhookPayload
-from app.services.core.calculation_helpers import *
-from app.services.core.payload_parser import parse_webhook_payload_to_trading_view_alert
-from app.services.core.payload_validator import validate_webhook_payload
-from app.services.core.trade_executor import create_order
+from app.services.trading.calculation_helpers import *
+from app.services.trading.payload_parser import (
+    parse_webhook_payload_to_trading_view_alert,
+)
+from app.services.trading.payload_validator import validate_webhook_payload
+from app.services.trading.trade_executor import create_order
 from app.services.logging import log_message
 from app.api.schemas.instruments import InstrumentRead
 
@@ -34,6 +36,16 @@ async def handle_alert(payload: WebhookPayload):
 
     alert = await parse_webhook_payload_to_trading_view_alert(payload)
 
+    await log_message(
+        "Parsed alert from webhook payload",
+        "Successfully parsed TradingView alert from webhook payload",
+        "alert",
+        user.id,
+        {
+            "alert": alert.model_dump(mode="json"),
+        },
+    )
+
     open_price = alert.open_price
 
     try:
@@ -46,7 +58,7 @@ async def handle_alert(payload: WebhookPayload):
             alert.atrs,
             instrument.atr_profit_multiple_percentage,
         )
-        stop_loss_price = calculate_stop_loss_price(
+        stop_loss_distance = calculate_stop_loss_distance(
             instrument.atr_stop_loss_period,
             alert.atrs,
             instrument.atr_stop_loss_multiple_percentage,
@@ -72,6 +84,6 @@ async def handle_alert(payload: WebhookPayload):
         direction=alert.direction,
         profit_target=profit_target_price,
         limit_price=limit_price,
-        stop_loss=stop_loss_price,
+        stop_loss_distance=stop_loss_distance,
         size=bet_size,
     )

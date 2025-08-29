@@ -91,6 +91,24 @@ type PositionStatus = Literal[
 
 type ActivityType = Literal["POSITION", "WORKING_ORDER", "SYSTEM"]
 
+type Resolution = Literal[
+    "DAY",
+    "HOUR",
+    "HOUR_2",
+    "HOUR_3",
+    "HOUR_4",
+    "MINUTE",
+    "MINUTE_10",
+    "MINUTE_15",
+    "MINUTE_2",
+    "MINUTE_3",
+    "MINUTE_30",
+    "MINUTE_5",
+    "MONTH",
+    "SECOND",
+    "WEEK",
+]
+
 type ReasonCode = Literal[
     "ACCOUNT_NOT_ENABLED_TO_TRADING",
     "ATTACHED_ORDER_LEVEL_ERROR",
@@ -592,3 +610,112 @@ class UserQuickStats(BaseModel):
     stats_timestamp: AwareDatetime = Field(
         ..., description="Timestamp when these stats were generated"
     )
+
+
+# Pricing Models
+class Price(BaseModel):
+    """Price object with ask, bid, and lastTraded values."""
+
+    ask: Optional[Decimal] = Field(None, description="Ask price")
+    bid: Optional[Decimal] = Field(None, description="Bid price")
+    last_traded: Optional[Decimal] = Field(
+        None,
+        description="Last traded price. Generally null for non exchange-traded instruments",
+        alias="lastTraded",
+    )
+
+
+class PriceSnapshot(BaseModel):
+    """Historical market price snapshot."""
+
+    close_price: Price = Field(..., description="Close price", alias="closePrice")
+    high_price: Price = Field(..., description="High price", alias="highPrice")
+    low_price: Price = Field(..., description="Low price", alias="lowPrice")
+    open_price: Price = Field(..., description="Open price", alias="openPrice")
+    last_traded_volume: Optional[Decimal] = Field(
+        None,
+        description="Last traded volume. Generally null for non exchange-traded instruments",
+        alias="lastTradedVolume",
+    )
+    snapshot_time: str = Field(
+        ...,
+        description="Snapshot local time, format is yyyy/MM/dd hh:mm:ss",
+        alias="snapshotTime",
+    )
+    snapshot_time_utc: str = Field(
+        ..., description="Snapshot time UTC", alias="snapshotTimeUTC"
+    )
+
+
+class PriceAllowance(BaseModel):
+    """Historical price data allowance information."""
+
+    allowance_expiry: int = Field(
+        ...,
+        description="Number of seconds till the current allowance period will end and the remaining allowance field is reset",
+        alias="allowanceExpiry",
+    )
+    remaining_allowance: int = Field(
+        ...,
+        description="Number of data points still available to fetch within the current allowance period",
+        alias="remainingAllowance",
+    )
+    total_allowance: int = Field(
+        ...,
+        description="Number of data points the API key and account combination is allowed to fetch in any given allowance period",
+        alias="totalAllowance",
+    )
+
+
+class PageData(BaseModel):
+    """Paging metadata for paginated responses."""
+
+    page_number: int = Field(..., description="Page number", alias="pageNumber")
+    page_size: int = Field(..., description="Page size", alias="pageSize")
+    total_pages: int = Field(
+        ..., description="Total number of pages", alias="totalPages"
+    )
+    size: Optional[int] = Field(None, description="Size")
+
+
+class PriceMetadata(BaseModel):
+    """Response metadata for price responses."""
+
+    page_data: PageData = Field(..., description="Paging metadata", alias="pageData")
+    allowance: PriceAllowance = Field(
+        ..., description="Historical price data allowance"
+    )
+
+
+class GetPricesResponse(BaseModel):
+    """Response for the /prices/{epic} endpoint (version 3)."""
+
+    instrument_type: InstrumentType = Field(
+        ..., description="Instrument type", alias="instrumentType"
+    )
+    metadata: PriceMetadata = Field(..., description="Response metadata data")
+    prices: List[PriceSnapshot] = Field(
+        ..., description="List of historical price snapshots"
+    )
+
+
+class GetPricesRequest(BaseModel):
+    """Request parameters for the /prices/{epic} endpoint."""
+
+    epic: str = Field(..., description="Instrument epic")
+    resolution: Resolution = Field("SECOND", description="Price resolution")
+    from_date: Optional[str] = Field(
+        None, description="Start date time (yyyy-MM-dd'T'HH:mm:ss)", alias="from"
+    )
+    to_date: Optional[str] = Field(
+        None, description="End date time (yyyy-MM-dd'T'HH:mm:ss)", alias="to"
+    )
+    max_points: int = Field(
+        1,
+        description="Limits the number of price points (not applicable if a date range has been specified)",
+        alias="max",
+    )
+    page_size: int = Field(
+        20, description="Page size (disable paging = 0)", alias="pageSize"
+    )
+    page_number: int = Field(1, description="Page number", alias="pageNumber")

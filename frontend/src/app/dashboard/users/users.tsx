@@ -52,12 +52,15 @@ export const Users: React.FC = () => {
         {
           onSuccess: () => {
             toast.success("User updated successfully");
-            editModal.closeModal();
           },
           onError: (error) => {
             toast.error("Couldn't update user", {
               description: error.message || "An unknown error occurred",
             });
+          },
+          onSettled: () => {
+            editModal.closeModal();
+            setSelectedUser(null);
           },
         },
       );
@@ -77,6 +80,7 @@ export const Users: React.FC = () => {
         },
         onSettled: () => {
           deleteDialog.closeModal();
+          setSelectedUser(null);
         },
       });
     }
