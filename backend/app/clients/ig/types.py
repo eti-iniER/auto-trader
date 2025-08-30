@@ -453,7 +453,7 @@ class CreateWorkingOrderRequest(BaseModel):
     level: Decimal
     limit_distance: Optional[Decimal] = Field(None, alias="limitDistance")
     limit_level: Optional[Decimal] = Field(None, alias="limitLevel")
-    size: int = Field(..., description="Order size")
+    size: Decimal = Field(..., description="Order size")
     stop_distance: Optional[Decimal] = Field(None, alias="stopDistance")
     stop_level: Optional[Decimal] = Field(None, alias="stopLevel")
     time_in_force: Optional[TimeInForce] = Field(None, alias="timeInForce")

@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Optional, Tuple
 
 from app.api.schemas.webhook import WebhookPayload
+from app.services.trading.payload_parser import parse_message_fields
 from app.config import settings
 from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
 from app.db.deps import get_db_context
@@ -122,9 +123,11 @@ async def _validate_instrument_exists(
     payload: WebhookPayload, user: User, db
 ) -> Tuple[bool, Optional[str], Optional[Instrument]]:
     """Validate that the instrument exists in the database."""
-    instrument = await get_instrument_by_market_and_symbol(
-        db, payload.market_and_symbol
+
+    market_and_symbol = parse_message_fields(payload.message).get(
+        "market_and_symbol", payload.market_and_symbol
     )
+    instrument = await get_instrument_by_market_and_symbol(db, market_and_symbol)
 
     if not instrument:
         await _log_validation_error(
@@ -132,7 +135,7 @@ async def _validate_instrument_exists(
             "Alert has been rejected due to missing or incorrect instrument",
             user.id,
             payload,
-            {"market_and_symbol": payload.market_and_symbol},
+            {"market_and_symbol": market_and_symbol},
         )
 
         return False, ValidationError.INSTRUMENT_NOT_FOUND.value, None

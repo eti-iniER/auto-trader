@@ -18,10 +18,12 @@ async def handle_alert(payload: WebhookPayload):
         # the validator already logs the error
         return
 
+    alert = await parse_webhook_payload_to_trading_view_alert(payload)
+
     async with get_db_context() as db:
         user = await get_user_by_webhook_secret(db, payload.secret)
         instrument = await get_instrument_by_market_and_symbol(
-            db, payload.market_and_symbol
+            db, alert.market_and_symbol
         )
 
     await log_message(
@@ -33,8 +35,6 @@ async def handle_alert(payload: WebhookPayload):
             "payload": payload.model_dump(mode="json"),
         },
     )
-
-    alert = await parse_webhook_payload_to_trading_view_alert(payload)
 
     await log_message(
         "Parsed alert from webhook payload",
