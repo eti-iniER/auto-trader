@@ -16,7 +16,7 @@ async def parse_webhook_payload_to_trading_view_alert(
     parsed = parse_message_fields(payload.message)
 
     return TradingViewAlert(
-        market_and_symbol=payload.market_and_symbol,
+        market_and_symbol=parsed["market_and_symbol"],
         direction=parsed["direction"],
         message=payload.message,
         secret=payload.secret,
@@ -37,6 +37,9 @@ def parse_message_fields(message: str):
         raise ValueError(
             "Message format is incorrect. Expected at least 13 parts (direction, open price, 10 ATRs, etc.)"
         )
+
+    # Market and symbol
+    market_and_symbol = parts[0].strip().upper()
 
     # Direction
     direction_raw = parts[1].strip().upper()
@@ -59,4 +62,9 @@ def parse_message_fields(message: str):
     except (ValueError, TypeError) as e:
         raise ValueError(f"Failed to parse ATRs from message: {e}")
 
-    return {"direction": direction, "open_price": open_price, "atrs": atrs}
+    return {
+        "direction": direction,
+        "open_price": open_price,
+        "atrs": atrs,
+        "market_and_symbol": market_and_symbol,
+    }

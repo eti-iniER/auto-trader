@@ -5,11 +5,13 @@ from pydantic import AwareDatetime, BaseModel, Field
 
 
 class WebhookPayload(BaseModel):
-    market_and_symbol: str = Field(
-        ..., description="The symbol for which the webhook is triggered", alias="symbol"
+    market_and_symbol: Optional[str] = Field(
+        None,
+        description="The symbol for which the webhook is triggered",
+        alias="symbol",
     )
-    direction: Literal["BUY", "SELL"] = Field(
-        ..., description="The direction of the trade (buy/sell)"
+    direction: Optional[Literal["BUY", "SELL"]] = Field(
+        None, description="The direction of the trade (buy/sell)"
     )
     message: str = Field(..., description="The message associated with the webhook")
     secret: str = Field(..., description="Secret key for webhook validation")
