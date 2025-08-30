@@ -15,7 +15,7 @@ async def create_order(
     user: User,
     instrument: Instrument,
     direction: Literal["BUY", "SELL"],
-    profit_target: Decimal,
+    limit_distance: Decimal,
     limit_price: Decimal,
     stop_loss_distance: Decimal,
     size: Decimal,
@@ -88,7 +88,7 @@ async def create_order(
         currency_code=settings.DEFAULT_CURRENCY_CODE,
         direction=direction,
         stop_distance=stop_loss_distance,
-        limitLevel=profit_target,
+        limit_distance=limit_distance,
         epic=instrument.ig_epic,
         expiry="DEC-27",  # Expiry date gotten from making orders via IG's dashboard when set to "Good till cancelled"
         force_open=False,

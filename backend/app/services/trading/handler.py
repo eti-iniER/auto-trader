@@ -82,7 +82,7 @@ async def handle_alert(payload: WebhookPayload):
         user=user,
         instrument=instrument,
         direction=alert.direction,
-        profit_target=profit_target_price,
+        limit_distance=profit_target_price,
         limit_price=limit_price,
         stop_loss_distance=stop_loss_distance,
         size=bet_size,
