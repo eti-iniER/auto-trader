@@ -19,7 +19,7 @@ class WebhookPayload(BaseModel):
         ..., description="The timestamp when the webhook was triggered"
     )
     open_price: Optional[Decimal] = Field(
-        ..., description="Optional open price for the trade", alias="price"
+        None, description="Optional open price for the trade", alias="price"
     )
     stop: Optional[Decimal] = Field(
         None, description="Optional stop loss price for the trade"
