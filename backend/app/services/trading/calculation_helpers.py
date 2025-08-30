@@ -20,13 +20,13 @@ def calculate_limit_price(
 
 
 def calculate_bet_size(limit_price: Decimal, max_position_size: int):
-    return max(
-        1,
-        int(
+    return Decimal(
+        max(
+            1,
             (max_position_size / limit_price).quantize(
                 TWO_DECIMAL_PLACES, rounding="ROUND_HALF_DOWN"
-            )
-        ),
+            ),
+        )
     )
 
 
