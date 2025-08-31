@@ -10,6 +10,9 @@ from app.api.helpers.ig_utils import parse_ig_datetime
 from app.db.crud import get_market_and_symbol_by_ig_epic
 from app.db.models import User
 from app.api.schemas.positions import Position
+from app.clients.ig.client import IGClient
+from app.clients.ig.types import GetPricesRequest
+from app.clients.ig.exceptions import IGAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -54,27 +57,55 @@ def _calculate_profit_loss(
     return profit_loss, profit_loss_percentage
 
 
-def _extract_current_level(direction: str, market_data: dict) -> Optional[Decimal]:
+def _extract_current_level(
+    direction: str, ig_epic: str, ig_client: IGClient
+) -> Optional[Decimal]:
     """
-    Extract current market price based on position direction.
+    Extract current market price based on position direction using IG API.
 
     Args:
         direction: Position direction (BUY or SELL)
-        market_data: Market data from IG API
+        ig_epic: The IG epic identifier for the instrument
+        ig_client: IG client instance for API calls
 
     Returns:
         Current market price as Decimal or None
     """
-    if direction == "BUY":
-        bid_value = market_data.get("bid")
-        if bid_value is not None:
-            return Decimal(str(bid_value))
-    else:  # SELL
-        offer_value = market_data.get("offer")
-        if offer_value is not None:
-            return Decimal(str(offer_value))
+    try:
+        # Get the most recent price data for the instrument
+        request = GetPricesRequest(epic=ig_epic, resolution="SECOND", max_points=1)
+        response = ig_client.get_prices(request)
 
-    return None
+        if not response.prices:
+            logger.warning(f"No price data returned for epic {ig_epic}")
+            return None
+
+        # Get the most recent price snapshot
+        latest_price = response.prices[0]
+
+        # Extract the appropriate price based on direction
+        if direction == "BUY":
+            # For BUY positions, we want the bid price (what we can sell at)
+            bid_value = latest_price.close_price.bid
+            if bid_value is not None:
+                return bid_value
+        else:  # SELL
+            # For SELL positions, we want the ask price (what we can buy at to close)
+            ask_value = latest_price.close_price.ask
+            if ask_value is not None:
+                return ask_value
+
+        logger.warning(
+            f"No suitable price data found for direction {direction} and epic {ig_epic}"
+        )
+        return None
+
+    except IGAPIError as e:
+        logger.error(f"IG API error getting price for epic {ig_epic}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error getting price for epic {ig_epic}: {e}")
+        return None
 
 
 async def parse_ig_position_to_schema(
@@ -107,8 +138,11 @@ async def parse_ig_position_to_schema(
     # Get market_and_symbol from user's instruments
     market_and_symbol = await get_market_and_symbol_by_ig_epic(db, user.id, ig_epic)
 
-    # Extract current market price
-    current_level = _extract_current_level(direction, market_data)
+    # Create IG client to get current price
+    ig_client = IGClient.create_for_user(user)
+
+    # Extract current market price using IG API
+    current_level = _extract_current_level(direction, ig_epic, ig_client)
 
     # Calculate profit/loss
     profit_loss, profit_loss_percentage = _calculate_profit_loss(
