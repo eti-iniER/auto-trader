@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 
 from app.api.schemas.webhook import WebhookPayload
 from app.services.trading.payload_parser import parse_message_fields
-from app.config import settings
 from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
@@ -27,6 +26,9 @@ class ValidationError(Enum):
     INSTRUMENT_NOT_FOUND = "INSTRUMENT_NOT_FOUND"
     ORDER_CREATION_TOO_SOON = "ORDER_CREATION_TOO_SOON"
     ALERT_ON_DIVIDEND_DATE = "ALERT_ON_DIVIDEND_DATE"
+    MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED = (
+        "MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED"
+    )
 
 
 async def _log_validation_error(
@@ -209,6 +211,73 @@ async def _validate_dividend_date(
     return True, None
 
 
+async def _validate_maximum_pending_orders(
+    user: User, db
+) -> Tuple[bool, Optional[str]]:
+    """Validate that the user has not exceeded their maximum pending orders."""
+    if not user.settings.enforce_maximum_open_positions:
+        return True, None
+
+    stmt = select(Order).where(Order.user_id == user.id).where(Order.is_open == True)
+    result = await db.execute(stmt)
+    open_positions_count = len(result.scalars().all())
+
+    if open_positions_count >= user.settings.maximum_open_positions:
+        await _log_validation_error(
+            "Maximum open positions exceeded",
+            "Alert has been ignored due to exceeding maximum open positions",
+            user.id,
+            None,
+            {"maximum_open_positions": user.settings.maximum_open_positions},
+        )
+
+        return False, "MAXIMUM_OPEN_POSITIONS_EXCEEDED"
+
+    return True, None
+
+
+async def _validate_maximum_open_positions_and_pending_orders(
+    payload: WebhookPayload, user: User, db
+) -> Tuple[bool, Optional[str]]:
+    """Validate that the user has not exceeded their maximum open positions and pending orders combined."""
+    if not user.settings.enforce_maximum_open_positions_and_pending_orders:
+        return True, None
+
+    # Get all orders for the user
+    stmt = select(Order).where(Order.user_id == user.id)
+    result = await db.execute(stmt)
+    all_orders = result.scalars().all()
+
+    # Count pending orders (orders without deal_id) and open positions (orders with deal_id and is_open=True)
+    pending_orders_count = sum(1 for order in all_orders if order.deal_id is None)
+    open_positions_count = sum(
+        1 for order in all_orders if order.deal_id is not None and order.is_open
+    )
+
+    total_count = pending_orders_count + open_positions_count
+
+    if total_count >= user.settings.maximum_open_positions_and_pending_orders:
+        await _log_validation_error(
+            "Maximum open positions and pending orders exceeded",
+            "Alert has been ignored due to exceeding maximum open positions and pending orders",
+            user.id,
+            payload,
+            {
+                "maximum_open_positions_and_pending_orders": user.settings.maximum_open_positions_and_pending_orders,
+                "current_pending_orders": pending_orders_count,
+                "current_open_positions": open_positions_count,
+                "total_count": total_count,
+            },
+        )
+
+        return (
+            False,
+            ValidationError.MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED.value,
+        )
+
+    return True, None
+
+
 async def validate_webhook_payload(
     payload: WebhookPayload,
 ) -> Tuple[bool, Optional[str]]:
@@ -237,6 +306,18 @@ async def validate_webhook_payload(
         # Validate instrument exists
         is_valid, error_code, instrument = await _validate_instrument_exists(
             payload, user, db
+        )
+        if not is_valid:
+            return is_valid, error_code
+
+        # Validate maximum open positions
+        is_valid, error_code = await _validate_maximum_pending_orders(user, db)
+        if not is_valid:
+            return is_valid, error_code
+
+        # Validate maximum open positions and pending orders combined
+        is_valid, error_code = (
+            await _validate_maximum_open_positions_and_pending_orders(payload, user, db)
         )
         if not is_valid:
             return is_valid, error_code

@@ -88,6 +88,7 @@ def parse_ig_order_to_schema(ig_order_data: dict) -> Optional[Order]:
         direction=direction,
         type=order_type,
         size=size,
+        entry_level=order_level,
         created_at=created_at,
         stop_level=stop_level,
         profit_level=profit_level,

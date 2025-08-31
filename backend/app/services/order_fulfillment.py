@@ -7,6 +7,7 @@ from app.clients.ig.client import IGClient
 from app.clients.ig.types import (
     ConfirmDealRequest,
     DeleteWorkingOrderRequest,
+    DealConfirmation,
 )
 from app.db.deps import get_db_context
 from app.db.crud import delete_order, get_order_by_id
@@ -64,6 +65,7 @@ async def confirm_single_order_deal_reference_with_retry(
         # Get user_id early for logging purposes
         async with get_db_context() as db:
             order = await get_order_by_id(db, order_id)
+
             if order:
                 user_id = order.instrument.user.id
 
@@ -104,7 +106,7 @@ async def confirm_single_order_deal_reference_with_retry(
 
 
 async def _log_confirmation_result(
-    order_id: uuid.UUID, confirmation, user_id: uuid.UUID
+    order_id: uuid.UUID, confirmation: DealConfirmation, user_id: uuid.UUID
 ):
     """Log the confirmation result based on deal status"""
 
@@ -297,7 +299,7 @@ async def confirm_single_order_deal_reference(order_id: uuid.UUID):
 
 
 async def _handle_expired_order(
-    order, confirmation, user, now, order_age, max_age, db, ig_client
+    order, confirmation: DealConfirmation, user, now, order_age, max_age, db, ig_client
 ):
     """Handle orders that have exceeded maximum age"""
     await log_message(
@@ -319,7 +321,7 @@ async def _handle_expired_order(
     )
 
 
-async def _handle_rejected_order(order, confirmation, user, db):
+async def _handle_rejected_order(order, confirmation: DealConfirmation, user, db):
     """Handle rejected orders"""
     await log_message(
         message=f"Order for instrument with IG Epic {order.instrument.ig_epic} was rejected: {confirmation.reason}",

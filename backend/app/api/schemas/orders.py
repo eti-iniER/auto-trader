@@ -16,5 +16,6 @@ class Order(BaseModel):
     type: WorkingOrderType
     size: Decimal
     created_at: AwareDatetime
+    entry_level: Decimal
     stop_level: Optional[Decimal] = None
     profit_level: Optional[Decimal] = None

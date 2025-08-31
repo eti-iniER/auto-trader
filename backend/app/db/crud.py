@@ -241,7 +241,7 @@ async def create_order_for_instrument(
         Order: The created order object.
     """
 
-    order = Order(instrument_id=instrument.id)
+    order = Order(instrument_id=instrument.id, user_id=instrument.user_id)
     db.add(order)
     await db.commit()
     await db.refresh(order)

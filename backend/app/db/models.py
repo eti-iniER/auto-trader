@@ -3,8 +3,8 @@ import uuid
 from decimal import Decimal
 from typing import List, Optional
 
-from app.db.enums import LogType, UserSettingsMode, UserSettingsOrderType, UserRole
-from app.services.utils import generate_webhook_secret, generate_deal_reference
+from app.db.enums import LogType, UserRole, UserSettingsMode, UserSettingsOrderType
+from app.services.utils import generate_deal_reference, generate_webhook_secret
 from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -60,6 +60,12 @@ class User(BaseDBModel):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="desc(Log.created_at)",
+    )
+    orders: Mapped[List["Order"]] = relationship(
+        "Order",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Order.created_at)",
     )
 
 
@@ -184,10 +190,16 @@ class Order(BaseDBModel):
     instrument_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("instruments.id", ondelete="CASCADE"), nullable=False, unique=True
     )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    user: Mapped[User] = relationship("User", back_populates="orders")
     instrument: Mapped[Instrument] = relationship("Instrument", back_populates="order")
     deal_reference: Mapped[str] = mapped_column(
         String(128), nullable=False, unique=True, default=generate_deal_reference
     )
+    deal_id: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    is_open: Mapped[bool] = mapped_column(nullable=False, default=True)
 
 
 class AppSettings(Base):

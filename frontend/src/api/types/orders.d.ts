@@ -7,6 +7,7 @@ interface Order {
   type: string;
   size: number;
   createdAt: Date;
+  entryLevel: number;
   stopLevel: number;
   profitLevel: number;
 }

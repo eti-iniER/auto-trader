@@ -79,7 +79,7 @@ async def update_dividend_dates():
 async def cleanup_old_orders():
     """
     Delete orders that are older than the configured number of hours.
-    Runs on a configurable schedule (default: every 1 hours).
+    Runs on a configurable schedule (default: every 24 hours).
     """
     logger.info("Starting old orders cleanup task")
 
@@ -90,8 +90,10 @@ async def cleanup_old_orders():
                 hours=settings.ORDER_CLEANUP_HOURS
             )
 
-            # Create delete statement for orders older than cutoff time
-            stmt = delete(Order).where(Order.created_at < cutoff_time)
+            # Create delete statement for open orders older than cutoff time
+            stmt = delete(Order).where(
+                Order.created_at < cutoff_time, Order.is_open == True
+            )
 
             # Execute the deletion
             result = await db.execute(stmt)

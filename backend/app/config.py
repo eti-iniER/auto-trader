@@ -79,12 +79,12 @@ class Settings(BaseSettings):
         description="Cron expression for dividend date update schedule (default: midnight on Saturday)",
     )
     ORDER_CLEANUP_SCHEDULE: str = Field(
-        default="0 */1 * * *",
+        default="0 0 * * *",  # Every day at midnight
         env="ORDER_CLEANUP_SCHEDULE",
-        description="Cron expression for order cleanup schedule (default: every 1 hour)",
+        description="Cron expression for order cleanup schedule (default: every day)",
     )
     ORDER_CLEANUP_HOURS: int = Field(
-        default=8,
+        default=24,
         env="ORDER_CLEANUP_HOURS",
         description="Number of hours after which orders should be deleted (default: 8 hours)",
     )

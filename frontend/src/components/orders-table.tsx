@@ -69,6 +69,15 @@ const columns: ColumnDef<Order>[] = [
     ),
   },
   {
+    accessorKey: "entryLevel",
+    header: "Entry Level",
+    size: 120,
+    cell: ({ row }) => {
+      const entryLevel = row.getValue("entryLevel") as number;
+      return <div className="text-center">{formatDecimal(entryLevel)}</div>;
+    },
+  },
+  {
     accessorKey: "stopLevel",
     header: "Stop Level",
     size: 120,
