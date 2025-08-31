@@ -31,7 +31,9 @@ class InstrumentBase(BaseModel):
     atr_profit_multiple_percentage: Decimal = Field(
         default=Decimal("1.0"), description="ATR profit multiple"
     )
-    max_position_size: Optional[int] = Field(None, description="Maximum position size")
+    max_position_size: Optional[Decimal] = Field(
+        None, description="Maximum position size"
+    )
     opening_price_multiple_percentage: Decimal = Field(
         default=Decimal("1.0"), description="Opening price multiple"
     )

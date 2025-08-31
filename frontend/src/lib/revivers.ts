@@ -20,6 +20,7 @@ const DECIMAL_KEYS = new Set([
   "currentLevel",
   "profitLoss",
   "profitLossPercentage",
+  "maxPositionSize",
 ]);
 
 export function revivers(_key: string, value: string) {

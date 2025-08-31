@@ -16,7 +16,7 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 logger = logging.getLogger(__name__)
 
 
-@cache_user_data(ttl=30, namespace="ig_user_stats")
+@cache_user_data(ttl=10, namespace="ig_user_stats")
 async def get_user_quick_stats_from_ig(
     user: User, db: AsyncSession
 ) -> UserQuickStatsResponse:

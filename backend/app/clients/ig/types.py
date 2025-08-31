@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List, Literal, Optional
-
-from pydantic import AwareDatetime, BaseModel, Field, NaiveDatetime
+from datetime import datetime, timezone
+from pydantic import AwareDatetime, BaseModel, Field, field_validator
 
 # Core Type Definitions
 type InstrumentType = Literal[
@@ -263,7 +263,7 @@ class ActivityAction(BaseModel):
 
 
 class Activity(BaseModel):
-    date: NaiveDatetime = Field(..., description="Date and time of the activity")
+    date: AwareDatetime = Field(..., description="Date and time of the activity")
     epic: str = Field(..., description="Epic identifier for the instrument")
     period: str = Field(..., description="Time period (e.g., DFB)")
     deal_id: str = Field(..., alias="dealId", description="Deal identifier")
@@ -274,6 +274,12 @@ class Activity(BaseModel):
     status: DealStatus = Field(..., description="Status of the activity")
     description: str = Field(..., description="Activity description")
     details: Optional[dict] = Field(None, description="Additional activity details")
+
+    @field_validator("date", mode="before")
+    def convert_to_utc(cls, value):
+        if isinstance(value, str):
+            return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+        return value
 
 
 class GetHistoryFilters(BaseModel):
