@@ -38,7 +38,7 @@ export const useLogs = (params: LogsParams = {}) => {
   return useQuery({
     queryKey: ["logs", params],
     queryFn: () => getLogs(params),
-    refetchInterval: 1000 * 30,
+    refetchInterval: 1000 * 5, // Refetch every 5 seconds
     placeholderData: (previousData) => {
       if (previousData) {
         return {

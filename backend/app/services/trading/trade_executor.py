@@ -109,7 +109,7 @@ async def create_order(
 
         await log_message(
             "Order request created",
-            f"An order request for instrument with IG Epic {instrument.ig_epic} was made successfully. Order type: {user.settings.order_type.value}. We will monitor and confirm the order's acceptance shortly.",
+            f"An order request for instrument with IG Epic {instrument.ig_epic} was made successfully. Order type: {user.settings.order_type.value}. We will monitor the order's status.",
             "order",
             user_id=user.id,
             identifier="order_request_created",
