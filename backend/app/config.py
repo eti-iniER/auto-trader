@@ -50,7 +50,7 @@ class Settings(BaseSettings):
         description="Lifetime of access tokens in seconds",
     )
     REFRESH_TOKEN_LIFETIME_IN_SECONDS: int = Field(
-        default=604800,  # 7 days
+        default=3600,  # 1 hour
         env="REFRESH_TOKEN_LIFETIME_IN_SECONDS",
         description="Lifetime of refresh tokens in seconds",
     )
