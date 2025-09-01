@@ -124,7 +124,7 @@ async def download_logs(
     logs = result["data"]
 
     logger.info(
-        f"Preparing log file download for user {user.email} " f"with {len(logs)} logs"
+        f"Preparing log file download for user {user.email} with {len(logs)} logs"
     )
 
     file_content = prepare_logs_file(logs)

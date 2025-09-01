@@ -2,6 +2,7 @@ import logging
 from typing import Annotated, List
 
 from app.api.helpers.orders_parser import parse_ig_orders_to_schema
+from app.api.schemas.orders import Order
 from app.api.utils.authentication import get_current_user
 from app.api.utils.caching import cache_user_data, cache_with_pagination
 from app.api.utils.pagination import *
@@ -9,7 +10,6 @@ from app.api.utils.pagination import PaginationParams, build_paginated_response
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
 from app.db.models import User
-from app.api.schemas.orders import Order
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 router = APIRouter(prefix="/orders", tags=["orders"])

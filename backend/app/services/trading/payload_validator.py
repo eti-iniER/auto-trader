@@ -316,9 +316,10 @@ async def validate_webhook_payload(
             return is_valid, error_code
 
         # Validate maximum open positions and pending orders combined
-        is_valid, error_code = (
-            await _validate_maximum_open_positions_and_pending_orders(payload, user, db)
-        )
+        (
+            is_valid,
+            error_code,
+        ) = await _validate_maximum_open_positions_and_pending_orders(payload, user, db)
         if not is_valid:
             return is_valid, error_code
 
