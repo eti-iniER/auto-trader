@@ -49,6 +49,12 @@ export interface VirtualizedTableProps<TData, TValue = unknown> {
   maxHeight?: number;
   fillAvailableHeight?: boolean;
   additionalInputs?: React.ReactNode;
+  // External search control props
+  externalSearch?: {
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+  };
 }
 
 function VirtualizedTable<TData, TValue = unknown>({
@@ -62,12 +68,23 @@ function VirtualizedTable<TData, TValue = unknown>({
   maxHeight = 600,
   fillAvailableHeight = false,
   additionalInputs,
+  externalSearch,
 }: VirtualizedTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
   const [globalFilter, setGlobalFilter] = React.useState("");
+
+  // Use external search if provided, otherwise use internal global filter
+  const searchValue = externalSearch?.value ?? globalFilter;
+  const handleSearchChange = (value: string) => {
+    if (externalSearch) {
+      externalSearch.onChange(value);
+    } else {
+      setGlobalFilter(value);
+    }
+  };
 
   const table = useReactTable({
     data,
@@ -77,12 +94,12 @@ function VirtualizedTable<TData, TValue = unknown>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: externalSearch ? undefined : setGlobalFilter,
     globalFilterFn: "includesString",
     state: {
       sorting,
       columnFilters,
-      globalFilter,
+      globalFilter: externalSearch ? "" : globalFilter, // Disable internal filtering when using external search
     },
   });
 
@@ -117,9 +134,10 @@ function VirtualizedTable<TData, TValue = unknown>({
       <div className="flex justify-start gap-2">
         <Input
           placeholder={searchPlaceholder}
-          value={globalFilter ?? ""}
-          onChange={(event) => setGlobalFilter(event.target.value)}
+          value={searchValue ?? ""}
+          onChange={(event) => handleSearchChange(event.target.value)}
           className="w-full max-w-sm sm:max-w-sm"
+          disabled={externalSearch?.disabled}
         />
         {additionalInputs}
       </div>

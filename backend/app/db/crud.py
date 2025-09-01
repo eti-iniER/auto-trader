@@ -326,3 +326,69 @@ async def get_app_settings(db: AsyncSession) -> AppSettings:
         await db.refresh(app_settings)
 
     return app_settings
+
+
+async def universal_search_instruments(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    query: str,
+    offset: int = 0,
+    limit: int = 100,
+) -> dict:
+    """
+    Search instruments across multiple fields (market_and_symbol, ig_epic, yahoo_symbol).
+
+    Args:
+        db: Database session
+        user_id: User ID to filter by
+        query: Search query string
+        offset: Pagination offset
+        limit: Pagination limit
+
+    Returns:
+        Dict with 'data' (list of instruments) and 'total_count'
+    """
+    from sqlalchemy import or_, func
+
+    # Build the base query
+    search_query = (
+        select(Instrument)
+        .where(Instrument.user_id == user_id)
+        .where(
+            or_(
+                func.lower(Instrument.market_and_symbol).contains(func.lower(query)),
+                func.lower(Instrument.ig_epic).contains(func.lower(query)),
+                func.lower(Instrument.yahoo_symbol).contains(func.lower(query)),
+            )
+        )
+        .order_by(Instrument.updated_at.desc())
+    )
+
+    # Get total count
+    count_query = select(func.count()).select_from(
+        select(Instrument)
+        .where(Instrument.user_id == user_id)
+        .where(
+            or_(
+                func.lower(Instrument.market_and_symbol).contains(func.lower(query)),
+                func.lower(Instrument.ig_epic).contains(func.lower(query)),
+                func.lower(Instrument.yahoo_symbol).contains(func.lower(query)),
+            )
+        )
+        .subquery()
+    )
+
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar()
+
+    # Apply pagination
+    search_query = search_query.offset(offset).limit(limit)
+
+    # Execute query
+    result = await db.execute(search_query)
+    instruments = result.scalars().all()
+
+    return {
+        "data": instruments,
+        "total_count": total_count,
+    }

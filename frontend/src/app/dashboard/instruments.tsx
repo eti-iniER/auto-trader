@@ -1,5 +1,6 @@
 import { useFetchDividendDates } from "@/api/hooks/instruments/use-fetch-dividend-dates";
 import { useInstruments } from "@/api/hooks/instruments/use-instruments";
+import { useSearchInstruments } from "@/api/hooks/instruments/use-search-instruments";
 import { useUploadInstrumentsCsv } from "@/api/hooks/instruments/use-upload-instruments-as-csv";
 import { InstrumentsTable } from "@/components/instruments-table";
 import { PageHeader } from "@/components/page-header";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
+import { useDebounce } from "@/hooks/use-debounce";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -29,10 +31,16 @@ type UploadFormData = z.infer<typeof uploadSchema>;
 export const Instruments = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const offset = (page - 1) * pageSize;
 
+  // Debounce the search query to prevent excessive API calls
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const hasSearchQuery = !!debouncedSearchQuery.trim();
+
+  // Use search API when there's a search query, otherwise use regular instruments API
   const {
     data: instrumentsResponse,
     isPending,
@@ -43,6 +51,26 @@ export const Instruments = () => {
     limit: pageSize,
   });
 
+  const {
+    data: searchResponse,
+    isPending: isSearchPending,
+    isError: isSearchError,
+    error: searchError,
+  } = useSearchInstruments(
+    {
+      q: debouncedSearchQuery,
+      offset,
+      limit: pageSize,
+    },
+    hasSearchQuery,
+  );
+
+  // Use search results when searching, otherwise use regular instruments
+  const currentResponse = hasSearchQuery ? searchResponse : instrumentsResponse;
+  const currentIsPending = hasSearchQuery ? isSearchPending : isPending;
+  const currentIsError = hasSearchQuery ? isSearchError : isError;
+  const currentError = hasSearchQuery ? searchError : error;
+
   const uploadMutation = useUploadInstrumentsCsv();
   const fetchDividendDates = useFetchDividendDates();
 
@@ -51,8 +79,8 @@ export const Instruments = () => {
     disabled: uploadMutation.isPending,
   });
 
-  const instruments = instrumentsResponse?.results || [];
-  const totalCount = instrumentsResponse?.count || 0;
+  const instruments = currentResponse?.results || [];
+  const totalCount = currentResponse?.count || 0;
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -61,6 +89,11 @@ export const Instruments = () => {
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
     setPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setPage(1); // Reset to first page when searching
   };
 
   const onSubmit = (data: UploadFormData) => {
@@ -95,7 +128,7 @@ export const Instruments = () => {
     });
   };
 
-  if (isError) {
+  if (currentIsError) {
     return (
       <div className="min-w-0 flex-1 space-y-8 p-8">
         <PageHeader
@@ -106,7 +139,7 @@ export const Instruments = () => {
           <div className="text-center">
             <p className="mb-2 text-red-600">Error loading instruments</p>
             <p className="text-sm text-gray-500">
-              {error?.message || "Something went wrong"}
+              {currentError?.message || "Something went wrong"}
             </p>
           </div>
         </div>
@@ -124,7 +157,7 @@ export const Instruments = () => {
       <div className="f min-h-0 flex-1">
         <InstrumentsTable
           data={instruments}
-          loading={isPending}
+          loading={currentIsPending}
           pagination={{
             page,
             pageSize,
@@ -132,6 +165,8 @@ export const Instruments = () => {
             onPageChange: handlePageChange,
             onPageSizeChange: handlePageSizeChange,
           }}
+          searchValue={searchQuery}
+          onSearchChange={handleSearchChange}
           additionalInputs={
             <>
               <Form {...form}>

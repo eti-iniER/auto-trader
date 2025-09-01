@@ -16,6 +16,8 @@ interface InstrumentsTableProps {
   };
   className?: string;
   additionalInputs?: React.ReactNode; // For any additional inputs like search
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 const columns: ColumnDef<Instrument>[] = [
@@ -185,6 +187,8 @@ function InstrumentsTable({
   pagination,
   className,
   additionalInputs,
+  searchValue,
+  onSearchChange,
 }: InstrumentsTableProps) {
   return (
     <VirtualizedTable
@@ -197,6 +201,14 @@ function InstrumentsTable({
       rowHeight={50}
       fillAvailableHeight={true}
       additionalInputs={additionalInputs}
+      externalSearch={
+        searchValue !== undefined && onSearchChange
+          ? {
+              value: searchValue,
+              onChange: onSearchChange,
+            }
+          : undefined
+      }
     />
   );
 }

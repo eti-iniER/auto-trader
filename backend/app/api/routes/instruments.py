@@ -24,6 +24,7 @@ from app.api.utils.pagination import (
 )
 from app.db.deps import get_db
 from app.db.models import Instrument, User
+from app.db.crud import universal_search_instruments
 from app.services.logging import log_message
 from app.tasks import update_dividend_dates
 from fastapi import (
@@ -47,185 +48,7 @@ instrument_crud = FastCRUD(Instrument)
 logger = logging.getLogger(__name__)
 
 
-@router.post("/", response_model=InstrumentRead, status_code=status.HTTP_201_CREATED)
-async def create_instrument(
-    instrument: InstrumentCreate,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
-) -> InstrumentRead:
-    """
-    Create a new instrument.
-    """
-    try:
-        new_instrument = await instrument_crud.create(db, instrument)
-        await db.refresh(new_instrument)
-        return InstrumentRead.model_validate(new_instrument)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create instrument: {str(e)}",
-        )
-
-
-@router.get("", response_model=PaginatedResponse[InstrumentRead])
-@cache_with_pagination(ttl=300, namespace="instruments")
-async def list_instruments(
-    request: Request,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    pagination: Annotated[PaginationParams, Depends()],
-    sorting: Annotated[SortingParams, Depends()],
-    user: Annotated[User, Depends(get_current_user)],
-) -> PaginatedResponse[InstrumentRead]:
-    """
-    Get a list of instruments with pagination and sorting.
-
-    Returns:
-        PaginatedResponse: Contains 'data' (list of instruments), 'count', 'next', and 'previous' URLs
-    """
-    try:
-        result = await instrument_crud.get_multi(
-            db,
-            offset=pagination.offset,
-            limit=pagination.limit,
-            sort_columns=sorting.sort_columns,
-            sort_orders=sorting.sort_orders,
-            schema_to_select=InstrumentRead,
-            return_as_model=True,
-            user_id=user.id,
-        )
-
-        return build_paginated_response(
-            request=request,
-            result=result,
-            offset=pagination.offset,
-            limit=pagination.limit,
-            endpoint="/api/v1/instruments/",
-            response_class=InstrumentRead,
-            sort_by=sorting.sort_by,
-            sort_order=sorting.sort_order,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve instruments: {str(e)}",
-        )
-
-
-@router.get("/{id}", response_model=InstrumentRead)
-@cache(ttl=300, namespace="instruments")
-async def get_instrument(
-    id: uuid.UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
-) -> InstrumentRead:
-    """
-    Get a specific instrument by ID.
-    """
-    try:
-        instrument = await instrument_crud.get(
-            db,
-            schema_to_select=InstrumentRead,
-            return_as_model=True,
-            id=id,
-            user_id=user.id,
-        )
-
-        if not instrument:
-            raise APIException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                message=f"Instrument not found",
-                code="INSTRUMENT_NOT_FOUND",
-            )
-
-        return instrument
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=f"Failed to retrieve instrument: {str(e)}",
-            code="INTERNAL_SERVER_ERROR",
-        )
-
-
-@router.put("/{id}", response_model=InstrumentRead)
-async def update_instrument(
-    id: uuid.UUID,
-    instrument_update: InstrumentUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
-) -> InstrumentRead:
-    """
-    Update an existing instrument.
-    """
-    try:
-        existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
-        if not existing_instrument:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Instrument with ID {id} for user {user.email} not found",
-            )
-
-        update_data = instrument_update.model_dump(
-            exclude_unset=True, exclude_none=True
-        )
-
-        if not update_data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No valid fields provided for update",
-            )
-
-        updated_instrument = await instrument_crud.update(
-            db,
-            update_data,
-            schema_to_select=InstrumentRead,
-            return_as_model=True,
-            id=id,
-        )
-
-        return updated_instrument
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update instrument: {str(e)}",
-        )
-
-
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_instrument(
-    id: uuid.UUID,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
-) -> None:
-    """
-    Delete an instrument by ID.
-    """
-    try:
-        existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
-        if not existing_instrument:
-            raise APIException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                message=f"Instrument not found",
-                code="INSTRUMENT_NOT_FOUND",
-            )
-
-        await instrument_crud.delete(db, id=id)
-    except Exception as e:
-        raise APIException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=f"Failed to delete instrument",
-            code="INTERNAL_SERVER_ERROR",
-            details={
-                "error": str(e),
-                "instrument_id": str(id),
-            },
-        )
-
-
-@router.get("/search/", response_model=PaginatedResponse[InstrumentRead])
+@router.get("/search", response_model=PaginatedResponse[InstrumentRead])
 @cache_with_pagination(ttl=300, namespace="instrument_search")
 async def search_instruments(
     request: Request,
@@ -238,19 +61,40 @@ async def search_instruments(
     Search instruments with filters.
     """
     try:
-        result = await instrument_crud.get_multi(
-            db,
-            offset=pagination.offset,
-            limit=pagination.limit,
-            schema_to_select=InstrumentRead,
-            return_as_model=True,
-            **filters.to_dict(),
-            user_id=user.id,
-        )
+        # Handle universal search
+        if filters.q:
+            # Use the helper function from crud module
+            result_data = await universal_search_instruments(
+                db=db,
+                user_id=user.id,
+                query=filters.q,
+                offset=pagination.offset,
+                limit=pagination.limit,
+            )
+
+            # Convert to response format
+            result_data = {
+                "data": [
+                    InstrumentRead.model_validate(instrument)
+                    for instrument in result_data["data"]
+                ],
+                "total_count": result_data["total_count"],
+            }
+        else:
+            # Use existing FastCRUD logic for specific field searches
+            result_data = await instrument_crud.get_multi(
+                db,
+                offset=pagination.offset,
+                limit=pagination.limit,
+                schema_to_select=InstrumentRead,
+                return_as_model=True,
+                **filters.to_dict(),
+                user_id=user.id,
+            )
 
         return build_paginated_response(
             request=request,
-            result=result,
+            result=result_data,
             offset=pagination.offset,
             limit=pagination.limit,
             endpoint="/api/v1/instruments/search/",
@@ -431,4 +275,182 @@ async def upload_instruments_csv(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process CSV file: {str(e)}",
+        )
+
+
+@router.post("", response_model=InstrumentRead, status_code=status.HTTP_201_CREATED)
+async def create_instrument(
+    instrument: InstrumentCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> InstrumentRead:
+    """
+    Create a new instrument.
+    """
+    try:
+        new_instrument = await instrument_crud.create(db, instrument)
+        await db.refresh(new_instrument)
+        return InstrumentRead.model_validate(new_instrument)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create instrument: {str(e)}",
+        )
+
+
+@router.get("", response_model=PaginatedResponse[InstrumentRead])
+@cache_with_pagination(ttl=300, namespace="instruments")
+async def list_instruments(
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    pagination: Annotated[PaginationParams, Depends()],
+    sorting: Annotated[SortingParams, Depends()],
+    user: Annotated[User, Depends(get_current_user)],
+) -> PaginatedResponse[InstrumentRead]:
+    """
+    Get a list of instruments with pagination and sorting.
+
+    Returns:
+        PaginatedResponse: Contains 'data' (list of instruments), 'count', 'next', and 'previous' URLs
+    """
+    try:
+        result = await instrument_crud.get_multi(
+            db,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            sort_columns=sorting.sort_columns,
+            sort_orders=sorting.sort_orders,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+            user_id=user.id,
+        )
+
+        return build_paginated_response(
+            request=request,
+            result=result,
+            offset=pagination.offset,
+            limit=pagination.limit,
+            endpoint="/api/v1/instruments/",
+            response_class=InstrumentRead,
+            sort_by=sorting.sort_by,
+            sort_order=sorting.sort_order,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve instruments: {str(e)}",
+        )
+
+
+@router.get("/{id}", response_model=InstrumentRead)
+@cache(ttl=300, namespace="instruments")
+async def get_instrument(
+    id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> InstrumentRead:
+    """
+    Get a specific instrument by ID.
+    """
+    try:
+        instrument = await instrument_crud.get(
+            db,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+            id=id,
+            user_id=user.id,
+        )
+
+        if not instrument:
+            raise APIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                message=f"Instrument not found",
+                code="INSTRUMENT_NOT_FOUND",
+            )
+
+        return instrument
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=f"Failed to retrieve instrument: {str(e)}",
+            code="INTERNAL_SERVER_ERROR",
+        )
+
+
+@router.put("/{id}", response_model=InstrumentRead)
+async def update_instrument(
+    id: uuid.UUID,
+    instrument_update: InstrumentUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> InstrumentRead:
+    """
+    Update an existing instrument.
+    """
+    try:
+        existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
+        if not existing_instrument:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Instrument with ID {id} for user {user.email} not found",
+            )
+
+        update_data = instrument_update.model_dump(
+            exclude_unset=True, exclude_none=True
+        )
+
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid fields provided for update",
+            )
+
+        updated_instrument = await instrument_crud.update(
+            db,
+            update_data,
+            schema_to_select=InstrumentRead,
+            return_as_model=True,
+            id=id,
+        )
+
+        return updated_instrument
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update instrument: {str(e)}",
+        )
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_instrument(
+    id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """
+    Delete an instrument by ID.
+    """
+    try:
+        existing_instrument = await instrument_crud.exists(db, id=id, user_id=user.id)
+        if not existing_instrument:
+            raise APIException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                message=f"Instrument not found",
+                code="INSTRUMENT_NOT_FOUND",
+            )
+
+        await instrument_crud.delete(db, id=id)
+    except Exception as e:
+        raise APIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=f"Failed to delete instrument",
+            code="INTERNAL_SERVER_ERROR",
+            details={
+                "error": str(e),
+                "instrument_id": str(id),
+            },
         )

@@ -16,10 +16,15 @@ class InstrumentFilters:
         ),
         ig_epic: Optional[str] = Query(None, description="Filter by IG epic"),
         yahoo_symbol: Optional[str] = Query(None, description="Filter by Yahoo symbol"),
+        q: Optional[str] = Query(
+            None,
+            description="Universal search across market_and_symbol, ig_epic, and yahoo_symbol",
+        ),
     ):
         self.market_and_symbol = market_and_symbol
         self.ig_epic = ig_epic
         self.yahoo_symbol = yahoo_symbol
+        self.q = q
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert filters to a dictionary, excluding None values."""
@@ -30,6 +35,8 @@ class InstrumentFilters:
             filters["ig_epic"] = self.ig_epic
         if self.yahoo_symbol:
             filters["yahoo_symbol"] = self.yahoo_symbol
+        if self.q:
+            filters["q"] = self.q
         return filters
 
     def to_query_params(self) -> Dict[str, Any]:
@@ -38,6 +45,7 @@ class InstrumentFilters:
             "market_and_symbol": self.market_and_symbol,
             "ig_epic": self.ig_epic,
             "yahoo_symbol": self.yahoo_symbol,
+            "q": self.q,
         }
 
 
