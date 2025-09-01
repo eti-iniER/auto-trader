@@ -476,11 +476,9 @@ class IGClient:
         return DeleteWorkingOrderResponse(**data)
 
     @ig_api_retry
-    def get_working_order_confirmation(
-        self, data: ConfirmDealRequest
-    ) -> DealConfirmation:
+    def confirm_deal(self, data: ConfirmDealRequest) -> DealConfirmation:
         """
-        Confirm a working order by its deal reference.
+        Confirm a deal request by its deal reference.
         """
         response = self.client.get(
             f"confirms/{data.deal_reference}",

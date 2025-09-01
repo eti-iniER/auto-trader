@@ -131,15 +131,19 @@ function VirtualizedTable<TData, TValue = unknown>({
         className,
       )}
     >
-      <div className="flex justify-start gap-2">
+      <div className="flex flex-col gap-2 md:flex-row md:justify-start md:gap-2">
         <Input
           placeholder={searchPlaceholder}
           value={searchValue ?? ""}
           onChange={(event) => handleSearchChange(event.target.value)}
-          className="w-full max-w-sm sm:max-w-sm"
+          className="w-full md:max-w-xs"
           disabled={externalSearch?.disabled}
         />
-        {additionalInputs}
+        {additionalInputs && (
+          <div className="flex flex-col gap-2 md:flex-row md:gap-2">
+            {additionalInputs}
+          </div>
+        )}
       </div>
 
       <div

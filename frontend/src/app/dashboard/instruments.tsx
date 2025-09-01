@@ -168,17 +168,17 @@ export const Instruments = () => {
           searchValue={searchQuery}
           onSearchChange={handleSearchChange}
           additionalInputs={
-            <>
+            <div className="flex w-full flex-col gap-2 md:flex-row md:gap-3">
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
-                  className="flex items-end gap-3"
+                  className="flex flex-col gap-2 md:flex-row md:items-end md:gap-3"
                 >
                   <FormField
                     control={form.control}
                     name="file"
                     render={({ field: { onChange, ref, ...field } }) => (
-                      <FormItem className="min-w-0 flex-1">
+                      <FormItem className="w-full md:min-w-0 md:flex-1">
                         <FormControl>
                           <Input
                             ref={(e) => {
@@ -198,7 +198,7 @@ export const Instruments = () => {
                   />
                   <Button
                     type="submit"
-                    className="flex shrink-0 gap-2"
+                    className="flex w-full shrink-0 gap-2 md:w-auto"
                     disabled={uploadMutation.isPending}
                   >
                     <FiUpload />
@@ -209,7 +209,7 @@ export const Instruments = () => {
               <Button
                 onClick={handleFetchDividendDates}
                 disabled={fetchDividendDates.isPending}
-                className="flex items-center gap-2"
+                className="flex w-full items-center gap-2 md:w-auto"
               >
                 {fetchDividendDates.isPending ? (
                   <>
@@ -223,7 +223,7 @@ export const Instruments = () => {
                   </>
                 )}
               </Button>
-            </>
+            </div>
           }
         />
       </div>

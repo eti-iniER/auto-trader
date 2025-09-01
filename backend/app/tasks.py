@@ -1,8 +1,9 @@
 import logging
+import logging.config
 from datetime import datetime, timedelta, timezone
 
 import dramatiq
-from app.config import settings
+from app.config import LOGGING_CONFIG, settings
 from app.db.deps import get_db_context
 from app.db.models import Order
 from app.services.dividend_dates import fetch_and_update_all_dividend_dates
@@ -17,43 +18,12 @@ broker.add_middleware(PeriodiqMiddleware(skip_delay=30))
 
 dramatiq.set_broker(broker)
 
+logging.config.dictConfig(LOGGING_CONFIG)
+
 logger = logging.getLogger(__name__)
 
 DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
 ORDER_CLEANUP_SCHEDULE = cron(settings.ORDER_CLEANUP_SCHEDULE)
-
-
-@dramatiq.actor(max_retries=0)
-async def confirm_single_deal_reference(order_id: str):
-    """
-    Confirm deal reference for a single order.
-    This task is triggered immediately after an order is created.
-
-    Args:
-        order_id: The UUID string of the order to confirm
-    """
-    logger.info(f"Starting deal reference confirmation for order {order_id}")
-
-    try:
-        # Convert string back to UUID
-        import uuid
-        from app.services.order_fulfillment import (
-            confirm_single_order_deal_reference_with_retry,
-        )
-
-        order_uuid = uuid.UUID(order_id)
-
-        # Use the enhanced confirmation function with retry logic and user logging
-        await confirm_single_order_deal_reference_with_retry(order_uuid)
-        logger.info(
-            f"Successfully completed deal reference confirmation for order {order_id}"
-        )
-
-    except Exception as e:
-        logger.error(
-            f"Error in confirm_single_deal_reference task for order {order_id}: {str(e)}"
-        )
-        raise
 
 
 @dramatiq.actor(periodic=DIVIDEND_DATE_UPDATE_SCHEDULE, max_retries=3)
