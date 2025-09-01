@@ -8,6 +8,7 @@ from app.api.utils.pagination import *
 from app.api.utils.pagination import PaginationParams, build_paginated_response
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
+from app.clients.ig.types import PositionData
 from app.db.deps import get_db
 from app.db.models import User
 from app.api.schemas.positions import Position
@@ -27,11 +28,8 @@ async def get_all_positions_from_ig(user: User, db: AsyncSession) -> List[Positi
     """
     with IGClient.create_for_user(user) as ig_client:
         ig_response = ig_client.get_positions()
-        ig_positions_data = [
-            position.model_dump(by_alias=True) for position in ig_response.positions
-        ]
 
-    positions = await parse_ig_positions_to_schema(ig_positions_data, user, db)
+    positions = await parse_ig_positions_to_schema(ig_response.positions, user, db)
     return positions
 
 
