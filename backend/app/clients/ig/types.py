@@ -356,7 +356,7 @@ class MarketData(BaseModel):
 class PositionDetail(BaseModel):
     """Details of a trading position"""
 
-    contract_size: float = Field(
+    contract_size: Decimal = Field(
         ..., alias="contractSize", description="Size of the contract"
     )
     controlled_risk: bool = Field(
@@ -374,21 +374,21 @@ class PositionDetail(BaseModel):
         ..., alias="dealReference", description="Deal reference"
     )
     direction: Direction = Field(..., description="Position direction")
-    level: float = Field(..., description="Level at which the position was opened")
-    limit_level: Optional[float] = Field(
+    level: Decimal = Field(..., description="Level at which the position was opened")
+    limit_level: Optional[Decimal] = Field(
         None, alias="limitLevel", description="Limit level"
     )
-    limited_risk_premium: Optional[float] = Field(
+    limited_risk_premium: Optional[Decimal] = Field(
         None, alias="limitedRiskPremium", description="Limited Risk Premium"
     )
-    size: float = Field(..., description="Deal size")
-    stop_level: Optional[float] = Field(
+    size: Decimal = Field(..., description="Deal size")
+    stop_level: Optional[Decimal] = Field(
         None, alias="stopLevel", description="Stop level"
     )
-    trailing_step: Optional[float] = Field(
+    trailing_step: Optional[Decimal] = Field(
         None, alias="trailingStep", description="Trailing step size"
     )
-    trailing_stop_distance: Optional[float] = Field(
+    trailing_stop_distance: Optional[Decimal] = Field(
         None, alias="trailingStopDistance", description="Trailing stop distance"
     )
 

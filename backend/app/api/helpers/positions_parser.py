@@ -24,7 +24,7 @@ def _calculate_profit_loss_from_net_change(
 
     Args:
         direction: Position direction (BUY or SELL)
-        net_change: Net change from market data (already contains the price delta)
+        net_change: Net change from market data (price change from opening level)
         size: Position size
         open_level: Opening price
 
@@ -35,6 +35,8 @@ def _calculate_profit_loss_from_net_change(
         return None, None
 
     # Calculate absolute profit/loss using net change and position size
+    # For BUY: profit when net_change is positive (price went up)
+    # For SELL: profit when net_change is negative (price went down)
     if direction == "BUY":
         profit_loss = net_change * Decimal(str(size))
     else:  # SELL
@@ -80,21 +82,40 @@ async def parse_ig_position_to_schema(
     # Extract netChange from market data directly (no need for .get() since it's typed)
     net_change = market_data.net_change
 
-    # Calculate current level from net change if available
+    # Calculate current level and profit/loss using appropriate current price
+    # For accurate P&L calculation, we use:
+    # - BUY positions: bid price (what you can sell at to close the position)
+    # - SELL positions: offer price (what you can buy at to close the position)
     current_level = None
-    if net_change is not None and position_data.level:
-        if position_data.direction == "BUY":
-            current_level = Decimal(str(position_data.level)) + net_change
-        else:  # SELL
-            current_level = Decimal(str(position_data.level)) - net_change
+    profit_loss = None
+    profit_loss_percentage = None
 
-    # Calculate profit/loss using net change
-    profit_loss, profit_loss_percentage = _calculate_profit_loss_from_net_change(
-        position_data.direction,
-        net_change,
-        int(position_data.size),
-        Decimal(str(position_data.level)),
-    )
+    # Use bid price for BUY positions (price you can sell at to close)
+    # Use offer price for SELL positions (price you can buy at to close)
+    if position_data.direction == "BUY" and market_data.bid is not None:
+        current_level = market_data.bid
+        price_diff = current_level - position_data.level
+        profit_loss = price_diff * Decimal(str(position_data.size))
+        if position_data.level != 0:
+            profit_loss_percentage = (price_diff / position_data.level) * Decimal("100")
+    elif position_data.direction == "SELL" and market_data.offer is not None:
+        current_level = market_data.offer
+        price_diff = position_data.level - current_level
+        profit_loss = price_diff * Decimal(str(position_data.size))
+        if position_data.level != 0:
+            profit_loss_percentage = (price_diff / position_data.level) * Decimal("100")
+    else:
+        # Fallback to net_change method if bid/offer not available
+        if net_change is not None and position_data.level:
+            current_level = position_data.level + net_change
+            profit_loss, profit_loss_percentage = (
+                _calculate_profit_loss_from_net_change(
+                    position_data.direction,
+                    net_change,
+                    int(position_data.size),
+                    position_data.level,
+                )
+            )
 
     # Parse creation date
     created_at = parse_ig_datetime(position_data.created_date_utc)
@@ -117,7 +138,7 @@ async def parse_ig_position_to_schema(
         market_and_symbol=market_and_symbol,
         direction=position_data.direction,
         size=Decimal(str(position_data.size)),
-        open_level=Decimal(str(position_data.level)),
+        open_level=position_data.level,
         current_level=current_level,
         profit_loss=profit_loss,
         profit_loss_percentage=profit_loss_percentage,
