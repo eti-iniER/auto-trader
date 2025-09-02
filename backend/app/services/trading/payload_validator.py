@@ -3,12 +3,18 @@ from enum import Enum
 from typing import Optional, Tuple
 
 from app.api.schemas.webhook import WebhookPayload
-from app.services.trading.payload_parser import parse_message_fields
-from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
+from app.db.crud import (
+    get_instrument_by_market_and_symbol,
+    get_most_recent_order_for_instrument,
+    get_orders_for_user,
+    get_pending_orders_for_user,
+    get_user_by_webhook_secret,
+)
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
 from app.db.models import Instrument, Order, User
 from app.services.logging import log_message
+from app.services.trading.payload_parser import parse_message_fields
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
@@ -149,13 +155,8 @@ async def _validate_trade_cooldown_timing(
     payload: WebhookPayload, user: User, instrument: Instrument, db
 ) -> Tuple[bool, Optional[str]]:
     """Validate that enough time has passed since the last trade for this instrument."""
-    stmt = (
-        select(Order)
-        .where(Order.instrument_id == instrument.id)
-        .options(selectinload(Order.instrument).selectinload(Instrument.user))
-    )
-    result = await db.execute(stmt)
-    existing_order: Optional[Order] = result.scalar_one_or_none()
+
+    existing_order = await get_most_recent_order_for_instrument(db, instrument.id)
 
     if not existing_order:
         return True, None
@@ -218,11 +219,9 @@ async def _validate_maximum_pending_orders(
     if not user.settings.enforce_maximum_open_positions:
         return True, None
 
-    stmt = select(Order).where(Order.user_id == user.id).where(Order.is_open == True)
-    result = await db.execute(stmt)
-    open_positions_count = len(result.scalars().all())
+    pending_orders_count = len(await get_pending_orders_for_user(db, user.id))
 
-    if open_positions_count >= user.settings.maximum_open_positions:
+    if pending_orders_count >= user.settings.maximum_open_positions:
         await _log_validation_error(
             "Maximum open positions exceeded",
             "Alert has been ignored due to exceeding maximum open positions",
@@ -231,7 +230,7 @@ async def _validate_maximum_pending_orders(
             {"maximum_open_positions": user.settings.maximum_open_positions},
         )
 
-        return False, "MAXIMUM_OPEN_POSITIONS_EXCEEDED"
+        return False, "MAXIMUM_PENDING_ORDERS_EXCEEDED"
 
     return True, None
 
@@ -244,15 +243,9 @@ async def _validate_maximum_open_positions_and_pending_orders(
         return True, None
 
     # Get all orders for the user
-    stmt = select(Order).where(Order.user_id == user.id)
-    result = await db.execute(stmt)
-    all_orders = result.scalars().all()
-
-    # Count pending orders (orders without deal_id) and open positions (orders with deal_id and is_open=True)
-    pending_orders_count = sum(1 for order in all_orders if order.deal_id is None)
-    open_positions_count = sum(
-        1 for order in all_orders if order.deal_id is not None and order.is_open
-    )
+    all_orders = await get_orders_for_user(db, user.id)
+    pending_orders_count = len((order for order in all_orders if order.is_open == True))
+    open_positions_count = len(all_orders) - pending_orders_count
 
     total_count = pending_orders_count + open_positions_count
 

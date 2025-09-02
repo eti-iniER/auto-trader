@@ -170,4 +170,5 @@ async def parse_ig_positions_to_schema(
         if position:
             positions.append(position)
 
+    positions.sort(key=lambda x: x.created_at, reverse=True)
     return positions

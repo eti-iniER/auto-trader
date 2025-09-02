@@ -458,3 +458,64 @@ async def universal_search_instruments(
         "data": instruments,
         "total_count": total_count,
     }
+
+
+async def get_most_recent_order_for_instrument(
+    db: AsyncSession, instrument_id: uuid.UUID
+) -> Optional[Order]:
+    """
+    Retrieve the most recent order for a given instrument.
+
+    Args:
+        db (AsyncSession): The database session.
+        instrument_id (uuid.UUID): The ID of the instrument.
+
+    Returns:
+        Order: The most recent order object if found, otherwise None.
+    """
+    stmt = (
+        select(Order)
+        .where(Order.instrument_id == instrument_id)
+        .order_by(Order.created_at.desc())
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    order = result.scalar_one_or_none()
+
+    return order
+
+
+async def get_open_orders_for_user(db: AsyncSession, user_id: uuid.UUID) -> list[Order]:
+    """
+    Retrieve all open orders for a given user.
+
+    Args:
+        db (AsyncSession): The database session.
+        user_id (uuid.UUID): The ID of the user.
+
+    Returns:
+        List[Order]: A list of open order objects.
+    """
+    stmt = select(Order).where(Order.user_id == user_id, Order.is_open == True)
+    result = await db.execute(stmt)
+    orders = result.scalars().all()
+
+    return orders
+
+
+async def get_orders_for_user(db: AsyncSession, user_id: uuid.UUID) -> list[Order]:
+    """
+    Retrieve all orders for a given user.
+
+    Args:
+        db (AsyncSession): The database session.
+        user_id (uuid.UUID): The ID of the user.
+
+    Returns:
+        List[Order]: A list of order objects.
+    """
+    stmt = select(Order).where(Order.user_id == user_id)
+    result = await db.execute(stmt)
+    orders = result.scalars().all()
+
+    return orders

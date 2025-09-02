@@ -188,7 +188,7 @@ class Order(BaseDBModel):
     __tablename__ = "orders"
 
     instrument_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("instruments.id", ondelete="CASCADE"), nullable=False, unique=True
+        ForeignKey("instruments.id", ondelete="CASCADE"), nullable=False, unique=False
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
