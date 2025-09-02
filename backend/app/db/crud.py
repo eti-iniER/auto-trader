@@ -208,7 +208,7 @@ async def get_user_by_webhook_secret(db: AsyncSession, secret: str) -> User:
 
 
 async def get_instrument_by_market_and_symbol(
-    db: AsyncSession, market_and_symbol: str
+    db: AsyncSession, market_and_symbol: str, user: User
 ) -> Optional[Instrument]:
     """
     Retrieve an instrument by its market and symbol.
@@ -220,7 +220,9 @@ async def get_instrument_by_market_and_symbol(
     Returns:
         Instrument: The instrument object if found, otherwise raises an error.
     """
-    stmt = select(Instrument).where(Instrument.market_and_symbol == market_and_symbol)
+    stmt = select(Instrument).where(
+        Instrument.market_and_symbol == market_and_symbol, Instrument.user_id == user.id
+    )
     result = await db.execute(stmt)
     instrument = result.scalar_one_or_none()
 

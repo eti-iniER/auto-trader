@@ -23,7 +23,7 @@ async def handle_alert(payload: WebhookPayload):
     async with get_db_context() as db:
         user = await get_user_by_webhook_secret(db, payload.secret)
         instrument = await get_instrument_by_market_and_symbol(
-            db, alert.market_and_symbol
+            db, alert.market_and_symbol, user
         )
 
     await log_message(

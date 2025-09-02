@@ -135,7 +135,7 @@ async def _validate_instrument_exists(
     market_and_symbol = parse_message_fields(payload.message).get(
         "market_and_symbol", payload.market_and_symbol
     )
-    instrument = await get_instrument_by_market_and_symbol(db, market_and_symbol)
+    instrument = await get_instrument_by_market_and_symbol(db, market_and_symbol, user)
 
     if not instrument:
         await _log_validation_error(
@@ -244,7 +244,7 @@ async def _validate_maximum_open_positions_and_pending_orders(
 
     # Get all orders for the user
     all_orders = await get_orders_for_user(db, user.id)
-    pending_orders_count = len((order for order in all_orders if order.is_open == True))
+    pending_orders_count = len([order for order in all_orders if order.is_open == True])
     open_positions_count = len(all_orders) - pending_orders_count
 
     total_count = pending_orders_count + open_positions_count
