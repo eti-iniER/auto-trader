@@ -16,10 +16,8 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 logger = logging.getLogger(__name__)
 
 
-@cache_user_data(ttl=10, namespace="ig_user_stats")
-async def get_user_quick_stats_from_ig(
-    user: User, db: AsyncSession
-) -> UserQuickStatsResponse:
+@cache_user_data(ttl=0, namespace="ig_user_stats")
+async def get_user_quick_stats_from_ig(user: User) -> UserQuickStatsResponse:
     """
     Fetch user quick stats from IG and cache them.
     This function handles the IG API call and returns the stats.
@@ -57,7 +55,6 @@ async def get_user_quick_stats_from_ig(
 
 @router.get("", response_model=UserQuickStatsResponse)
 async def get_user_stats(
-    db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserQuickStatsResponse:
     """
@@ -69,4 +66,4 @@ async def get_user_stats(
     This endpoint combines multiple IG API calls to provide a summary dashboard view.
     Results are cached for 30 seconds to improve performance for frequent requests.
     """
-    return await get_user_quick_stats_from_ig(user, db)
+    return await get_user_quick_stats_from_ig(user)

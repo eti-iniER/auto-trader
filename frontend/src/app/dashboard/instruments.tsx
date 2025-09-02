@@ -13,6 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiClock, FiUpload } from "react-icons/fi";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -31,7 +32,8 @@ type UploadFormData = z.infer<typeof uploadSchema>;
 export const Instruments = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const offset = (page - 1) * pageSize;
