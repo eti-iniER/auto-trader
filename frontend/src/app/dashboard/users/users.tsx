@@ -20,7 +20,24 @@ interface EditUserData {
 
 export const Users: React.FC = () => {
   const { user } = useDashboardContext();
-  const { data: usersData, isPending: isUsersLoading } = useUsers();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const offset = (page - 1) * pageSize;
+
+  const {
+    data: usersResponse,
+    isPending: isUsersLoading,
+    isError,
+    error,
+  } = useUsers({
+    offset,
+    limit: pageSize,
+  });
+
+  const users = usersResponse?.results || [];
+  const totalCount = usersResponse?.count || 0;
+
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
   // Modal state management
@@ -34,6 +51,15 @@ export const Users: React.FC = () => {
   if (user.role !== "ADMIN") {
     return <Navigate to="/dashboard/overview" replace />;
   }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1);
+  };
 
   const handleEditUser = (user: UserAdminDetails) => {
     setSelectedUser(user);
@@ -86,6 +112,27 @@ export const Users: React.FC = () => {
     }
   };
 
+  if (isError) {
+    return (
+      <>
+        <div className="min-w-0 flex-1 space-y-8 p-8">
+          <PageHeader
+            title="Users"
+            description="Manage user accounts and permissions"
+          />
+          <div className="flex h-64 items-center justify-center">
+            <div className="text-center">
+              <p className="mb-2 text-red-600">Error loading users</p>
+              <p className="text-sm text-gray-500">
+                {error?.message || "Something went wrong"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <div className="flex h-full flex-col space-y-6 p-8">
@@ -96,11 +143,18 @@ export const Users: React.FC = () => {
 
         <div className="min-h-0 flex-1">
           <UsersTable
-            data={usersData?.results || []}
+            data={users}
             loading={isUsersLoading}
             className="h-full"
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
+            pagination={{
+              page,
+              pageSize,
+              totalCount,
+              onPageChange: handlePageChange,
+              onPageSizeChange: handlePageSizeChange,
+            }}
           />
         </div>
       </div>
