@@ -7,7 +7,7 @@ from app.db.crud import (
     get_instrument_by_market_and_symbol,
     get_most_recent_order_for_instrument,
     get_orders_for_user,
-    get_pending_orders_for_user,
+    get_open_orders_for_user,
     get_user_by_webhook_secret,
 )
 from app.db.deps import get_db_context
@@ -219,7 +219,7 @@ async def _validate_maximum_pending_orders(
     if not user.settings.enforce_maximum_open_positions:
         return True, None
 
-    pending_orders_count = len(await get_pending_orders_for_user(db, user.id))
+    pending_orders_count = len(await get_open_orders_for_user(db, user.id))
 
     if pending_orders_count >= user.settings.maximum_open_positions:
         await _log_validation_error(
