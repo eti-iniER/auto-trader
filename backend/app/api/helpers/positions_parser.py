@@ -95,13 +95,13 @@ async def parse_ig_position_to_schema(
     if position_data.direction == "BUY" and market_data.bid is not None:
         current_level = market_data.bid
         price_diff = current_level - position_data.level
-        profit_loss = price_diff * Decimal(str(position_data.size))
+        profit_loss = price_diff * position_data.size
         if position_data.level != 0:
             profit_loss_percentage = (price_diff / position_data.level) * Decimal("100")
     elif position_data.direction == "SELL" and market_data.offer is not None:
         current_level = market_data.offer
         price_diff = position_data.level - current_level
-        profit_loss = price_diff * Decimal(str(position_data.size))
+        profit_loss = price_diff * position_data.size
         if position_data.level != 0:
             profit_loss_percentage = (price_diff / position_data.level) * Decimal("100")
     else:

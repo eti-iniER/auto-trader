@@ -213,7 +213,7 @@ async def _validate_dividend_date(
 
 
 async def _validate_maximum_pending_orders(
-    user: User, db
+    user: User, payload: WebhookPayload, db
 ) -> Tuple[bool, Optional[str]]:
     """Validate that the user has not exceeded their maximum pending orders."""
     if not user.settings.enforce_maximum_open_positions:
@@ -226,7 +226,7 @@ async def _validate_maximum_pending_orders(
             "Maximum open positions exceeded",
             "Alert has been ignored due to exceeding maximum open positions",
             user.id,
-            None,
+            payload,
             {"maximum_open_positions": user.settings.maximum_open_positions},
         )
 
@@ -304,7 +304,7 @@ async def validate_webhook_payload(
             return is_valid, error_code
 
         # Validate maximum open positions
-        is_valid, error_code = await _validate_maximum_pending_orders(user, db)
+        is_valid, error_code = await _validate_maximum_pending_orders(user, payload, db)
         if not is_valid:
             return is_valid, error_code
 
