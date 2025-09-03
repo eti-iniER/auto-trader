@@ -8,8 +8,8 @@ from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
 from app.db.crud import (
     get_instrument_by_market_and_symbol,
     get_most_recent_order_for_instrument,
-    get_orders_for_user,
     get_open_orders_for_user,
+    get_orders_for_user,
     get_user_by_webhook_secret,
 )
 from app.db.deps import get_db_context
@@ -35,6 +35,7 @@ class ValidationError(Enum):
     ORDER_CREATION_TOO_SOON = "ORDER_CREATION_TOO_SOON"
     ALERT_ON_DIVIDEND_DATE = "ALERT_ON_DIVIDEND_DATE"
     POSITION_ALREADY_EXISTS = "POSITION_ALREADY_EXISTS"
+    WORKING_ORDER_ALREADY_EXISTS = "WORKING_ORDER_ALREADY_EXISTS"
     MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED = (
         "MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED"
     )
@@ -215,10 +216,10 @@ async def _validate_dividend_date(
     return True, None
 
 
-async def _validate_position_does_not_exist(
+async def _validate_position_or_working_order_does_not_exist(
     payload: WebhookPayload, user: User, instrument: Instrument
 ) -> Tuple[bool, Optional[str]]:
-    """Validate that a position does not already exist for the instrument's IG epic."""
+    """Validate that a position or working order does not already exist for the instrument's IG epic"""
     if not instrument.ig_epic:
         # If there's no IG epic, we can't check positions, so allow the trade
         return True, None
@@ -246,12 +247,39 @@ async def _validate_position_does_not_exist(
 
                     return False, ValidationError.POSITION_ALREADY_EXISTS.value
 
+            # Check if any working order exists for the same instrument
+            working_orders_response = ig_client.get_working_orders()
+
+            for working_order in working_orders_response.working_orders:
+                if (
+                    working_order.working_order_data
+                    and working_order.working_order_data.epic == instrument.ig_epic
+                ):
+                    await _log_validation_error(
+                        "Working order already exists for instrument",
+                        "Alert has been rejected because a working order already exists for this instrument",
+                        user.id,
+                        payload,
+                        {
+                            "instrument_id": str(instrument.id),
+                            "ig_epic": instrument.ig_epic,
+                            "existing_deal_id": working_order.working_order_data.deal_id,
+                            "existing_order_size": str(
+                                working_order.working_order_data.order_size
+                            ),
+                            "existing_order_direction": working_order.working_order_data.direction,
+                            "existing_order_type": working_order.working_order_data.order_type,
+                        },
+                    )
+
+                    return False, ValidationError.WORKING_ORDER_ALREADY_EXISTS.value
+
     except (IGAPIError, IGAuthenticationError) as e:
         # If we can't connect to IG API, log the error but allow the trade to proceed
         # This prevents IG API issues from blocking all trades
         await _log_validation_error(
-            "Unable to check existing positions",
-            f"Failed to check existing positions due to IG API error: {str(e)}. Trade will proceed.",
+            "Unable to check existing positions and working orders",
+            f"Failed to check existing positions and working orders due to IG API error: {str(e)}. Trade will proceed.",
             user.id,
             payload,
             {
@@ -377,7 +405,7 @@ async def validate_webhook_payload(
             return is_valid, error_code
 
         # Validate position does not already exist
-        is_valid, error_code = await _validate_position_does_not_exist(
+        is_valid, error_code = await _validate_position_or_working_order_does_not_exist(
             payload, user, instrument
         )
         if not is_valid:
