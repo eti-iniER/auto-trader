@@ -224,6 +224,9 @@ async def _validate_position_or_working_order_does_not_exist(
         # If there's no IG epic, we can't check positions, so allow the trade
         return True, None
 
+    if not user.settings.prevent_duplicate_positions_for_instrument:
+        return True, None
+
     try:
         with IGClient.create_for_user(user) as ig_client:
             positions_response = ig_client.get_positions()
