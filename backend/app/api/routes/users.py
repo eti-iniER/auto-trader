@@ -189,7 +189,7 @@ async def change_password(
 
 # Admin-only endpoints for user management
 @router.get(
-    "/",
+    "",
     summary="List all users (Admin only)",
     response_model=PaginatedResponse[UserAdminSchema],
 )
