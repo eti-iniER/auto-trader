@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { RotateCcw, Copy } from "lucide-react";
 import { useFormContext } from "react-hook-form";
-import { copyToClipboard } from "@/lib/utils";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import type { SettingsFormData } from "../schema";
 import type { NewWebhookSecretMutationType } from "../types";
 
@@ -33,6 +33,7 @@ export const IGCredentialsSection = ({
   onRotateWebhookSecret,
 }: IGCredentialsSectionProps) => {
   const { control } = useFormContext<SettingsFormData>();
+  const { copy } = useCopyToClipboard();
 
   return (
     <div className="space-y-6">
@@ -167,7 +168,7 @@ export const IGCredentialsSection = ({
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => copyToClipboard(field.value || "")}
+                              onClick={() => copy(field.value || "")}
                               disabled={!field.value}
                               className="h-9.4 w-10 shrink-0 p-0"
                             >
@@ -334,7 +335,7 @@ export const IGCredentialsSection = ({
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => copyToClipboard(field.value || "")}
+                              onClick={() => copy(field.value || "")}
                               disabled={!field.value}
                               className="h-9.4 w-10 shrink-0 p-0"
                             >
