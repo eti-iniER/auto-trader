@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { UsersTable } from "@/components/users-table";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
 import { useModal } from "@/hooks/use-modal";
+import { usePagination } from "@/hooks/use-pagination";
 import { useState } from "react";
 import { Navigate } from "react-router";
 import { toast } from "sonner";
@@ -20,10 +21,7 @@ interface EditUserData {
 
 export const Users: React.FC = () => {
   const { user } = useDashboardContext();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-
-  const offset = (page - 1) * pageSize;
+  const pagination = usePagination({ initialPageSize: 20 });
 
   const {
     data: usersResponse,
@@ -31,8 +29,8 @@ export const Users: React.FC = () => {
     isError,
     error,
   } = useUsers({
-    offset,
-    limit: pageSize,
+    offset: pagination.offset,
+    limit: pagination.pageSize,
   });
 
   const users = usersResponse?.results || [];
@@ -51,15 +49,6 @@ export const Users: React.FC = () => {
   if (user.role !== "ADMIN") {
     return <Navigate to="/dashboard/overview" replace />;
   }
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setPage(1);
-  };
 
   const handleEditUser = (user: UserAdminDetails) => {
     setSelectedUser(user);
@@ -149,11 +138,8 @@ export const Users: React.FC = () => {
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
             pagination={{
-              page,
-              pageSize,
+              ...pagination.paginationProps,
               totalCount,
-              onPageChange: handlePageChange,
-              onPageSizeChange: handlePageSizeChange,
             }}
           />
         </div>

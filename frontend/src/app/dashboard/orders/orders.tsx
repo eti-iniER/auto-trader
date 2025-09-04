@@ -1,18 +1,24 @@
+import { useDeleteOrder } from "@/api/hooks/orders/use-delete-order";
 import { useOrders } from "@/api/hooks/orders/use-orders";
 import { OrdersTable } from "@/components/orders-table";
 import { PageHeader } from "@/components/page-header";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useModal } from "@/hooks/use-modal";
+import { usePagination } from "@/hooks/use-pagination";
 import { useUserIGSettingsStatus } from "@/hooks/use-user-ig-settings-status";
 import { useState } from "react";
 import { MdErrorOutline } from "react-icons/md";
+import { toast } from "sonner";
+import { DeleteOrderDialog } from ".";
 
 export const Orders = () => {
   const { settings } = useDashboardContext();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const pagination = usePagination({ initialPageSize: 20 });
   const status = useUserIGSettingsStatus(settings);
 
-  const offset = (page - 1) * pageSize;
+  const deleteOrder = useDeleteOrder();
+  const deleteDialog = useModal();
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const {
     data: ordersResponse,
@@ -21,8 +27,8 @@ export const Orders = () => {
     error,
   } = useOrders(
     {
-      offset,
-      limit: pageSize,
+      offset: pagination.offset,
+      limit: pagination.pageSize,
     },
     status === "complete",
   );
@@ -30,13 +36,28 @@ export const Orders = () => {
   const orders = ordersResponse?.results || [];
   const totalCount = ordersResponse?.count || 0;
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
+  const handleDeleteOrder = (order: Order) => {
+    setSelectedOrder(order);
+    deleteDialog.openModal();
   };
 
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setPage(1);
+  const handleConfirmDelete = () => {
+    if (selectedOrder) {
+      deleteOrder.mutate(selectedOrder.dealId, {
+        onSuccess: () => {
+          toast.success("Order deleted successfully");
+        },
+        onError: (error) => {
+          toast.error("Couldn't delete order", {
+            description: error.message || "An unknown error occurred",
+          });
+        },
+        onSettled: () => {
+          deleteDialog.closeModal();
+          setSelectedOrder(null);
+        },
+      });
+    }
   };
 
   if (status === "incomplete") {
@@ -82,15 +103,24 @@ export const Orders = () => {
         <OrdersTable
           data={orders}
           loading={isPending}
+          onDeleteOrder={handleDeleteOrder}
           pagination={{
-            page,
-            pageSize,
+            ...pagination.paginationProps,
             totalCount,
-            onPageChange: handlePageChange,
-            onPageSizeChange: handlePageSizeChange,
           }}
         />
       </div>
+
+      {/* Delete Order Dialog */}
+      {selectedOrder && (
+        <DeleteOrderDialog
+          isOpen={deleteDialog.isOpen}
+          onClose={deleteDialog.closeModal}
+          onConfirm={handleConfirmDelete}
+          orderIgEpic={selectedOrder.igEpic}
+          loading={deleteOrder.isPending}
+        />
+      )}
     </div>
   );
 };

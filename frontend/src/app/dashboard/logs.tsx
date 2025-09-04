@@ -5,32 +5,27 @@ import { LogsFilterBar } from "@/components/logs-filter-bar";
 import { PageHeader } from "@/components/page-header";
 import { ErrorAlert } from "@/components/ui/error-alert";
 import { useDownloadLogs } from "@/api/hooks/logs/use-download-logs";
+import { usePagination } from "@/hooks/use-pagination";
 import {
   LogsContainer,
   LogsContainerSkeleton,
   LogsPagination,
 } from "@/components/logs";
 
-const DEFAULT_PAGE_SIZE = 20;
-
 export const Logs = () => {
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [type, setType] = useState<LogType | "ALL">("ALL");
   const [lastHours, setLastHours] = useState<number | undefined>(undefined);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-
-  // Calculate offset for pagination
-  const offset = (currentPage - 1) * pageSize;
+  const pagination = usePagination({ initialPageSize: 20 });
 
   // Pass Date objects directly to the API
   const logsParams = {
     fromDate,
     toDate,
     type: type === "ALL" ? undefined : type,
-    offset,
-    limit: pageSize,
+    offset: pagination.offset,
+    limit: pagination.pageSize,
   };
 
   const { data: logsResponse, isPending, isError } = useLogs(logsParams);
@@ -84,18 +79,9 @@ export const Logs = () => {
     });
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
-  };
-
   // Reset pagination when filters change
   const resetPagination = () => {
-    setCurrentPage(1);
+    pagination.setPage(1);
   };
 
   const handleReset = () => {
@@ -103,8 +89,7 @@ export const Logs = () => {
     setToDate(undefined);
     setType("ALL");
     setLastHours(undefined);
-    setCurrentPage(1);
-    setPageSize(DEFAULT_PAGE_SIZE);
+    pagination.reset();
   };
 
   return (
@@ -162,11 +147,11 @@ export const Logs = () => {
             {totalCount > 0 && (
               <div className="mt-6 flex-shrink-0">
                 <LogsPagination
-                  currentPage={currentPage}
+                  currentPage={pagination.page}
                   totalCount={totalCount}
-                  pageSize={pageSize}
-                  onPageChange={handlePageChange}
-                  onPageSizeChange={handlePageSizeChange}
+                  pageSize={pagination.pageSize}
+                  onPageChange={pagination.handlePageChange}
+                  onPageSizeChange={pagination.handlePageSizeChange}
                 />
               </div>
             )}

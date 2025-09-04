@@ -236,7 +236,6 @@ class IGClient:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User settings not found. Please configure your IG credentials.",
             )
-
         if user.settings.mode == UserSettingsMode.DEMO:
             api_key = user.settings.demo_api_key
             username = user.settings.demo_username
@@ -244,9 +243,9 @@ class IGClient:
             base_url = settings.IG_DEMO_API_BASE_URL
             account_id = user.settings.demo_account_id
         else:  # LIVE mode
-            api_key = settings.live_api_key
-            username = settings.live_username
-            password = settings.live_password
+            api_key = user.settings.live_api_key
+            username = user.settings.live_username
+            password = user.settings.live_password
             base_url = settings.IG_LIVE_API_BASE_URL
             account_id = user.settings.live_account_id
 
@@ -387,13 +386,13 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
+        data: dict = response.json()
 
         if response.status_code != 200:
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
-                error_code=data.get("errorCode"),
+                error_code=data.get("errorCode", "Unknown error"),
             )
 
         return CreatePositionResponse(**data)
@@ -437,14 +436,14 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
+        data: dict = response.json()
         print(data)
 
         if response.status_code != 200:
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
-                error_code=data.get("errorCode"),
+                error_code=data.get("errorCode", "None"),
             )
 
         return CreateWorkingOrderResponse(**data)
@@ -474,6 +473,30 @@ class IGClient:
             )
 
         return DeleteWorkingOrderResponse(**data)
+
+    @ig_api_retry
+    def delete_position(self, data: DeletePositionRequest) -> DeletePositionResponse:
+        """
+        Delete/close a position by its deal ID.
+        """
+        response = self.client.delete(
+            f"positions/otc/{data.deal_id}",
+            headers={"Version": "1"},
+        )
+
+        if response.status_code >= 500 or response.status_code == 429:
+            response.raise_for_status()
+
+        response_data = response.json()
+
+        if response.status_code != 200:
+            raise IGAPIError(
+                message=response_data.get("errorCode", "Unknown error"),
+                status_code=response.status_code,
+                error_code=response_data.get("errorCode"),
+            )
+
+        return DeletePositionResponse(**response_data)
 
     @ig_api_retry
     def confirm_deal(self, data: ConfirmDealRequest) -> DealConfirmation:

@@ -1,17 +1,26 @@
+import { useDeletePosition } from "@/api/hooks/positions/use-delete-position";
 import { usePositions } from "@/api/hooks/positions/use-positions";
 import { PageHeader } from "@/components/page-header";
 import { PositionsTable } from "@/components/positions-table";
 import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useModal } from "@/hooks/use-modal";
+import { usePagination } from "@/hooks/use-pagination";
 import { useUserIGSettingsStatus } from "@/hooks/use-user-ig-settings-status";
 import { useState } from "react";
 import { MdErrorOutline } from "react-icons/md";
+import { toast } from "sonner";
+import { DeletePositionDialog } from ".";
 
 export const Positions = () => {
   const { settings } = useDashboardContext();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const pagination = usePagination({ initialPageSize: 20 });
 
-  const offset = (page - 1) * pageSize;
+  const deletePosition = useDeletePosition();
+  const deleteDialog = useModal();
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(
+    null,
+  );
+
   const status = useUserIGSettingsStatus(settings);
 
   const {
@@ -21,8 +30,8 @@ export const Positions = () => {
     error,
   } = usePositions(
     {
-      offset,
-      limit: pageSize,
+      offset: pagination.offset,
+      limit: pagination.pageSize,
     },
     status === "complete",
   );
@@ -30,13 +39,28 @@ export const Positions = () => {
   const positions = positionsResponse?.results || [];
   const totalCount = positionsResponse?.count || 0;
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
+  const handleDeletePosition = (position: Position) => {
+    setSelectedPosition(position);
+    deleteDialog.openModal();
   };
 
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setPage(1);
+  const handleConfirmDelete = () => {
+    if (selectedPosition) {
+      deletePosition.mutate(selectedPosition.dealId, {
+        onSuccess: () => {
+          toast.success("Position closed successfully");
+        },
+        onError: (error) => {
+          toast.error("Couldn't close position", {
+            description: error.message || "An unknown error occurred",
+          });
+        },
+        onSettled: () => {
+          deleteDialog.closeModal();
+          setSelectedPosition(null);
+        },
+      });
+    }
   };
 
   if (status === "incomplete") {
@@ -82,15 +106,24 @@ export const Positions = () => {
         <PositionsTable
           data={positions}
           loading={isPending}
+          onDeletePosition={handleDeletePosition}
           pagination={{
-            page,
-            pageSize,
+            ...pagination.paginationProps,
             totalCount,
-            onPageChange: handlePageChange,
-            onPageSizeChange: handlePageSizeChange,
           }}
         />
       </div>
+
+      {/* Delete Position Dialog */}
+      {selectedPosition && (
+        <DeletePositionDialog
+          isOpen={deleteDialog.isOpen}
+          onClose={deleteDialog.closeModal}
+          onConfirm={handleConfirmDelete}
+          positionIgEpic={selectedPosition.igEpic}
+          loading={deletePosition.isPending}
+        />
+      )}
     </div>
   );
 };

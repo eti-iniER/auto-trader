@@ -3,12 +3,14 @@ from typing import Annotated, List
 
 from app.api.helpers.orders_parser import parse_ig_orders_to_schema
 from app.api.schemas.orders import Order
+from app.api.schemas.generic import SimpleResponseSchema
 from app.api.utils.authentication import get_current_user
 from app.api.utils.caching import cache_user_data, cache_with_pagination
 from app.api.utils.pagination import *
 from app.api.utils.pagination import PaginationParams, build_paginated_response
 from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
+from app.clients.ig.types import DeleteWorkingOrderRequest
 from app.db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
@@ -85,4 +87,57 @@ async def list_orders(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve orders: {str(e)}",
+        )
+
+
+@router.delete("/{deal_id}", response_model=SimpleResponseSchema)
+async def delete_working_order(
+    deal_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+) -> SimpleResponseSchema:
+    """
+    Delete/cancel a working order by its deal ID.
+
+    This endpoint calls the IG API to cancel an active working order identified by the deal ID.
+
+    Args:
+        deal_id (str): The deal ID of the working order to cancel
+        user (User): The authenticated user
+
+    Returns:
+        SimpleResponseSchema: Success message with deal reference
+    """
+    try:
+        # Create delete working order request
+        delete_request = DeleteWorkingOrderRequest(deal_id=deal_id)
+
+        # Call IG API to delete the working order
+        with IGClient.create_for_user(user) as ig_client:
+            delete_response = ig_client.delete_working_order(delete_request)
+
+        logger.info(
+            f"Working order {deal_id} deleted successfully for user {user.id}. Deal reference: {delete_response.deal_reference}"
+        )
+
+        return SimpleResponseSchema(
+            message=f"Working order cancelled successfully. Deal reference: {delete_response.deal_reference}"
+        )
+
+    except IGAuthenticationError as e:
+        logger.error(f"IG authentication failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Failed to authenticate with IG: {str(e)}",
+        )
+    except IGAPIError as e:
+        logger.error(f"IG API error deleting working order {deal_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"IG API error: {str(e)}",
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error deleting working order {deal_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete working order: {str(e)}",
         )

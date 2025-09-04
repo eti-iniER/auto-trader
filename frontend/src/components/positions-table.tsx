@@ -1,6 +1,8 @@
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
 import { formatCurrency, formatDate, formatDecimal } from "@/lib/formatting";
 import { type ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface PositionsTableProps {
   data: Position[];
@@ -14,6 +16,7 @@ interface PositionsTableProps {
   };
   className?: string;
   additionalInputs?: React.ReactNode;
+  onDeletePosition?: (position: Position) => void;
 }
 
 const getDirectionColor = (direction: PositionDirection) => {
@@ -197,10 +200,34 @@ function PositionsTable({
   pagination,
   className,
   additionalInputs,
+  onDeletePosition,
 }: PositionsTableProps) {
+  // Create ActionsCell component
+  const ActionsCell = ({ position }: { position: Position }) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+      onClick={() => onDeletePosition?.(position)}
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+
+  // Add actions column to the existing columns
+  const columnsWithActions: ColumnDef<Position>[] = [
+    ...columns,
+    {
+      id: "actions",
+      header: "",
+      size: 80,
+      cell: ({ row }) => <ActionsCell position={row.original} />,
+    },
+  ];
+
   return (
     <VirtualizedTable
-      columns={columns}
+      columns={columnsWithActions}
       data={data}
       loading={loading}
       searchPlaceholder="Search positions by IG Epic, Deal ID..."

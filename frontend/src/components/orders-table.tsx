@@ -1,6 +1,8 @@
 import { VirtualizedTable } from "@/components/ui/virtualized-table";
 import { formatDate, formatDecimal } from "@/lib/formatting";
 import { type ColumnDef } from "@tanstack/react-table";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface OrdersTableProps {
   data: Order[];
@@ -14,6 +16,7 @@ interface OrdersTableProps {
   };
   className?: string;
   additionalInputs?: React.ReactNode; // For any additional inputs like search
+  onDeleteOrder?: (order: Order) => void;
 }
 
 const getDirectionColor = (direction: OrderDirection) => {
@@ -119,10 +122,34 @@ function OrdersTable({
   pagination,
   className,
   additionalInputs,
+  onDeleteOrder,
 }: OrdersTableProps) {
+  // Create ActionsCell component
+  const ActionsCell = ({ order }: { order: Order }) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+      onClick={() => onDeleteOrder?.(order)}
+    >
+      <Trash2 className="h-4 w-4" />
+    </Button>
+  );
+
+  // Add actions column to the existing columns
+  const columnsWithActions: ColumnDef<Order>[] = [
+    ...columns,
+    {
+      id: "actions",
+      header: "",
+      size: 80,
+      cell: ({ row }) => <ActionsCell order={row.original} />,
+    },
+  ];
+
   return (
     <VirtualizedTable
-      columns={columns}
+      columns={columnsWithActions}
       data={data}
       loading={loading}
       searchPlaceholder="Search orders by IG Epic, Deal ID..."

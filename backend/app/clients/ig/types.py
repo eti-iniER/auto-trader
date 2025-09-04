@@ -603,6 +603,26 @@ class DeleteWorkingOrderResponse(BaseModel):
     )
 
 
+class DeletePositionRequest(BaseModel):
+    """Request to delete/close a position"""
+
+    deal_id: str = Field(..., description="Deal identifier", alias="dealId")
+
+    class Config:
+        populate_by_name = True
+
+
+class DeletePositionResponse(BaseModel):
+    """Response after deleting/closing a position"""
+
+    deal_reference: str = Field(
+        ..., description="Deal reference", alias="dealReference"
+    )
+
+    class Config:
+        populate_by_name = True
+
+
 class UserQuickStats(BaseModel):
     """Quick stats summary for a user account"""
 

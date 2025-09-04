@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
 import { useDebounce } from "@/hooks/use-debounce";
+import { usePagination } from "@/hooks/use-pagination";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -30,13 +31,10 @@ const uploadSchema = z.object({
 type UploadFormData = z.infer<typeof uploadSchema>;
 
 export const Instruments = () => {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const pagination = usePagination({ initialPageSize: 20 });
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const offset = (page - 1) * pageSize;
 
   // Debounce the search query to prevent excessive API calls
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -49,8 +47,8 @@ export const Instruments = () => {
     isError,
     error,
   } = useInstruments({
-    offset,
-    limit: pageSize,
+    offset: pagination.offset,
+    limit: pagination.pageSize,
   });
 
   const {
@@ -61,8 +59,8 @@ export const Instruments = () => {
   } = useSearchInstruments(
     {
       q: debouncedSearchQuery,
-      offset,
-      limit: pageSize,
+      offset: pagination.offset,
+      limit: pagination.pageSize,
     },
     hasSearchQuery,
   );
@@ -84,18 +82,9 @@ export const Instruments = () => {
   const instruments = currentResponse?.results || [];
   const totalCount = currentResponse?.count || 0;
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setPage(1);
-  };
-
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    setPage(1); // Reset to first page when searching
+    pagination.setPage(1); // Reset to first page when searching
   };
 
   const onSubmit = (data: UploadFormData) => {
@@ -161,11 +150,8 @@ export const Instruments = () => {
           data={instruments}
           loading={currentIsPending}
           pagination={{
-            page,
-            pageSize,
+            ...pagination.paginationProps,
             totalCount,
-            onPageChange: handlePageChange,
-            onPageSizeChange: handlePageSizeChange,
           }}
           searchValue={searchQuery}
           onSearchChange={handleSearchChange}
