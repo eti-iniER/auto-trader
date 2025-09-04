@@ -8,8 +8,6 @@ from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
 from app.db.crud import (
     get_instrument_by_market_and_symbol,
     get_most_recent_order_for_instrument,
-    get_open_orders_for_user,
-    get_orders_for_user,
     get_user_by_webhook_secret,
 )
 from app.db.deps import get_db_context
@@ -303,18 +301,38 @@ async def _validate_maximum_pending_orders(
     if not user.settings.enforce_maximum_open_positions:
         return True, None
 
-    pending_orders_count = len(await get_open_orders_for_user(db, user.id))
+    try:
+        with IGClient.create_for_user(user) as ig_client:
+            working_orders_response = ig_client.get_working_orders()
+            pending_orders_count = len(working_orders_response.working_orders)
 
-    if pending_orders_count >= user.settings.maximum_open_positions:
+        if pending_orders_count >= user.settings.maximum_open_positions:
+            await _log_validation_error(
+                "Maximum open positions exceeded",
+                "Alert has been ignored due to exceeding maximum open positions",
+                user.id,
+                payload,
+                {
+                    "maximum_open_positions": user.settings.maximum_open_positions,
+                    "current_pending_orders_count": pending_orders_count,
+                },
+            )
+
+            return False, "MAXIMUM_PENDING_ORDERS_EXCEEDED"
+
+    except (IGAPIError, IGAuthenticationError) as e:
+        # If we can't connect to IG API, log the error but allow the trade to proceed
+        # This prevents IG API issues from blocking all trades
         await _log_validation_error(
-            "Maximum open positions exceeded",
-            "Alert has been ignored due to exceeding maximum open positions",
+            "Unable to check pending orders count",
+            f"Failed to check pending orders count due to IG API error: {str(e)}. Trade will proceed.",
             user.id,
             payload,
-            {"maximum_open_positions": user.settings.maximum_open_positions},
+            {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            },
         )
-
-        return False, "MAXIMUM_PENDING_ORDERS_EXCEEDED"
 
     return True, None
 
@@ -326,30 +344,47 @@ async def _validate_maximum_open_positions_and_pending_orders(
     if not user.settings.enforce_maximum_open_positions_and_pending_orders:
         return True, None
 
-    # Get all orders for the user
-    all_orders = await get_orders_for_user(db, user.id)
-    pending_orders_count = len([order for order in all_orders if order.is_open == True])
-    open_positions_count = len(all_orders) - pending_orders_count
+    try:
+        with IGClient.create_for_user(user) as ig_client:
+            # Get positions and working orders from IG API
+            positions_response = ig_client.get_positions()
+            working_orders_response = ig_client.get_working_orders()
 
-    total_count = pending_orders_count + open_positions_count
+            open_positions_count = len(positions_response.positions)
+            pending_orders_count = len(working_orders_response.working_orders)
+            total_count = open_positions_count + pending_orders_count
 
-    if total_count >= user.settings.maximum_open_positions_and_pending_orders:
+        if total_count >= user.settings.maximum_open_positions_and_pending_orders:
+            await _log_validation_error(
+                "Maximum open positions and pending orders exceeded",
+                "Alert has been ignored due to exceeding maximum open positions and pending orders",
+                user.id,
+                payload,
+                {
+                    "maximum_open_positions_and_pending_orders": user.settings.maximum_open_positions_and_pending_orders,
+                    "current_open_positions": open_positions_count,
+                    "current_pending_orders": pending_orders_count,
+                    "total_count": total_count,
+                },
+            )
+
+            return (
+                False,
+                ValidationError.MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED.value,
+            )
+
+    except (IGAPIError, IGAuthenticationError) as e:
+        # If we can't connect to IG API, log the error but allow the trade to proceed
+        # This prevents IG API issues from blocking all trades
         await _log_validation_error(
-            "Maximum open positions and pending orders exceeded",
-            "Alert has been ignored due to exceeding maximum open positions and pending orders",
+            "Unable to check open positions and pending orders count",
+            f"Failed to check open positions and pending orders count due to IG API error: {str(e)}. Trade will proceed.",
             user.id,
             payload,
             {
-                "maximum_open_positions_and_pending_orders": user.settings.maximum_open_positions_and_pending_orders,
-                "current_pending_orders": pending_orders_count,
-                "current_open_positions": open_positions_count,
-                "total_count": total_count,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
             },
-        )
-
-        return (
-            False,
-            ValidationError.MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED.value,
         )
 
     return True, None
