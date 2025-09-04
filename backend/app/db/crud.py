@@ -521,3 +521,25 @@ async def get_orders_for_user(db: AsyncSession, user_id: uuid.UUID) -> list[Orde
     orders = result.scalars().all()
 
     return orders
+
+
+async def get_all_orders_with_deal_id(db: AsyncSession) -> list[Order]:
+    """
+    Retrieve all orders that have a deal_id assigned.
+
+    Args:
+        db (AsyncSession): The database session.
+
+    Returns:
+        List[Order]: A list of order objects with deal_id.
+    """
+    stmt = (
+        select(Order)
+        .options(selectinload(Order.user).selectinload(User.settings))
+        .options(selectinload(Order.instrument))
+        .where(Order.deal_id.is_not(None))
+    )
+    result = await db.execute(stmt)
+    orders = result.scalars().all()
+
+    return orders

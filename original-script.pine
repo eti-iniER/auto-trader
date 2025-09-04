@@ -1,0 +1,115 @@
+//@version=6
+indicator('Gap Detection with library one', max_labels_count = 500, overlay = true)
+
+
+
+import TheCuriousCat/TickerLibraryOne/1
+// import everget/SteveATRLibrary/2
+
+
+
+//---
+
+
+
+_rma(src, len) =>
+float wmma3 = na
+wmma3 := ((len - 1) * nz(wmma3[1], src) + src) / len
+
+
+
+_atr(l) =>
+_rma(ta.tr(true), int(l))
+
+
+
+//---
+
+
+
+var string currentTicker = str.replace(ticker.standard(syminfo.tickerid), '_DLY:', ':')
+// Example usage of a function from the library
+[Y, X] = TickerLibraryOne.YX(currentTicker)
+
+
+
+[atr,atr1,atr2,atr3,atr4,atr5,atr6,atr7,atr8,atr9,atr10] = request.security(syminfo.tickerid, '1D', [_atr(X), atr(1), atr(2), atr(3), atr(4), atr(5), atr(6), atr(7), atr(8), atr(9), atr(10)], lookahead = barmerge.lookahead_on)
+atrPercent = atr * (Y / 100)
+
+
+
+var float dayHigh = na
+var float dayLow = na
+
+
+
+var float dayHighPrev = na
+var float dayLowPrev = na
+
+
+
+var float todayOpen = na
+if session.isfirstbar_regular
+todayOpen := open
+dayHigh := high
+dayLow := low
+dayHighPrev := dayHigh[1]
+dayLowPrev := dayLow[1]
+else
+dayHigh := math.max(dayHigh, high)
+dayLow := math.min(dayLow, low)
+
+
+
+// Define the gap thresholds
+upperThreshold = dayHighPrev + atrPercent
+lowerThreshold = dayLowPrev - atrPercent
+
+
+
+// Detect gaps
+gapUp = todayOpen != todayOpen[1] and todayOpen > upperThreshold
+gapDown = todayOpen != todayOpen[1] and todayOpen < lowerThreshold
+
+
+
+// Plot for visualization
+plot(upperThreshold, 'Upper Threshold', color=color.green)
+plot(lowerThreshold, 'Lower Threshold', color=color.red)
+plot(todayOpen, 'Today Open', color=color.blue)
+
+
+
+//---
+
+
+
+alertMessage = ''
+if gapUp and not gapUp[1]
+alertMessage := str.format('{0} UP {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}', ticker.standard(syminfo.tickerid), todayOpen, atr1,atr2,atr3,atr4,atr5,atr6,atr7,atr8,atr9,atr10)
+if session.isfirstbar_regular
+label.new(
+x = bar_index
+, y = na
+, yloc = yloc.abovebar
+, text = alertMessage
+, color = color.green
+, textcolor = color.white
+, style = label.style_label_down
+, size = size.small
+)
+alert(alertMessage, alert.freq_once_per_bar)
+else if gapDown and not gapDown[1]
+alertMessage := str.format('{0} DOWN {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}', ticker.standard(syminfo.tickerid), todayOpen, atr1,atr2,atr3,atr4,atr5,atr6,atr7,atr8,atr9,atr10)
+if session.isfirstbar_regular
+label.new(
+x = bar_index
+, y = na
+, yloc = yloc.belowbar
+, text = alertMessage
+, color = color.red
+, textcolor = color.white
+, style = label.style_label_up
+, size = size.small
+)
+alert(alertMessage, alert.freq_once_per_bar)

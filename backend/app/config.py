@@ -88,6 +88,11 @@ class Settings(BaseSettings):
         env="ORDER_CLEANUP_HOURS",
         description="Number of hours after which orders should be deleted (default: 8 hours)",
     )
+    ORDER_CONVERSION_CHECK_SCHEDULE: str = Field(
+        default="* * * * *",  # Every minute
+        env="ORDER_CONVERSION_CHECK_SCHEDULE",
+        description="Cron expression for order conversion check schedule (default: every minute)",
+    )
     WEBHOOK_SECRET_LENGTH: int = Field(
         default=32,
         env="WEBHOOK_SECRET_LENGTH",
@@ -133,11 +138,8 @@ LOGGING_CONFIG = {
         "app": {
             "level": settings.LOG_LEVEL,
             "handlers": ["console"],
-            "propagate": True,
+            "propagate": False,
         },
     },
-    "root": {
-        "level": settings.LOG_LEVEL,
-        "handlers": ["console"],
-    },
+    "root": {"level": settings.LOG_LEVEL, "handlers": ["console"], "propagate": False},
 }

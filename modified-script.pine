@@ -1,0 +1,94 @@
+//@version=6
+indicator('Gap Detection with library one', max_labels_count = 500, overlay = true)
+
+import TheCuriousCat/TickerLibraryOne/1
+
+//--- USER INPUT ---
+string WEBHOOK_SECRET = "YOUR_WEBHOOK_SECRET"
+
+//--- FUNCTIONS ---
+_rma(float src, int len) =>
+    var float wmma3 = na
+    wmma3 := ((len - 1) * nz(wmma3[1], src) + src) / len
+    wmma3
+
+_atr(int l) =>
+    _rma(ta.tr(true), l)
+
+//--- DATA ---
+var string currentTicker = str.replace(ticker.standard(syminfo.tickerid), '_DLY:', ':')
+
+[Y, X] = TickerLibraryOne.YX(currentTicker)
+
+// Corrected the call from atr() to the built-in ta.atr()
+[atr,atr1,atr2,atr3,atr4,atr5,atr6,atr7,atr8,atr9,atr10] = request.security(syminfo.tickerid, '1D', [_atr(X), ta.atr(1), ta.atr(2), ta.atr(3), ta.atr(4), ta.atr(5), ta.atr(6), ta.atr(7), ta.atr(8), ta.atr(9), ta.atr(10)], lookahead = barmerge.lookahead_on)
+float atrPercent = atr * (Y / 100)
+
+var float dayHigh = na
+var float dayLow = na
+var float dayHighPrev = na
+var float dayLowPrev = na
+var float todayOpen = na
+
+if session.isfirstbar_regular
+    todayOpen := open
+    dayHigh := high
+    dayLow := low
+    dayHighPrev := dayHigh[1]
+    dayLowPrev := dayLow[1]
+else
+    dayHigh := math.max(dayHigh, high)
+    dayLow := math.min(dayLow, low)
+
+// Define the gap thresholds
+float upperThreshold = dayHighPrev + atrPercent
+float lowerThreshold = dayLowPrev - atrPercent
+
+// Detect gaps
+bool gapUp = todayOpen != todayOpen[1] and todayOpen > upperThreshold
+bool gapDown = todayOpen != todayOpen[1] and todayOpen < lowerThreshold
+
+// Plot for visualization
+plot(upperThreshold, 'Upper Threshold', color=color.green)
+plot(lowerThreshold, 'Lower Threshold', color=color.red)
+plot(todayOpen, 'Today Open', color=color.blue)
+
+//--- ALERT LOGIC ---
+getCurrentISOTimestamp() =>
+    str.format("{0,time,yyyy-MM-dd'T'HH:mm:ss.SSS'Z'}", timenow)
+
+if gapUp and not gapUp[1]
+    string message = str.format('{0} UP {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}', ticker.standard(syminfo.tickerid), todayOpen, atr1,atr2,atr3,atr4,atr5,atr6,atr7,atr8,atr9,atr10)
+    string timestamp = getCurrentISOTimestamp()
+    string jsonPayload = str.format('{"message": "{0}",\n  "secret": "{1}",\n  "timestamp": "{2}"}', message, WEBHOOK_SECRET, timestamp)
+    
+    if session.isfirstbar_regular
+        label.new(
+             x = bar_index,
+             y = low,
+             yloc = yloc.belowbar,
+             text = message,
+             color = color.green,
+             textcolor = color.white,
+             style = label.style_label_up,
+             size = size.small
+             )
+        alert(jsonPayload, alert.freq_once_per_bar)
+
+else if gapDown and not gapDown[1]
+    string message = str.format('{0} DOWN {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11}', ticker.standard(syminfo.tickerid), todayOpen, atr1,atr2,atr3,atr4,atr5,atr6,atr7,atr8,atr9,atr10)
+    string timestamp = getCurrentISOTimestamp()
+    string jsonPayload = str.format('{"message": "{0}",\n  "secret": "{1}",\n  "timestamp": "{2}"}', message, WEBHOOK_SECRET, timestamp)
+
+    if session.isfirstbar_regular
+        label.new(
+             x = bar_index,
+             y = high,
+             yloc = yloc.abovebar,
+             text = message,
+             color = color.red,
+             textcolor = color.white,
+             style = label.style_label_down,
+             size = size.small
+             )
+        alert(jsonPayload, alert.freq_once_per_bar)

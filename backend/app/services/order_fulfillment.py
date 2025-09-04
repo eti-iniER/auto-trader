@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone, timedelta
 
 from app.services.logging.helper import log_message
 
@@ -6,9 +7,12 @@ from app.clients.ig.client import IGClient
 from app.clients.ig.types import (
     ConfirmDealRequest,
     DealConfirmation,
+    GetPositionByDealIdRequest,
+    DeleteWorkingOrderRequest,
 )
 from app.db.deps import get_db_context
 from app.db.crud import get_order_by_id, update_order, delete_order
+from app.db.models import Order
 
 
 class OrderNotFoundError(Exception):
@@ -146,3 +150,120 @@ async def delete_rejected_order(
         # If deletion fails, return False but don't raise
         # The calling code can decide how to handle this
         return False
+
+
+async def check_order_conversion(order: Order) -> None:
+    """
+    Check if an order with a deal ID has been converted to a position.
+    If not converted and the order exceeds max age, delete the order.
+    If converted, delete the order as it's no longer needed.
+
+    Args:
+        order: The order instance with deal_id to check
+    """
+    ig_client = None
+
+    try:
+        user = order.user
+        user_settings = user.settings
+
+        # Calculate order age
+        order_age = datetime.now(timezone.utc) - order.created_at
+        max_age = timedelta(minutes=user_settings.maximum_order_age_in_minutes)
+
+        # Create IG client for the user
+        ig_client = IGClient.create_for_user(user)
+
+        # Check if position exists with the deal ID
+        position_exists = False
+        try:
+            request = GetPositionByDealIdRequest(deal_id=order.deal_id)
+            position = ig_client.get_position_by_deal_id(request)
+            position_exists = position is not None
+        except Exception:
+            # If we can't get the position, assume it doesn't exist
+            position_exists = False
+
+        if position_exists:
+            # Order has been converted to a position, delete the order
+            async with get_db_context() as db:
+                await delete_order(db, order.id)
+
+            await log_message(
+                message=f"Order converted to position - Deal ID: {order.deal_id}",
+                description=f"Order with deal ID {order.deal_id} has been successfully converted to a position. The order has been removed from tracking.",
+                log_type="order",
+                user_id=user.id,
+                extra={
+                    "deal_id": order.deal_id,
+                    "order_id": str(order.id),
+                    "action": "order_converted",
+                    "instrument_epic": (
+                        order.instrument.ig_epic if order.instrument else None
+                    ),
+                },
+            )
+
+        elif order_age > max_age:
+            # Order is too old and hasn't been converted, delete both from DB and IG
+            try:
+                # Delete from IG first
+                delete_request = DeleteWorkingOrderRequest(deal_id=order.deal_id)
+                ig_client.delete_working_order(delete_request)
+            except Exception as e:
+                # Log the IG deletion failure but continue with DB deletion
+                await log_message(
+                    message=f"Failed to delete order from IG - Deal ID: {order.deal_id}",
+                    description=f"Could not delete working order from IG: {str(e)}. Order will still be removed from database.",
+                    log_type="order",
+                    user_id=user.id,
+                    extra={
+                        "deal_id": order.deal_id,
+                        "order_id": str(order.id),
+                        "action": "ig_deletion_failed",
+                        "error": str(e),
+                    },
+                )
+
+            # Delete from database
+            async with get_db_context() as db:
+                await delete_order(db, order.id)
+
+            await log_message(
+                message=f"Expired order deleted - Deal ID: {order.deal_id}",
+                description=f"Order with deal ID {order.deal_id} exceeded maximum age of {user_settings.maximum_order_age_in_minutes} minutes and was deleted from both IG and database.",
+                log_type="order",
+                user_id=user.id,
+                extra={
+                    "deal_id": order.deal_id,
+                    "order_id": str(order.id),
+                    "action": "expired_order_deleted",
+                    "max_age_minutes": user_settings.maximum_order_age_in_minutes,
+                    "actual_age_minutes": int(order_age.total_seconds() / 60),
+                    "instrument_epic": (
+                        order.instrument.ig_epic if order.instrument else None
+                    ),
+                },
+            )
+
+    except Exception as e:
+        # Log any unexpected errors
+        await log_message(
+            message=f"Error checking order conversion - Deal ID: {order.deal_id if order.deal_id else 'unknown'}",
+            description=f"Unexpected error while checking order conversion: {str(e)}",
+            log_type="error",
+            user_id=user.id if "user" in locals() and user else None,
+            extra={
+                "deal_id": order.deal_id if order.deal_id else None,
+                "order_id": str(order.id) if order.id else None,
+                "action": "check_conversion_error",
+                "error": str(e),
+            },
+        )
+
+    finally:
+        if ig_client:
+            try:
+                ig_client.client.close()
+            except Exception:
+                pass

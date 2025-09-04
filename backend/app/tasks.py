@@ -7,6 +7,8 @@ from app.config import LOGGING_CONFIG, settings
 from app.db.deps import get_db_context
 from app.db.models import Order
 from app.services.dividend_dates import fetch_and_update_all_dividend_dates
+from app.services.order_fulfillment import check_order_conversion
+from app.db.crud import get_all_orders_with_deal_id
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware import AsyncIO
 from periodiq import PeriodiqMiddleware, cron
@@ -24,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
 ORDER_CLEANUP_SCHEDULE = cron(settings.ORDER_CLEANUP_SCHEDULE)
+ORDER_CONVERSION_CHECK_SCHEDULE = cron(settings.ORDER_CONVERSION_CHECK_SCHEDULE)
 
 
 @dramatiq.actor(periodic=DIVIDEND_DATE_UPDATE_SCHEDULE, max_retries=3)
@@ -80,4 +83,41 @@ async def cleanup_old_orders():
         except Exception as e:
             logger.error(f"Error in cleanup_old_orders task: {str(e)}")
             await db.rollback()
+            raise
+
+
+@dramatiq.actor(periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=3)
+async def check_order_conversions():
+    """
+    Check all orders with deal IDs to see if they've been converted to positions.
+    Runs every minute to monitor order status and clean up converted or expired orders.
+    """
+    logger.info("Starting order conversion check task")
+
+    async with get_db_context() as db:
+        try:
+            # Get all orders that have deal IDs
+            orders = await get_all_orders_with_deal_id(db)
+
+            if not orders:
+                logger.info("No orders with deal IDs found for conversion check")
+                return
+
+            logger.info(f"Checking conversion status for {len(orders)} orders")
+
+            # Check each order for conversion
+            for order in orders:
+                try:
+                    await check_order_conversion(order)
+                except Exception as e:
+                    logger.error(
+                        f"Error checking conversion for order {order.id} "
+                        f"(deal_id: {order.deal_id}): {str(e)}"
+                    )
+                    # Continue with other orders even if one fails
+
+            logger.info("Successfully completed order conversion check task")
+
+        except Exception as e:
+            logger.error(f"Error in check_order_conversions task: {str(e)}")
             raise
