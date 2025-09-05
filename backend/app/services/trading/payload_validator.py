@@ -12,11 +12,9 @@ from app.db.crud import (
 )
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
-from app.db.models import Instrument, Order, User
+from app.db.models import Instrument, User
 from app.services.logging import log_message
 from app.services.trading.payload_parser import parse_message_fields
-from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 
 # Constants
 SECONDS_PER_HOUR = 3600
@@ -134,7 +132,7 @@ async def _validate_instrument_exists(
 ) -> Tuple[bool, Optional[str], Optional[Instrument]]:
     """Validate that the instrument exists in the database."""
 
-    market_and_symbol = parse_message_fields(payload.message).get("market_and_symbol")
+    market_and_symbol = parse_message_fields(payload.message).market_and_symbol
     instrument = await get_instrument_by_market_and_symbol(db, market_and_symbol, user)
 
     if not instrument:
