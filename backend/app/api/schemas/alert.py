@@ -20,15 +20,6 @@ class TradingViewAlert(BaseModel):
         ...,
         description="Optional open price for the trade",
     )
-    stop: Optional[Decimal] = Field(
-        None, description="Optional stop loss price for the trade"
-    )
-    limit: Optional[Decimal] = Field(
-        None, description="Optional take profit price for the trade"
-    )
-    size: Optional[Decimal] = Field(
-        None, description="Optional size of the trade in GBP"
-    )
     atrs: list[Decimal] = Field(
         ...,
         description="Average True Ranges of the stock for the previous ten days",

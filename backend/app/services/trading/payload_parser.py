@@ -1,6 +1,6 @@
 import logging
 from decimal import Decimal
-from typing import Literal
+from pydantic import BaseModel
 
 from app.api.schemas.alert import TradingViewAlert
 from app.api.schemas.webhook import WebhookPayload
@@ -16,20 +16,24 @@ async def parse_webhook_payload_to_trading_view_alert(
     parsed = parse_message_fields(payload.message)
 
     return TradingViewAlert(
-        market_and_symbol=parsed["market_and_symbol"],
-        direction=parsed["direction"],
+        market_and_symbol=parsed.market_and_symbol,
+        direction=parsed.direction,
         message=payload.message,
         secret=payload.secret,
         timestamp=payload.timestamp,
-        open_price=parsed["open_price"],
-        stop=payload.stop,
-        limit=payload.limit,
-        size=payload.size,
-        atrs=parsed["atrs"],
+        open_price=parsed.open_price,
+        atrs=parsed.atrs,
     )
 
 
-def parse_message_fields(message: str):
+class ParsedMessageFields(BaseModel):
+    direction: str
+    open_price: Decimal
+    atrs: list[Decimal]
+    market_and_symbol: str
+
+
+def parse_message_fields(message: str) -> ParsedMessageFields:
     """Extract open price, direction, and ATRs from the message field."""
     parts = message.split(" ")
     logger.debug(f"Extracted parts from message: {parts}")
@@ -62,9 +66,9 @@ def parse_message_fields(message: str):
     except (ValueError, TypeError) as e:
         raise ValueError(f"Failed to parse ATRs from message: {e}")
 
-    return {
-        "direction": direction,
-        "open_price": open_price,
-        "atrs": atrs,
-        "market_and_symbol": market_and_symbol,
-    }
+    return ParsedMessageFields(
+        direction=direction,
+        open_price=open_price,
+        atrs=atrs,
+        market_and_symbol=market_and_symbol,
+    )
