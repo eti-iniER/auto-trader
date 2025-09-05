@@ -134,9 +134,7 @@ async def _validate_instrument_exists(
 ) -> Tuple[bool, Optional[str], Optional[Instrument]]:
     """Validate that the instrument exists in the database."""
 
-    market_and_symbol = parse_message_fields(payload.message).get(
-        "market_and_symbol", payload.market_and_symbol
-    )
+    market_and_symbol = parse_message_fields(payload.message).get("market_and_symbol")
     instrument = await get_instrument_by_market_and_symbol(db, market_and_symbol, user)
 
     if not instrument:
