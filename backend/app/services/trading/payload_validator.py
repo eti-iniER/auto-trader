@@ -9,6 +9,7 @@ from app.db.crud import (
     get_instrument_by_market_and_symbol,
     get_most_recent_order_for_instrument,
     get_user_by_webhook_secret,
+    get_all_admin_users,
 )
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
@@ -59,6 +60,16 @@ async def _validate_user_exists(
     user = await get_user_by_webhook_secret(db, payload.secret)
 
     if not user:
+        admins = await get_all_admin_users(db)
+
+        for admin in admins:
+            await _log_validation_error(
+                "Invalid webhook secret",
+                "Alert has been rejected due to invalid or nonexistent webhook secret",
+                admin.id,
+                payload,
+                {"received_secret": payload.secret},
+            )
         return False, ValidationError.INVALID_WEBHOOK_SECRET.value, None
 
     return True, None, user

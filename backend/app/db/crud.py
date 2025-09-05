@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 
 from app.db.deps import get_db_context
-from app.db.enums import LogType
+from app.db.enums import LogType, UserRole
 from app.db.models import Instrument, Log, Order, User, UserSettings, AppSettings
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -177,7 +177,7 @@ async def get_instrument_by_ig_epic(db: AsyncSession, ig_epic: str) -> Instrumen
     return instrument
 
 
-async def get_user_by_webhook_secret(db: AsyncSession, secret: str) -> User:
+async def get_user_by_webhook_secret(db: AsyncSession, secret: str) -> Optional[User]:
     """
     Retrieve a user by their webhook secret.
 
@@ -199,11 +199,6 @@ async def get_user_by_webhook_secret(db: AsyncSession, secret: str) -> User:
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User with the provided webhook secret not found.",
-        )
     return user
 
 
@@ -543,3 +538,20 @@ async def get_all_orders_with_deal_id(db: AsyncSession) -> list[Order]:
     orders = result.scalars().all()
 
     return orders
+
+
+async def get_all_admin_users(db: AsyncSession) -> list[User]:
+    """
+    Retrieve all users with admin privileges.
+
+    Args:
+        db (AsyncSession): The database session.
+
+    Returns:
+        List[User]: A list of admin user objects.
+    """
+    stmt = select(User).where(User.role == UserRole.ADMIN)
+    result = await db.execute(stmt)
+    users = result.scalars().all()
+
+    return users
