@@ -109,6 +109,9 @@ class Instrument(BaseDBModel):
     next_dividend_date: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    trading_view_price_multiplier: Mapped[Decimal] = mapped_column(
+        nullable=False, default=Decimal("1.0")
+    )
     order: Mapped[Optional["Order"]] = relationship(
         "Order",
         back_populates="instrument",

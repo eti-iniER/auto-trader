@@ -9,6 +9,7 @@ interface Instrument {
   maxPositionSize: number;
   openingPriceMultiplePercentage: number;
   nextDividendDate: Date | null;
+  tradingViewPriceMultiplier: number;
 }
 
 interface InstrumentUploadResponse {

@@ -151,6 +151,22 @@ const columns: ColumnDef<Instrument>[] = [
     ),
   },
   {
+    accessorKey: "tradingViewPriceMultiplier",
+    header: () => (
+      <div className="text-center leading-tight">
+        TradingView
+        <br />
+        Price Multiplier
+      </div>
+    ),
+    size: 120,
+    cell: ({ row }) => (
+      <div className="text-center">
+        {formatDecimal(row.getValue("tradingViewPriceMultiplier"))}
+      </div>
+    ),
+  },
+  {
     accessorKey: "nextDividendDate",
     header: () => (
       <div className="text-center leading-tight">

@@ -174,6 +174,7 @@ async def upload_instruments_csv(
             "ATR Profit Multiple": "atr_profit_multiple_percentage",
             "Position Size Max GBP": "max_position_size",
             "Opening Price Multiple": "opening_price_multiple_percentage",
+            "TV Price Multiple": "trading_view_price_multiplier",
         }
 
         csv_headers = set(csv_reader.fieldnames or [])
@@ -211,6 +212,7 @@ async def upload_instruments_csv(
                         "atr_stop_loss_multiple_percentage",
                         "atr_profit_multiple_percentage",
                         "opening_price_multiple_percentage",
+                        "trading_view_price_multiplier",
                     ]:
                         instrument_data[model_field] = Decimal(str(value))
                     else:

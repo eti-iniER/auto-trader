@@ -24,6 +24,7 @@ const DECIMAL_KEYS = new Set([
   "entryLevel",
   "stopLevel",
   "profitLevel",
+  "tradingViewPriceMultiplier",
 ]);
 
 export function revivers(_key: string, value: string) {

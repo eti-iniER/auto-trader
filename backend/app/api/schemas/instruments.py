@@ -40,6 +40,9 @@ class InstrumentBase(BaseModel):
     next_dividend_date: Optional[AwareDatetime] = Field(
         None, description="Next dividend date"
     )
+    trading_view_price_multiplier: Decimal = Field(
+        default=Decimal("1.0"), description="TradingView price multiplier"
+    )
 
 
 class InstrumentCreate(InstrumentBase):
@@ -71,6 +74,9 @@ class InstrumentUpdate(BaseModel):
     )
     next_dividend_date: Optional[AwareDatetime] = Field(
         None, description="Next dividend date"
+    )
+    trading_view_price_multiplier: Optional[Decimal] = Field(
+        None, description="TradingView price multiplier"
     )
 
 
