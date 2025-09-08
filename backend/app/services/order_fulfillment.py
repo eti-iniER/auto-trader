@@ -38,7 +38,7 @@ async def confirm_deal_reference_for_order(
                 raise OrderNotFoundError(f"Order {order_id} not found in database")
 
             user = order.instrument.user
-            ig_client = IGClient.create_for_user(user)
+            ig_client = await IGClient.create_for_user(user)
 
             confirm_request = ConfirmDealRequest(deal_reference=order.deal_reference)
             confirmation = ig_client.confirm_deal(confirm_request)
@@ -172,7 +172,7 @@ async def check_order_conversion(order: Order) -> None:
         max_age = timedelta(minutes=user_settings.maximum_order_age_in_minutes)
 
         # Create IG client for the user
-        ig_client = IGClient.create_for_user(user)
+        ig_client = await IGClient.create_for_user(user)
 
         # Check if position exists with the deal ID
         position_exists = False

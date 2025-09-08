@@ -23,15 +23,16 @@ async def get_user_quick_stats_from_ig(user: User) -> UserQuickStatsResponse:
     This function handles the IG API call and returns the stats.
     """
     try:
-        with IGClient.create_for_user(user) as ig_client:
-            ig_stats = ig_client.get_user_quick_stats()
+        ig_client = await IGClient.create_for_user(user)
 
-            return UserQuickStatsResponse(
-                open_positions_count=ig_stats.open_positions_count,
-                open_orders_count=ig_stats.open_orders_count,
-                recent_activities=ig_stats.recent_activities,
-                stats_timestamp=ig_stats.stats_timestamp,
-            )
+        ig_stats = ig_client.get_user_quick_stats()
+
+        return UserQuickStatsResponse(
+            open_positions_count=ig_stats.open_positions_count,
+            open_orders_count=ig_stats.open_orders_count,
+            recent_activities=ig_stats.recent_activities,
+            stats_timestamp=ig_stats.stats_timestamp,
+        )
 
     except IGAuthenticationError as e:
         logger.error(f"IG authentication failed for user {user.id}: {e}")

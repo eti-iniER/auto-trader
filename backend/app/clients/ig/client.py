@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+from aiocache import Cache
 from app.config import settings
 from app.db.enums import UserSettingsMode
 from app.db.models import User
@@ -189,6 +190,9 @@ class OAuth2(httpx.Auth):
 
 
 class IGClient:
+    # Class-level cache for storing client instances
+    _client_cache = Cache.MEMORY(namespace="ig_clients")
+
     def __init__(
         self,
         username: str,
@@ -217,25 +221,45 @@ class IGClient:
         )
 
     @classmethod
-    def create_for_user(cls, user: User) -> "IGClient":
+    async def create_for_user(cls, user: User) -> "IGClient":
         """
         Create IG client instance using user's mode-specific credentials.
+        Returns a cached client if available, otherwise creates and caches a new one.
 
         Args:
             user: The authenticated user with settings containing IG credentials
 
         Returns:
-            IGClient: Configured IG client instance
+            IGClient: Configured IG client instance (cached or new)
 
         Raises:
             HTTPException: If user settings are missing or credentials are incomplete
         """
-
         if not user.settings:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User settings not found. Please configure your IG credentials.",
             )
+
+        # Create cache key based on user ID and mode
+        user_mode = user.settings.mode.value
+        cache_key = f"user:{user.id}:mode:{user_mode}"
+
+        # Try to get cached client first
+        try:
+            cached_client = await cls._client_cache.get(cache_key)
+            if cached_client is not None:
+                logger.debug(
+                    f"Using cached IG client for user {user.id} in {user_mode} mode"
+                )
+                return cached_client
+        except Exception as e:
+            logger.warning(f"Failed to retrieve cached client for user {user.id}: {e}")
+            # Continue to create new client if cache retrieval fails
+
+        # No cached client found, create new one
+        logger.debug(f"Creating new IG client for user {user.id} in {user_mode} mode")
+
         if user.settings.mode == UserSettingsMode.DEMO:
             api_key = user.settings.demo_api_key
             username = user.settings.demo_username
@@ -259,13 +283,60 @@ class IGClient:
                 detail=f"Missing {mode_str} mode IG credentials. Please configure your {mode_str} API key, username, and password.",
             )
 
-        return cls(
+        client = cls(
             username=username,
             password=password,
             api_key=api_key,
             base_url=base_url,
             account_id=account_id,
         )
+
+        # Cache the client for 30 minutes (IG sessions typically last 6+ hours)
+        try:
+            await cls._client_cache.set(cache_key, client, ttl=1800)
+            logger.debug(
+                f"Cached IG client for user {user.id} in {user_mode} mode (TTL: 30 minutes)"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to cache client for user {user.id}: {e}")
+            # Continue even if caching fails
+
+        return client
+
+    @classmethod
+    async def invalidate_user_cache(cls, user: User):
+        """
+        Invalidate cached IG client for a specific user.
+        Useful when user credentials change or when forcing a fresh client.
+
+        Args:
+            user: The user whose cached client should be invalidated
+        """
+        if not user.settings:
+            return
+
+        user_mode = user.settings.mode.value
+        cache_key = f"user:{user.id}:mode:{user_mode}"
+
+        try:
+            await cls._client_cache.delete(cache_key)
+            logger.debug(
+                f"Invalidated cached IG client for user {user.id} in {user_mode} mode"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to invalidate cache for user {user.id}: {e}")
+
+    @classmethod
+    async def clear_all_cache(cls):
+        """
+        Clear all cached IG clients.
+        Useful for maintenance or when global cache reset is needed.
+        """
+        try:
+            await cls._client_cache.clear()
+            logger.info("Cleared all cached IG clients")
+        except Exception as e:
+            logger.warning(f"Failed to clear IG client cache: {e}")
 
     def __enter__(self):
         return self

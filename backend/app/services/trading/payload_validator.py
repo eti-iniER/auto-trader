@@ -365,11 +365,12 @@ async def _fetch_ig_positions_and_orders(
         Returns (None, None) if API calls fail.
     """
     try:
-        with IGClient.create_for_user(user) as ig_client:
-            positions_response = ig_client.get_positions()
-            working_orders_response = ig_client.get_working_orders()
+        ig_client = await IGClient.create_for_user(user)
 
-            return positions_response.positions, working_orders_response.working_orders
+        positions_response = ig_client.get_positions()
+        working_orders_response = ig_client.get_working_orders()
+
+        return positions_response.positions, working_orders_response.working_orders
 
     except (IGAPIError, IGAuthenticationError) as e:
         # If we can't connect to IG API, log the error but allow the trade to proceed

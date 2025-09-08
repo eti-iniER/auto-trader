@@ -27,8 +27,8 @@ async def get_all_positions_from_ig(user: User, db: AsyncSession) -> List[Positi
     Fetch all open positions from IG and cache them.
     This function handles the IG API call and data transformation.
     """
-    with IGClient.create_for_user(user) as ig_client:
-        ig_response = ig_client.get_positions()
+    ig_client = await IGClient.create_for_user(user)
+    ig_response = ig_client.get_positions()
 
     positions = await parse_ig_positions_to_schema(ig_response.positions, user, db)
     return positions
@@ -112,8 +112,8 @@ async def delete_position(
         delete_request = DeletePositionRequest(deal_id=deal_id)
 
         # Call IG API to delete the position
-        with IGClient.create_for_user(user) as ig_client:
-            delete_response = ig_client.delete_position(delete_request)
+        ig_client = await IGClient.create_for_user(user)
+        delete_response = ig_client.delete_position(delete_request)
 
         logger.info(
             f"Position {deal_id} deleted successfully for user {user.id}. Deal reference: {delete_response.deal_reference}"

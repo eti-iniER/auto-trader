@@ -166,7 +166,7 @@ async def create_order(
     stop_loss_distance: Decimal,
     size: Decimal,
 ) -> Order:
-    ig_client = IGClient.create_for_user(user)
+    ig_client = await IGClient.create_for_user(user)
 
     # Create the appropriate request object based on order type
     request = _create_request_object(
