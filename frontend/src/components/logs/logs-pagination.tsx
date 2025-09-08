@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MAX_TABLE_ROWS } from "@/constants/limits";
 import {
   ChevronLeft,
   ChevronRight,
@@ -40,15 +41,18 @@ export const LogsPagination = ({
           value={pageSize.toString()}
           onValueChange={(value) => onPageSizeChange(Number(value))}
         >
-          <SelectTrigger className="bg-background border-border h-8 w-[70px]">
+          <SelectTrigger className="bg-background border-border h-8 w-[80px]">
             <SelectValue placeholder={pageSize} />
           </SelectTrigger>
           <SelectContent side="top">
-            {[10, 20, 30, 40, 50].map((size) => (
+            {[10, 20, 50, 100].map((size) => (
               <SelectItem key={size} value={size.toString()}>
                 {size}
               </SelectItem>
             ))}
+            {totalCount <= MAX_TABLE_ROWS && (
+              <SelectItem value={totalCount.toString()}>All</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>

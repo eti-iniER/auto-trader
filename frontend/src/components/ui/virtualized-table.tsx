@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { MAX_TABLE_ROWS } from "@/constants/limits";
 import {
   flexRender,
   getCoreRowModel,
@@ -297,15 +298,21 @@ function VirtualizedTable<TData, TValue = unknown>({
                   pagination.onPageSizeChange(Number(value))
                 }
               >
-                <SelectTrigger className="bg-background border-border h-10 w-[80px] sm:h-8 sm:w-[70px]">
+                <SelectTrigger className="bg-background border-border h-10 w-[90px] sm:h-8 sm:w-[80px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                  {[10, 20, 50, 100].map((pageSize) => (
                     <SelectItem key={pageSize} value={pageSize.toString()}>
                       {pageSize}
                     </SelectItem>
                   ))}
+                  {pagination.totalCount &&
+                    pagination.totalCount <= MAX_TABLE_ROWS && (
+                      <SelectItem value={pagination.totalCount.toString()}>
+                        All
+                      </SelectItem>
+                    )}
                 </SelectContent>
               </Select>
             </div>
