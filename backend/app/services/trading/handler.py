@@ -8,7 +8,7 @@ from app.services.trading.payload_parser import (
     parse_webhook_payload_to_trading_view_alert,
 )
 from app.services.trading.payload_validator import validate_webhook_payload
-from app.services.trading.prize_normalizer import normalize_prices
+from app.services.trading.price_normalizer import normalize_prices
 from app.services.trading.trade_executor import create_order
 
 
