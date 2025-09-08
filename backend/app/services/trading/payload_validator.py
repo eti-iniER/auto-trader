@@ -222,7 +222,11 @@ async def _validate_dividend_date(
 
 
 async def _validate_position_or_working_order_does_not_exist(
-    payload: WebhookPayload, user: User, instrument: Instrument
+    payload: WebhookPayload,
+    user: User,
+    instrument: Instrument,
+    positions_data,
+    working_orders_data,
 ) -> Tuple[bool, Optional[str]]:
     """Validate that a position or working order does not already exist for the instrument's IG epic"""
     if not instrument.ig_epic:
@@ -232,160 +236,147 @@ async def _validate_position_or_working_order_does_not_exist(
     if not user.settings.prevent_duplicate_positions_for_instrument:
         return True, None
 
-    try:
-        with IGClient.create_for_user(user) as ig_client:
-            positions_response = ig_client.get_positions()
+    if positions_data is None or working_orders_data is None:
+        # If we couldn't get the data from IG API, allow the trade to proceed
+        return True, None
 
-            # Check if any existing position matches the instrument's IG epic
-            for position_data in positions_response.positions:
-                if position_data.market.epic == instrument.ig_epic:
-                    await _log_validation_error(
-                        "Position already exists for instrument",
-                        "Alert has been rejected because a position already exists for this instrument",
-                        user.id,
-                        payload,
-                        {
-                            "instrument_id": str(instrument.id),
-                            "ig_epic": instrument.ig_epic,
-                            "existing_deal_id": position_data.position.deal_id,
-                            "existing_position_size": str(position_data.position.size),
-                            "existing_position_direction": position_data.position.direction,
-                        },
-                    )
+    # Check if any existing position matches the instrument's IG epic
+    for position_data in positions_data:
+        if position_data.market.epic == instrument.ig_epic:
+            await _log_validation_error(
+                "Position already exists for instrument",
+                "Alert has been rejected because a position already exists for this instrument",
+                user.id,
+                payload,
+                {
+                    "instrument_id": str(instrument.id),
+                    "ig_epic": instrument.ig_epic,
+                    "existing_deal_id": position_data.position.deal_id,
+                    "existing_position_size": str(position_data.position.size),
+                    "existing_position_direction": position_data.position.direction,
+                },
+            )
 
-                    return False, ValidationError.POSITION_ALREADY_EXISTS.value
+            return False, ValidationError.POSITION_ALREADY_EXISTS.value
 
-            # Check if any working order exists for the same instrument
-            working_orders_response = ig_client.get_working_orders()
+    # Check if any working order exists for the same instrument
+    for working_order in working_orders_data:
+        if (
+            working_order.working_order_data
+            and working_order.working_order_data.epic == instrument.ig_epic
+        ):
+            await _log_validation_error(
+                "Working order already exists for instrument",
+                "Alert has been rejected because a working order already exists for this instrument",
+                user.id,
+                payload,
+                {
+                    "instrument_id": str(instrument.id),
+                    "ig_epic": instrument.ig_epic,
+                    "existing_deal_id": working_order.working_order_data.deal_id,
+                    "existing_order_size": str(
+                        working_order.working_order_data.order_size
+                    ),
+                    "existing_order_direction": working_order.working_order_data.direction,
+                    "existing_order_type": working_order.working_order_data.order_type,
+                },
+            )
 
-            for working_order in working_orders_response.working_orders:
-                if (
-                    working_order.working_order_data
-                    and working_order.working_order_data.epic == instrument.ig_epic
-                ):
-                    await _log_validation_error(
-                        "Working order already exists for instrument",
-                        "Alert has been rejected because a working order already exists for this instrument",
-                        user.id,
-                        payload,
-                        {
-                            "instrument_id": str(instrument.id),
-                            "ig_epic": instrument.ig_epic,
-                            "existing_deal_id": working_order.working_order_data.deal_id,
-                            "existing_order_size": str(
-                                working_order.working_order_data.order_size
-                            ),
-                            "existing_order_direction": working_order.working_order_data.direction,
-                            "existing_order_type": working_order.working_order_data.order_type,
-                        },
-                    )
-
-                    return False, ValidationError.WORKING_ORDER_ALREADY_EXISTS.value
-
-    except (IGAPIError, IGAuthenticationError) as e:
-        # If we can't connect to IG API, log the error but allow the trade to proceed
-        # This prevents IG API issues from blocking all trades
-        await _log_validation_error(
-            "Unable to check existing positions and working orders",
-            f"Failed to check existing positions and working orders due to IG API error: {str(e)}. Trade will proceed.",
-            user.id,
-            payload,
-            {
-                "instrument_id": str(instrument.id),
-                "ig_epic": instrument.ig_epic,
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-            },
-        )
+            return False, ValidationError.WORKING_ORDER_ALREADY_EXISTS.value
 
     return True, None
 
 
 async def _validate_maximum_pending_orders(
-    user: User, payload: WebhookPayload, db
+    user: User, payload: WebhookPayload, working_orders_data, db
 ) -> Tuple[bool, Optional[str]]:
     """Validate that the user has not exceeded their maximum pending orders."""
     if not user.settings.enforce_maximum_open_positions:
         return True, None
 
-    try:
-        with IGClient.create_for_user(user) as ig_client:
-            working_orders_response = ig_client.get_working_orders()
-            pending_orders_count = len(working_orders_response.working_orders)
+    if working_orders_data is None:
+        # If we couldn't get the data from IG API, allow the trade to proceed
+        return True, None
 
-        if pending_orders_count >= user.settings.maximum_open_positions:
-            await _log_validation_error(
-                "Maximum open positions exceeded",
-                "Alert has been ignored due to exceeding maximum open positions",
-                user.id,
-                payload,
-                {
-                    "maximum_open_positions": user.settings.maximum_open_positions,
-                    "current_pending_orders_count": pending_orders_count,
-                },
-            )
+    pending_orders_count = len(working_orders_data)
 
-            return False, "MAXIMUM_PENDING_ORDERS_EXCEEDED"
-
-    except (IGAPIError, IGAuthenticationError) as e:
-        # If we can't connect to IG API, log the error but allow the trade to proceed
-        # This prevents IG API issues from blocking all trades
+    if pending_orders_count >= user.settings.maximum_open_positions:
         await _log_validation_error(
-            "Unable to check pending orders count",
-            f"Failed to check pending orders count due to IG API error: {str(e)}. Trade will proceed.",
+            "Maximum open positions exceeded",
+            "Alert has been ignored due to exceeding maximum open positions",
             user.id,
             payload,
             {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
+                "maximum_open_positions": user.settings.maximum_open_positions,
+                "current_pending_orders_count": pending_orders_count,
             },
         )
+
+        return False, "MAXIMUM_PENDING_ORDERS_EXCEEDED"
 
     return True, None
 
 
 async def _validate_maximum_open_positions_and_pending_orders(
-    payload: WebhookPayload, user: User, db
+    payload: WebhookPayload, user: User, positions_data, working_orders_data, db
 ) -> Tuple[bool, Optional[str]]:
     """Validate that the user has not exceeded their maximum open positions and pending orders combined."""
     if not user.settings.enforce_maximum_open_positions_and_pending_orders:
         return True, None
 
+    if positions_data is None or working_orders_data is None:
+        # If we couldn't get the data from IG API, allow the trade to proceed
+        return True, None
+
+    open_positions_count = len(positions_data)
+    pending_orders_count = len(working_orders_data)
+    total_count = open_positions_count + pending_orders_count
+
+    if total_count >= user.settings.maximum_open_positions_and_pending_orders:
+        await _log_validation_error(
+            "Maximum open positions and pending orders exceeded",
+            "Alert has been ignored due to exceeding maximum open positions and pending orders",
+            user.id,
+            payload,
+            {
+                "maximum_open_positions_and_pending_orders": user.settings.maximum_open_positions_and_pending_orders,
+                "current_open_positions": open_positions_count,
+                "current_pending_orders": pending_orders_count,
+                "total_count": total_count,
+            },
+        )
+
+        return (
+            False,
+            ValidationError.MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED.value,
+        )
+
+    return True, None
+
+
+async def _fetch_ig_positions_and_orders(
+    user: User, payload: WebhookPayload
+) -> Tuple[Optional[list], Optional[list]]:
+    """
+    Fetch positions and working orders from IG API once.
+
+    Returns:
+        Tuple[Optional[list], Optional[list]]: (positions_data, working_orders_data)
+        Returns (None, None) if API calls fail.
+    """
     try:
         with IGClient.create_for_user(user) as ig_client:
-            # Get positions and working orders from IG API
             positions_response = ig_client.get_positions()
             working_orders_response = ig_client.get_working_orders()
 
-            open_positions_count = len(positions_response.positions)
-            pending_orders_count = len(working_orders_response.working_orders)
-            total_count = open_positions_count + pending_orders_count
-
-        if total_count >= user.settings.maximum_open_positions_and_pending_orders:
-            await _log_validation_error(
-                "Maximum open positions and pending orders exceeded",
-                "Alert has been ignored due to exceeding maximum open positions and pending orders",
-                user.id,
-                payload,
-                {
-                    "maximum_open_positions_and_pending_orders": user.settings.maximum_open_positions_and_pending_orders,
-                    "current_open_positions": open_positions_count,
-                    "current_pending_orders": pending_orders_count,
-                    "total_count": total_count,
-                },
-            )
-
-            return (
-                False,
-                ValidationError.MAXIMUM_OPEN_POSITIONS_AND_PENDING_ORDERS_EXCEEDED.value,
-            )
+            return positions_response.positions, working_orders_response.working_orders
 
     except (IGAPIError, IGAuthenticationError) as e:
         # If we can't connect to IG API, log the error but allow the trade to proceed
         # This prevents IG API issues from blocking all trades
         await _log_validation_error(
-            "Unable to check open positions and pending orders count",
-            f"Failed to check open positions and pending orders count due to IG API error: {str(e)}. Trade will proceed.",
+            "Unable to fetch positions and working orders from IG API",
+            f"Failed to fetch positions and working orders due to IG API error: {str(e)}. Trade validation will proceed without IG data checks.",
             user.id,
             payload,
             {
@@ -394,7 +385,7 @@ async def _validate_maximum_open_positions_and_pending_orders(
             },
         )
 
-    return True, None
+        return None, None
 
 
 async def validate_webhook_payload(
@@ -429,8 +420,16 @@ async def validate_webhook_payload(
         if not is_valid:
             return is_valid, error_code
 
+        # Fetch IG positions and working orders data once
+        # This will be used by multiple validation functions
+        positions_data, working_orders_data = await _fetch_ig_positions_and_orders(
+            user, payload
+        )
+
         # Validate maximum open positions
-        is_valid, error_code = await _validate_maximum_pending_orders(user, payload, db)
+        is_valid, error_code = await _validate_maximum_pending_orders(
+            user, payload, working_orders_data, db
+        )
         if not is_valid:
             return is_valid, error_code
 
@@ -438,7 +437,9 @@ async def validate_webhook_payload(
         (
             is_valid,
             error_code,
-        ) = await _validate_maximum_open_positions_and_pending_orders(payload, user, db)
+        ) = await _validate_maximum_open_positions_and_pending_orders(
+            payload, user, positions_data, working_orders_data, db
+        )
         if not is_valid:
             return is_valid, error_code
 
@@ -451,7 +452,7 @@ async def validate_webhook_payload(
 
         # Validate position does not already exist
         is_valid, error_code = await _validate_position_or_working_order_does_not_exist(
-            payload, user, instrument
+            payload, user, instrument, positions_data, working_orders_data
         )
         if not is_valid:
             return is_valid, error_code
