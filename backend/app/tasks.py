@@ -3,11 +3,13 @@ import logging.config
 from datetime import datetime, timedelta, timezone
 
 import dramatiq
+from app.api.schemas.webhook import WebhookPayload
 from app.config import LOGGING_CONFIG, settings
 from app.db.deps import get_db_context
 from app.db.models import Order
 from app.services.dividend_dates import fetch_and_update_all_dividend_dates
 from app.services.order_fulfillment import check_order_conversion
+from app.services.trading.handler import handle_alert
 from app.db.crud import get_all_orders_with_deal_id
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware import AsyncIO
@@ -121,3 +123,27 @@ async def check_order_conversions():
         except Exception as e:
             logger.error(f"Error in check_order_conversions task: {str(e)}")
             raise
+
+
+@dramatiq.actor(max_retries=3)
+async def handle_trading_alert(payload_dict: dict):
+    """
+    Actor that wraps the handle_alert function for processing TradingView webhook alerts.
+
+    Args:
+        payload_dict: Dictionary representation of the WebhookPayload
+    """
+    logger.info(f"Processing trading alert: {payload_dict}")
+
+    try:
+        # Convert the dictionary back to WebhookPayload
+        payload = WebhookPayload.model_validate(payload_dict)
+
+        # Call the handle_alert function
+        await handle_alert(payload)
+
+        logger.info("Successfully processed trading alert")
+
+    except Exception as e:
+        logger.error(f"Error processing trading alert: {str(e)}")
+        raise

@@ -24,8 +24,7 @@ async def get_user_quick_stats_from_ig(user: User) -> UserQuickStatsResponse:
     """
     try:
         ig_client = await IGClient.create_for_user(user)
-
-        ig_stats = ig_client.get_user_quick_stats()
+        ig_stats = await ig_client.get_user_quick_stats()
 
         return UserQuickStatsResponse(
             open_positions_count=ig_stats.open_positions_count,

@@ -2,8 +2,9 @@ import logging
 
 from app.api.schemas.webhook import WebhookPayload
 from app.api.helpers.webhook_payload_parser import parse_webhook_payload
-from app.services.trading.handler import handle_alert
-from fastapi import APIRouter, BackgroundTasks, Request
+from app.tasks import handle_trading_alert
+from fastapi import APIRouter, Request
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ router = APIRouter(tags=["webhook"])
 
 
 @router.post("/trading-view-webhook")
-async def trading_view_webhook(request: Request, background_tasks: BackgroundTasks):
+async def trading_view_webhook(request: Request):
     """
     Receives TradingView webhook with plaintext body.
 
@@ -21,10 +22,13 @@ async def trading_view_webhook(request: Request, background_tasks: BackgroundTas
     body = await request.body()
     alert = body.decode()
 
+    received_at = datetime.now(timezone.utc)
     payload = parse_webhook_payload(alert)
+    payload.received_at = received_at
     logger.info(f"Parsed payload: {payload}")
 
-    background_tasks.add_task(handle_alert, payload)
+    # Send the payload to the actor for processing
+    handle_trading_alert.send(payload.model_dump(mode="json"))
 
     logger.info(f"Received TradingView webhook: {alert}")
 

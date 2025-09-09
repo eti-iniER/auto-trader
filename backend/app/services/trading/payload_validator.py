@@ -118,7 +118,8 @@ async def _validate_alert_age(
     if not user.settings.enforce_maximum_alert_age_in_seconds:
         return True, None
 
-    payload_age = datetime.now(timezone.utc) - payload.timestamp
+    received_at = payload.received_at or datetime.now(timezone.utc)
+    payload_age = received_at - payload.timestamp
     payload_age_seconds = int(payload_age.total_seconds())
 
     if payload_age_seconds > user.settings.maximum_alert_age_in_seconds:
@@ -198,22 +199,25 @@ async def _validate_trade_cooldown_timing(
 
 
 async def _validate_dividend_date(
-    payload: WebhookPayload, user: User, instrument: Instrument
+    payload: WebhookPayload,
+    user_id: int,
+    avoid_dividend_dates: bool,
+    next_dividend_date: Optional[datetime],
 ) -> Tuple[bool, Optional[str]]:
     """Validate that trading is allowed on dividend dates."""
-    if not user.settings.avoid_dividend_dates:
+    if not avoid_dividend_dates:
         return True, None
 
-    if not instrument.next_dividend_date:
+    if not next_dividend_date:
         return True, None
 
-    if instrument.next_dividend_date.date() == date.today():
+    if next_dividend_date.date() == date.today():
         await _log_validation_error(
             "Alert received on dividend date",
             "Alert has been ignored due to being received on the dividend date",
-            user.id,
+            user_id,
             payload,
-            {"dividend_date": instrument.next_dividend_date.isoformat()},
+            {"dividend_date": next_dividend_date.isoformat()},
         )
 
         return False, ValidationError.ALERT_ON_DIVIDEND_DATE.value
@@ -223,17 +227,19 @@ async def _validate_dividend_date(
 
 async def _validate_position_or_working_order_does_not_exist(
     payload: WebhookPayload,
-    user: User,
-    instrument: Instrument,
+    user_id: int,
+    instrument_id,
+    instrument_ig_epic: Optional[str],
+    prevent_duplicate_positions_for_instrument: bool,
     positions_data,
     working_orders_data,
 ) -> Tuple[bool, Optional[str]]:
     """Validate that a position or working order does not already exist for the instrument's IG epic"""
-    if not instrument.ig_epic:
+    if not instrument_ig_epic:
         # If there's no IG epic, we can't check positions, so allow the trade
         return True, None
 
-    if not user.settings.prevent_duplicate_positions_for_instrument:
+    if not prevent_duplicate_positions_for_instrument:
         return True, None
 
     if positions_data is None or working_orders_data is None:
@@ -242,15 +248,15 @@ async def _validate_position_or_working_order_does_not_exist(
 
     # Check if any existing position matches the instrument's IG epic
     for position_data in positions_data:
-        if position_data.market.epic == instrument.ig_epic:
+        if position_data.market.epic == instrument_ig_epic:
             await _log_validation_error(
                 "Position already exists for instrument",
                 "Alert has been rejected because a position already exists for this instrument",
-                user.id,
+                user_id,
                 payload,
                 {
-                    "instrument_id": str(instrument.id),
-                    "ig_epic": instrument.ig_epic,
+                    "instrument_id": str(instrument_id),
+                    "ig_epic": instrument_ig_epic,
                     "existing_deal_id": position_data.position.deal_id,
                     "existing_position_size": str(position_data.position.size),
                     "existing_position_direction": position_data.position.direction,
@@ -263,16 +269,16 @@ async def _validate_position_or_working_order_does_not_exist(
     for working_order in working_orders_data:
         if (
             working_order.working_order_data
-            and working_order.working_order_data.epic == instrument.ig_epic
+            and working_order.working_order_data.epic == instrument_ig_epic
         ):
             await _log_validation_error(
                 "Working order already exists for instrument",
                 "Alert has been rejected because a working order already exists for this instrument",
-                user.id,
+                user_id,
                 payload,
                 {
-                    "instrument_id": str(instrument.id),
-                    "ig_epic": instrument.ig_epic,
+                    "instrument_id": str(instrument_id),
+                    "ig_epic": instrument_ig_epic,
                     "existing_deal_id": working_order.working_order_data.deal_id,
                     "existing_order_size": str(
                         working_order.working_order_data.order_size
@@ -288,10 +294,14 @@ async def _validate_position_or_working_order_does_not_exist(
 
 
 async def _validate_maximum_pending_orders(
-    user: User, payload: WebhookPayload, working_orders_data, db
+    user_id: int,
+    enforce_maximum_open_positions: bool,
+    maximum_open_positions: int,
+    payload: WebhookPayload,
+    working_orders_data,
 ) -> Tuple[bool, Optional[str]]:
     """Validate that the user has not exceeded their maximum pending orders."""
-    if not user.settings.enforce_maximum_open_positions:
+    if not enforce_maximum_open_positions:
         return True, None
 
     if working_orders_data is None:
@@ -300,14 +310,14 @@ async def _validate_maximum_pending_orders(
 
     pending_orders_count = len(working_orders_data)
 
-    if pending_orders_count >= user.settings.maximum_open_positions:
+    if pending_orders_count >= maximum_open_positions:
         await _log_validation_error(
             "Maximum open positions exceeded",
             "Alert has been ignored due to exceeding maximum open positions",
-            user.id,
+            user_id,
             payload,
             {
-                "maximum_open_positions": user.settings.maximum_open_positions,
+                "maximum_open_positions": maximum_open_positions,
                 "current_pending_orders_count": pending_orders_count,
             },
         )
@@ -318,10 +328,15 @@ async def _validate_maximum_pending_orders(
 
 
 async def _validate_maximum_open_positions_and_pending_orders(
-    payload: WebhookPayload, user: User, positions_data, working_orders_data, db
+    payload: WebhookPayload,
+    user_id: int,
+    enforce_maximum_open_positions_and_pending_orders: bool,
+    maximum_open_positions_and_pending_orders: int,
+    positions_data,
+    working_orders_data,
 ) -> Tuple[bool, Optional[str]]:
     """Validate that the user has not exceeded their maximum open positions and pending orders combined."""
-    if not user.settings.enforce_maximum_open_positions_and_pending_orders:
+    if not enforce_maximum_open_positions_and_pending_orders:
         return True, None
 
     if positions_data is None or working_orders_data is None:
@@ -332,14 +347,14 @@ async def _validate_maximum_open_positions_and_pending_orders(
     pending_orders_count = len(working_orders_data)
     total_count = open_positions_count + pending_orders_count
 
-    if total_count >= user.settings.maximum_open_positions_and_pending_orders:
+    if total_count >= maximum_open_positions_and_pending_orders:
         await _log_validation_error(
             "Maximum open positions and pending orders exceeded",
             "Alert has been ignored due to exceeding maximum open positions and pending orders",
-            user.id,
+            user_id,
             payload,
             {
-                "maximum_open_positions_and_pending_orders": user.settings.maximum_open_positions_and_pending_orders,
+                "maximum_open_positions_and_pending_orders": maximum_open_positions_and_pending_orders,
                 "current_open_positions": open_positions_count,
                 "current_pending_orders": pending_orders_count,
                 "total_count": total_count,
@@ -366,9 +381,8 @@ async def _fetch_ig_positions_and_orders(
     """
     try:
         ig_client = await IGClient.create_for_user(user)
-
-        positions_response = ig_client.get_positions()
-        working_orders_response = ig_client.get_working_orders()
+        positions_response = await ig_client.get_positions()
+        working_orders_response = await ig_client.get_working_orders()
 
         return positions_response.positions, working_orders_response.working_orders
 
@@ -398,6 +412,7 @@ async def validate_webhook_payload(
     Returns:
         Tuple[bool, Optional[str]]: (is_valid, error_code)
     """
+    # Phase 1: Perform all DB-dependent validations, then release the session
     async with get_db_context() as db:
         # Validate user exists
         is_valid, error_code, user = await _validate_user_exists(payload, db)
@@ -421,46 +436,83 @@ async def validate_webhook_payload(
         if not is_valid:
             return is_valid, error_code
 
-        # Fetch IG positions and working orders data once
-        # This will be used by multiple validation functions
-        positions_data, working_orders_data = await _fetch_ig_positions_and_orders(
-            user, payload
-        )
-
-        # Validate maximum open positions
-        is_valid, error_code = await _validate_maximum_pending_orders(
-            user, payload, working_orders_data, db
-        )
-        if not is_valid:
-            return is_valid, error_code
-
-        # Validate maximum open positions and pending orders combined
-        (
-            is_valid,
-            error_code,
-        ) = await _validate_maximum_open_positions_and_pending_orders(
-            payload, user, positions_data, working_orders_data, db
-        )
-        if not is_valid:
-            return is_valid, error_code
-
-        # Validate trade cooldown timing
+        # Validate trade cooldown timing (requires DB to read last order)
         is_valid, error_code = await _validate_trade_cooldown_timing(
             payload, user, instrument, db
         )
         if not is_valid:
             return is_valid, error_code
 
-        # Validate position does not already exist
-        is_valid, error_code = await _validate_position_or_working_order_does_not_exist(
-            payload, user, instrument, positions_data, working_orders_data
+        # Extract scalar values needed after the DB session closes
+        user_id = user.id
+        enforce_maximum_open_positions = user.settings.enforce_maximum_open_positions
+        maximum_open_positions = user.settings.maximum_open_positions
+        enforce_maximum_open_positions_and_pending_orders = (
+            user.settings.enforce_maximum_open_positions_and_pending_orders
         )
-        if not is_valid:
-            return is_valid, error_code
+        maximum_open_positions_and_pending_orders = (
+            user.settings.maximum_open_positions_and_pending_orders
+        )
+        prevent_duplicate_positions_for_instrument = (
+            user.settings.prevent_duplicate_positions_for_instrument
+        )
+        avoid_dividend_dates = user.settings.avoid_dividend_dates
+        instrument_id = instrument.id
+        instrument_ig_epic = instrument.ig_epic
+        instrument_next_dividend_date = instrument.next_dividend_date
 
-        # Validate dividend date constraints
-        is_valid, error_code = await _validate_dividend_date(payload, user, instrument)
-        if not is_valid:
-            return is_valid, error_code
+    # Phase 2: Make IG calls outside of any DB session (may be rate-limited)
+    positions_data, working_orders_data = await _fetch_ig_positions_and_orders(
+        user, payload
+    )
+
+    # Validate maximum pending orders (no DB needed here)
+    is_valid, error_code = await _validate_maximum_pending_orders(
+        user_id,
+        enforce_maximum_open_positions,
+        maximum_open_positions,
+        payload,
+        working_orders_data,
+    )
+    if not is_valid:
+        return is_valid, error_code
+
+    # Validate maximum open positions and pending orders combined (no DB needed here)
+    (
+        is_valid,
+        error_code,
+    ) = await _validate_maximum_open_positions_and_pending_orders(
+        payload,
+        user_id,
+        enforce_maximum_open_positions_and_pending_orders,
+        maximum_open_positions_and_pending_orders,
+        positions_data,
+        working_orders_data,
+    )
+    if not is_valid:
+        return is_valid, error_code
+
+    # Validate position or working order does not already exist (based on IG data)
+    is_valid, error_code = await _validate_position_or_working_order_does_not_exist(
+        payload,
+        user_id,
+        instrument_id,
+        instrument_ig_epic,
+        prevent_duplicate_positions_for_instrument,
+        positions_data,
+        working_orders_data,
+    )
+    if not is_valid:
+        return is_valid, error_code
+
+    # Validate dividend date constraints
+    is_valid, error_code = await _validate_dividend_date(
+        payload,
+        user_id,
+        avoid_dividend_dates,
+        instrument_next_dividend_date,
+    )
+    if not is_valid:
+        return is_valid, error_code
 
     return True, None

@@ -32,17 +32,26 @@ export const LogsPagination = ({
   const totalPages = Math.ceil(totalCount / pageSize);
   const startEntry = (currentPage - 1) * pageSize + 1;
   const endEntry = Math.min(currentPage * pageSize, totalCount);
+  // Use a distinct value for the "All" option to avoid collisions with numeric values (e.g., when totalCount === 100)
+  const selectValue =
+    totalCount > 0 && totalCount <= MAX_TABLE_ROWS && pageSize === totalCount
+      ? "all"
+      : pageSize.toString();
 
   return (
     <div className="flex items-center justify-between px-2 py-3">
       <div className="flex items-center space-x-2">
         <p className="text-foreground text-sm font-medium">Rows per page</p>
         <Select
-          value={pageSize.toString()}
-          onValueChange={(value) => onPageSizeChange(Number(value))}
+          value={selectValue}
+          onValueChange={(value) =>
+            value === "all"
+              ? onPageSizeChange(totalCount)
+              : onPageSizeChange(Number(value))
+          }
         >
           <SelectTrigger className="bg-background border-border h-8 w-[80px]">
-            <SelectValue placeholder={pageSize} />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent side="top">
             {[10, 20, 50, 100].map((size) => (
@@ -50,8 +59,8 @@ export const LogsPagination = ({
                 {size}
               </SelectItem>
             ))}
-            {totalCount <= MAX_TABLE_ROWS && (
-              <SelectItem value={totalCount.toString()}>All</SelectItem>
+            {totalCount > 0 && totalCount <= MAX_TABLE_ROWS && (
+              <SelectItem value="all">All</SelectItem>
             )}
           </SelectContent>
         </Select>

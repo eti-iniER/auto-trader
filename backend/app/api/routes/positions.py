@@ -28,7 +28,7 @@ async def get_all_positions_from_ig(user: User, db: AsyncSession) -> List[Positi
     This function handles the IG API call and data transformation.
     """
     ig_client = await IGClient.create_for_user(user)
-    ig_response = ig_client.get_positions()
+    ig_response = await ig_client.get_positions()
 
     positions = await parse_ig_positions_to_schema(ig_response.positions, user, db)
     return positions
@@ -113,7 +113,7 @@ async def delete_position(
 
         # Call IG API to delete the position
         ig_client = await IGClient.create_for_user(user)
-        delete_response = ig_client.delete_position(delete_request)
+        delete_response = await ig_client.delete_position(delete_request)
 
         logger.info(
             f"Position {deal_id} deleted successfully for user {user.id}. Deal reference: {delete_response.deal_reference}"

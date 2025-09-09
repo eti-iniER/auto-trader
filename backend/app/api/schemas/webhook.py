@@ -10,3 +10,6 @@ class WebhookPayload(BaseModel):
     timestamp: AwareDatetime = Field(
         ..., description="The timestamp when the webhook was triggered"
     )
+    received_at: Optional[AwareDatetime] = Field(
+        None, description="The timestamp when the webhook was received"
+    )

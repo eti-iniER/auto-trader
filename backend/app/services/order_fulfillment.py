@@ -41,7 +41,7 @@ async def confirm_deal_reference_for_order(
             ig_client = await IGClient.create_for_user(user)
 
             confirm_request = ConfirmDealRequest(deal_reference=order.deal_reference)
-            confirmation = ig_client.confirm_deal(confirm_request)
+            confirmation = await ig_client.confirm_deal(confirm_request)
 
             # Return None if confirmation fails
             if confirmation is None:
@@ -66,11 +66,8 @@ async def confirm_deal_reference_for_order(
         return None
 
     finally:
-        if ig_client:
-            try:
-                ig_client.client.close()
-            except Exception:
-                pass
+        # IGClient lifecycle is managed by cache; do not close here.
+        pass
 
 
 # Log the outcome of an order confirmation for a user
@@ -178,7 +175,7 @@ async def check_order_conversion(order: Order) -> None:
         position_exists = False
         try:
             request = GetPositionByDealIdRequest(deal_id=order.deal_id)
-            position = ig_client.get_position_by_deal_id(request)
+            position = await ig_client.get_position_by_deal_id(request)
             position_exists = position is not None
         except Exception:
             # If we can't get the position, assume it doesn't exist
@@ -209,7 +206,7 @@ async def check_order_conversion(order: Order) -> None:
             try:
                 # Delete from IG first
                 delete_request = DeleteWorkingOrderRequest(deal_id=order.deal_id)
-                ig_client.delete_working_order(delete_request)
+                await ig_client.delete_working_order(delete_request)
             except Exception as e:
                 # Log the IG deletion failure but continue with DB deletion
                 await log_message(
@@ -262,8 +259,5 @@ async def check_order_conversion(order: Order) -> None:
         )
 
     finally:
-        if ig_client:
-            try:
-                ig_client.client.close()
-            except Exception:
-                pass
+        # IGClient lifecycle is managed by cache; do not close here.
+        pass

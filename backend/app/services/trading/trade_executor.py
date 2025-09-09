@@ -60,15 +60,15 @@ def _create_request_object(
         )
 
 
-def _execute_ig_request(
+async def _execute_ig_request(
     ig_client: IGClient,
     request: Union[CreatePositionRequest, CreateWorkingOrderRequest],
 ) -> None:
     """Execute the appropriate IG API call based on request type."""
     if isinstance(request, CreatePositionRequest):
-        ig_client.create_position(request)
+        await ig_client.create_position(request)
     else:
-        ig_client.create_working_order(request)
+        await ig_client.create_working_order(request)
 
 
 async def _log_order_success(
@@ -186,7 +186,7 @@ async def create_order(
             request.deal_reference = order_in_db.deal_reference
 
         # Execute the IG API call
-        _execute_ig_request(ig_client, request)
+        await _execute_ig_request(ig_client, request)
 
         # Log success
         await _log_order_success(user, instrument, request, order_in_db)

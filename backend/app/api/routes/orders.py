@@ -26,7 +26,7 @@ async def get_all_orders_from_ig(user: User) -> List[Order]:
     This function handles the IG API call and data transformation.
     """
     ig_client = await IGClient.create_for_user(user)
-    ig_response = ig_client.get_working_orders()
+    ig_response = await ig_client.get_working_orders()
     ig_orders_data = [
         order.model_dump(by_alias=True) for order in ig_response.working_orders
     ]
@@ -113,8 +113,7 @@ async def delete_working_order(
 
         # Call IG API to delete the working order
         ig_client = await IGClient.create_for_user(user)
-
-        delete_response = ig_client.delete_working_order(delete_request)
+        delete_response = await ig_client.delete_working_order(delete_request)
 
         logger.info(
             f"Working order {deal_id} deleted successfully for user {user.id}. Deal reference: {delete_response.deal_reference}"
