@@ -125,7 +125,7 @@ async def check_order_conversions():
             raise
 
 
-@dramatiq.actor(max_retries=3)
+@dramatiq.actor(max_retries=0)
 async def handle_trading_alert(payload_dict: dict):
     """
     Actor that wraps the handle_alert function for processing TradingView webhook alerts.
