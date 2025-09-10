@@ -6,7 +6,7 @@ import {
   StatCardSkeleton,
 } from "@/components/overview";
 import { PageHeader } from "@/components/page-header";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { useUserIGSettingsStatus } from "@/hooks/use-user-ig-settings-status";
 import { pluralize } from "@/lib/utils";
 import { FileChartColumn } from "lucide-react";
@@ -14,7 +14,7 @@ import { FiPieChart, FiShoppingCart } from "react-icons/fi";
 import { MdAccessTime, MdErrorOutline } from "react-icons/md";
 
 export const Overview = () => {
-  const { settings } = useDashboardContext();
+  const { settings } = useDashboard();
   const status = useUserIGSettingsStatus(settings);
   const { data: stats, isPending, isError } = useStats(status === "complete");
 

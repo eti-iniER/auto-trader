@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { DashboardLayout } from "@/layouts/dashboard";
 import { RootLayout } from "@/layouts/root";
 import { paths } from "@/paths";
+import { ThemeProvider } from "@/providers/theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
@@ -56,8 +57,10 @@ export const App = () => {
   return (
     <QueryClientProvider client={client}>
       <BrowserRouter>
-        <Toaster position="top-center" richColors />
-        <AppRoutes />
+        <ThemeProvider defaultTheme="light" storageKey="auto-trader-theme">
+          <Toaster position="top-center" richColors theme="light" />
+          <AppRoutes />
+        </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

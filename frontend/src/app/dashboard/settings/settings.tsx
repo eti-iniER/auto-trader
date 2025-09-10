@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { LoaderWrapper } from "@/components/ui/loader-wrapper";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { useModal } from "@/hooks/use-modal";
 import { paths } from "@/paths";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,7 @@ import {
 } from "./sections";
 
 export const Settings = () => {
-  const { settings } = useDashboardContext();
+  const { settings } = useDashboard();
   const updateSettings = useUpdateUserSettings();
   const newWebhookSecret = useNewWebhookSecret();
   const logoutMutation = useLogout();

@@ -4,7 +4,7 @@ import { FiMenu, FiX, FiLogOut } from "react-icons/fi";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../../lib/utils";
 import { sidebarLinks, adminSidebarLinks } from "./links";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { useLogout } from "@/api/hooks/authentication/use-logout";
 import { paths } from "@/paths";
 
@@ -14,7 +14,7 @@ interface MobileSidebarProps {
 
 export const MobileSidebar: React.FC<MobileSidebarProps> = ({ className }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, settings } = useDashboardContext();
+  const { user, settings } = useDashboard();
   const navigate = useNavigate();
   const logoutMutation = useLogout();
   const userInitial = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();

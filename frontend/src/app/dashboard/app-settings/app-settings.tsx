@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { LoaderWrapper } from "@/components/ui/loader-wrapper";
 import { Switch } from "@/components/ui/switch";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { paths } from "@/paths";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,7 +22,7 @@ import { toast } from "sonner";
 import { appSettingsSchema, type AppSettingsFormData } from "./schema";
 
 export const AppSettings = () => {
-  const { user, appSettings } = useDashboardContext();
+  const { user, appSettings } = useDashboard();
   const updateAppSettings = useUpdateAppSettings();
   const navigate = useNavigate();
   const logout = useLogout();

@@ -3,7 +3,7 @@ import { useUpdateUser } from "@/api/hooks/users/use-update-user";
 import { useUsers } from "@/api/hooks/users/use-users";
 import { PageHeader } from "@/components/page-header";
 import { UsersTable } from "@/components/users-table";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { useModal } from "@/hooks/use-modal";
 import { usePagination } from "@/hooks/use-pagination";
 import { useState } from "react";
@@ -20,7 +20,7 @@ interface EditUserData {
 }
 
 export const Users: React.FC = () => {
-  const { user } = useDashboardContext();
+  const { user } = useDashboard();
   const pagination = usePagination({ initialPageSize: 20 });
 
   const {

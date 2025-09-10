@@ -2,7 +2,7 @@ import { useDeletePosition } from "@/api/hooks/positions/use-delete-position";
 import { usePositions } from "@/api/hooks/positions/use-positions";
 import { PageHeader } from "@/components/page-header";
 import { PositionsTable } from "@/components/positions-table";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { useModal } from "@/hooks/use-modal";
 import { usePagination } from "@/hooks/use-pagination";
 import { useUserIGSettingsStatus } from "@/hooks/use-user-ig-settings-status";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { DeletePositionDialog } from ".";
 
 export const Positions = () => {
-  const { settings } = useDashboardContext();
+  const { settings } = useDashboard();
   const pagination = usePagination({ initialPageSize: 20 });
 
   const deletePosition = useDeletePosition();

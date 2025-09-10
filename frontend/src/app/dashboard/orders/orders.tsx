@@ -2,7 +2,7 @@ import { useDeleteOrder } from "@/api/hooks/orders/use-delete-order";
 import { useOrders } from "@/api/hooks/orders/use-orders";
 import { OrdersTable } from "@/components/orders-table";
 import { PageHeader } from "@/components/page-header";
-import { useDashboardContext } from "@/hooks/contexts/use-dashboard-context";
+import { useDashboard } from "@/hooks/contexts/use-dashboard";
 import { useModal } from "@/hooks/use-modal";
 import { usePagination } from "@/hooks/use-pagination";
 import { useUserIGSettingsStatus } from "@/hooks/use-user-ig-settings-status";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { DeleteOrderDialog } from ".";
 
 export const Orders = () => {
-  const { settings } = useDashboardContext();
+  const { settings } = useDashboard();
   const pagination = usePagination({ initialPageSize: 20 });
   const status = useUserIGSettingsStatus(settings);
 
