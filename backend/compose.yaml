@@ -20,7 +20,7 @@ services:
     dramatiq_worker:
         image: etinier/auto-trader
         restart: unless-stopped
-        command: dramatiq app.tasks
+        command: dramatiq app.tasks --processes 1
         env_file:
             - .env
         environment:

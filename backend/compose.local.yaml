@@ -23,7 +23,7 @@ services:
         build: .
         volumes:
             - .:/app
-        command: dramatiq app.tasks
+        command: dramatiq app.tasks --processes 1
         env_file:
             - .env
         environment:
