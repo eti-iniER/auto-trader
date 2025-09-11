@@ -113,6 +113,11 @@ class Settings(BaseSettings):
         env="LOG_LEVEL",
         description="Logging level for the application",
     )
+    IG_API_MAX_REQUESTS_PER_MINUTE: int = Field(
+        default=50,
+        env="IG_API_MAX_REQUESTS_PER_MINUTE",
+        description="Maximum number of requests to IG API per minute",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

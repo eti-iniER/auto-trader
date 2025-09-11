@@ -41,7 +41,7 @@ class IGClient:
         api_key: str,
         user_id: str,
         base_url: str = settings.IG_DEMO_API_BASE_URL,
-        rpm_limit: int = 60,
+        rpm_limit: int = settings.IG_API_MAX_REQUESTS_PER_MINUTE,
         managed_by_cache: bool = False,
         cache_key: Optional[str] = None,
     ):
