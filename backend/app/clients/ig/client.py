@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Dict, Optional
 
 import asyncio
 import httpx
@@ -29,12 +29,17 @@ class IGClient:
     # Class-level cache for storing client instances
     _client_cache = Cache.MEMORY(namespace="ig_clients")
 
+    # Class-level cache for per-user rate limiters
+    _user_limiters: Dict[str, AsyncLimiter] = {}
+    _limiter_lock = asyncio.Lock()
+
     def __init__(
         self,
         username: str,
         password: str,
         account_id: str,
         api_key: str,
+        user_id: str,
         base_url: str = settings.IG_DEMO_API_BASE_URL,
         rpm_limit: int = 60,
         managed_by_cache: bool = False,
@@ -45,11 +50,12 @@ class IGClient:
         self.api_key = api_key
         self.base_url = base_url
         self.account_id = account_id
+        self.user_id = user_id
         # Whether this client instance lifecycle is managed by the class-level cache
         self._managed_by_cache = managed_by_cache
         self._cache_key = cache_key
-        # Per-user async rate limiter (default 60 requests per minute)
-        self._limiter = AsyncLimiter(max_rate=rpm_limit, time_period=60)
+        # Get or create a rate limiter for this specific user
+        self._limiter = self._get_user_limiter(str(user_id), rpm_limit)
 
         # Async HTTP client
         self.client = httpx.AsyncClient(
@@ -67,6 +73,15 @@ class IGClient:
                 "response": [async_response_hook],
             },
         )
+
+    @classmethod
+    def _get_user_limiter(cls, user_id: str, rpm_limit: int) -> AsyncLimiter:
+        """Get or create a rate limiter for a specific user."""
+        if user_id not in cls._user_limiters:
+            cls._user_limiters[user_id] = AsyncLimiter(
+                max_rate=rpm_limit, time_period=60
+            )
+        return cls._user_limiters[user_id]
 
     @classmethod
     async def create_for_user(cls, user: User) -> "IGClient":
@@ -140,6 +155,7 @@ class IGClient:
             api_key=api_key,
             base_url=base_url,
             account_id=account_id,
+            user_id=str(user.id),
             managed_by_cache=True,
             cache_key=cache_key,
         )
