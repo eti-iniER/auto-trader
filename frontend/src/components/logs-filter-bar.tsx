@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LuDownload, LuRotateCcw } from "react-icons/lu";
+import { LuChevronDown, LuDownload, LuRotateCcw } from "react-icons/lu";
 
 interface LogsFilterBarProps {
   fromDate?: Date;
@@ -45,6 +46,7 @@ export const LogsFilterBar = ({
   onDownload,
   onReset,
 }: LogsFilterBarProps) => {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const handleLastHoursChange = (value: string) => {
     const hours = value === "" ? undefined : parseInt(value, 10);
     if (hours && hours > 0) {
@@ -57,92 +59,114 @@ export const LogsFilterBar = ({
   };
 
   return (
-    <div className="bg-background rounded-lg border p-4">
-      {/* Mobile layout: stacked */}
-      <div className="flex flex-col gap-4 lg:hidden">
-        {/* Date filters */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="from-date" className="text-sm font-medium">
-              From
-            </label>
-            <DatePicker
-              date={fromDate}
-              onDateChange={onFromDateChange}
-              placeholder="Select start date"
-              className="w-full"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="to-date" className="text-sm font-medium">
-              To
-            </label>
-            <DatePicker
-              date={toDate}
-              onDateChange={onToDateChange}
-              placeholder="Select end date"
-              className="w-full"
-            />
-          </div>
-        </div>
+    <div className="bg-background rounded-lg border p-3 lg:p-4">
+      {/* Mobile layout: collapsible */}
+      <div className="lg:hidden">
+        <button
+          type="button"
+          className="bg-card flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium"
+          onClick={() => setIsMobileOpen((o) => !o)}
+          aria-expanded={isMobileOpen}
+          aria-controls="logs-filter-mobile"
+        >
+          <span>Filter</span>
+          <LuChevronDown
+            className={`h-4 w-4 transition-transform ${isMobileOpen ? "rotate-180" : "rotate-0"}`}
+          />
+        </button>
 
-        {/* Quick filters */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="last-hours" className="text-sm font-medium">
-              Last (hours)
-            </label>
-            <Input
-              id="last-hours"
-              type="number"
-              min="1"
-              placeholder="24"
-              value={lastHours || ""}
-              onChange={(e) => handleLastHoursChange(e.target.value)}
-              className="w-full"
-            />
-          </div>
+        <div
+          id="logs-filter-mobile"
+          className={`${isMobileOpen ? "mt-3" : "hidden"}`}
+        >
+          <div className="flex flex-col gap-3">
+            {/* Date filters */}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="from-date" className="text-sm font-medium">
+                  From
+                </label>
+                <DatePicker
+                  date={fromDate}
+                  onDateChange={onFromDateChange}
+                  placeholder="Select start date"
+                  className="w-full"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="to-date" className="text-sm font-medium">
+                  To
+                </label>
+                <DatePicker
+                  date={toDate}
+                  onDateChange={onToDateChange}
+                  placeholder="Select end date"
+                  className="w-full"
+                />
+              </div>
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="log-type" className="text-sm font-medium">
-              Type
-            </label>
-            <Select
-              value={type || "ALL"}
-              onValueChange={(value) => onTypeChange(value as LogType | "ALL")}
-            >
-              <SelectTrigger className="w-full" id="log-type">
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent>
-                {LOG_TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+            {/* Quick filters */}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="last-hours" className="text-sm font-medium">
+                  Last (hours)
+                </label>
+                <Input
+                  id="last-hours"
+                  type="number"
+                  min="1"
+                  placeholder="24"
+                  value={lastHours || ""}
+                  onChange={(e) => handleLastHoursChange(e.target.value)}
+                  className="w-full"
+                />
+              </div>
 
-        {/* Action buttons row */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
-          <Button
-            onClick={onReset}
-            variant="default"
-            className="w-full sm:w-auto"
-          >
-            <LuRotateCcw className="h-4 w-4" />
-            Reset filters
-          </Button>
-          <Button
-            onClick={onDownload}
-            variant="default"
-            className="w-full sm:w-auto"
-          >
-            <LuDownload className="h-4 w-4" />
-            Download logs
-          </Button>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="log-type" className="text-sm font-medium">
+                  Type
+                </label>
+                <Select
+                  value={type || "ALL"}
+                  onValueChange={(value) =>
+                    onTypeChange(value as LogType | "ALL")
+                  }
+                >
+                  <SelectTrigger className="w-full" id="log-type">
+                    <SelectValue placeholder="All types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOG_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Action buttons row */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
+              <Button
+                onClick={onReset}
+                variant="default"
+                className="w-full sm:w-auto"
+              >
+                <LuRotateCcw className="h-4 w-4" />
+                Reset filters
+              </Button>
+              <Button
+                onClick={onDownload}
+                variant="default"
+                className="w-full sm:w-auto"
+              >
+                <LuDownload className="h-4 w-4" />
+                Download logs
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 

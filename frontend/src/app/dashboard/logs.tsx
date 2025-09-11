@@ -34,14 +34,14 @@ export const Logs = () => {
   if (isPending) {
     return (
       <div className="flex h-full flex-col">
-        <div className="flex-shrink-0 p-8 pb-0">
+        <div className="flex-shrink-0 p-4 pb-0 lg:p-8 lg:pb-0">
           <PageHeader
             title="Logs"
             description="View and download app activity logs"
           />
         </div>
 
-        <div className="flex-1 overflow-hidden px-8 pt-6">
+        <div className="min-h-0 flex-1 overflow-hidden p-4 pt-4 lg:px-8 lg:pt-6">
           <LogsContainerSkeleton />
         </div>
       </div>
@@ -51,14 +51,14 @@ export const Logs = () => {
   if (isError) {
     return (
       <div className="flex h-full flex-col">
-        <div className="flex-shrink-0 p-8 pb-0">
+        <div className="flex-shrink-0 p-4 pb-0 lg:p-8 lg:pb-0">
           <PageHeader
             title="Logs"
             description="View and download app activity logs"
           />
         </div>
 
-        <div className="flex-1 overflow-hidden px-8 pt-6">
+        <div className="min-h-0 flex-1 overflow-hidden p-4 pt-4 lg:px-8 lg:pt-6">
           <ErrorAlert
             message="Something went wrong"
             description="Failed to load logs. Please try again later."
@@ -94,13 +94,15 @@ export const Logs = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-shrink-0 p-8 pb-0">
+      {/* Header - always visible */}
+      <div className="flex-shrink-0 p-4 pb-0 lg:p-8 lg:pb-0">
         <PageHeader
           title="Logs"
           description="View and download app activity logs"
         />
 
-        <div className="mt-6">
+        {/* Filter bar - reduced padding on mobile */}
+        <div className="mt-4 lg:mt-6">
           <LogsFilterBar
             fromDate={fromDate}
             toDate={toDate}
@@ -128,10 +130,11 @@ export const Logs = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-8 py-6">
+      {/* Logs container - scrollable area with minimum height */}
+      <div className="min-h-0 flex-1 overflow-hidden p-4 pt-4 lg:px-8 lg:py-6">
         <LogsContainer>
           <div className="flex h-full flex-col">
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="space-y-3">
                 {logs.length === 0 ? (
                   <div className="text-muted-foreground py-12 text-center">
@@ -145,7 +148,7 @@ export const Logs = () => {
 
             {/* Pagination */}
             {totalCount > 0 && (
-              <div className="mt-6 flex-shrink-0">
+              <div className="mt-4 flex-shrink-0 lg:mt-6">
                 <LogsPagination
                   currentPage={pagination.page}
                   totalCount={totalCount}
