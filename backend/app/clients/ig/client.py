@@ -11,233 +11,18 @@ from app.config import settings
 from app.db.enums import UserSettingsMode
 from app.db.models import User
 from fastapi import HTTPException, status
-from tenacity import (
-    after_log,
-    before_sleep_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
+from .authentication import OAuth2
+from .caching import cache_client_request
 from .exceptions import IGAPIError, IGAuthenticationError
+from .logging import (
+    async_request_hook,
+    async_response_hook,
+)
+from .retries import ig_api_retry
 from .types import *
 
 logger = logging.getLogger("ig_client")
-
-
-# Common retry decorator for API methods
-def ig_api_retry(method):
-    """Decorator for retrying IG API methods with exponential backoff."""
-
-    def should_retry(exception):
-        """Custom retry condition for IG API calls."""
-        # Always retry on network-related errors
-        if isinstance(
-            exception,
-            (
-                httpx.HTTPStatusError,
-                httpx.RequestError,
-                httpx.ConnectError,
-                httpx.TimeoutException,
-            ),
-        ):
-            return True
-
-        # Retry on specific IG API errors that are transient
-        if isinstance(exception, IGAPIError):
-            # Retry on server errors (5xx) and rate limiting
-            if exception.status_code in (500, 502, 503, 504, 429):
-                return True
-            # Don't retry on client errors (4xx) except for rate limiting
-            if 400 <= exception.status_code < 500 and exception.status_code != 429:
-                return False
-
-        # Don't retry authentication errors (they need credential refresh)
-        if isinstance(exception, IGAuthenticationError):
-            return False
-
-        return False
-
-    return retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=should_retry,
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        after=after_log(logger, logging.INFO),
-        reraise=True,
-    )(method)
-
-
-def log_request(request):
-    """Log the outgoing request details."""
-    logger.debug(f"=== REQUEST ===")
-    logger.debug(f"Method: {request.method}")
-    logger.debug(f"URL: {request.url}")
-    logger.debug(f"Headers: {dict(request.headers)}")
-
-    # For httpx, check if request has content to log
-    try:
-        if hasattr(request, "content") and request.content:
-            content = request.content
-            if isinstance(content, bytes):
-                try:
-                    if request.headers.get("content-type", "").startswith(
-                        "application/json"
-                    ):
-                        body = json.loads(content.decode("utf-8"))
-                        logger.debug(f"Body: {json.dumps(body, indent=2)}")
-                    else:
-                        logger.debug(f"Body: {content.decode('utf-8')}")
-                except (UnicodeDecodeError, json.JSONDecodeError):
-                    logger.debug(f"Body (raw): {content}")
-            else:
-                logger.debug(f"Body: {content}")
-        elif hasattr(request, "stream") and request.stream:
-            # For streamed requests, we can't easily log the body without consuming it
-            logger.debug("Body: <streamed content>")
-    except Exception as e:
-        logger.debug(f"Could not log request body: {e}")
-    logger.debug("=== END REQUEST ===")
-
-
-def log_response(response):
-    """Log the incoming response details."""
-    logger.debug(f"=== RESPONSE ===")
-    logger.debug(f"Status Code: {response.status_code}")
-    logger.debug(f"Headers: {dict(response.headers)}")
-
-    try:
-        # Ensure the response content is read
-        if not response.is_closed:
-            # For sync responses, .read() ensures content; async hook ensures aread() beforehand
-            if hasattr(response, "_content") and response._content is None:
-                try:
-                    response.read()
-                except Exception:
-                    # In async context, read is handled in async hook
-                    pass
-
-        if response.content:
-            if response.headers.get("content-type", "").startswith("application/json"):
-                try:
-                    body = response.json()
-                    logger.debug(f"Body: {json.dumps(body, indent=2)}")
-                except json.JSONDecodeError:
-                    # Fallback to text if JSON parsing fails
-                    logger.debug(f"Body: {response.text}")
-            else:
-                logger.debug(f"Body: {response.text}")
-        else:
-            logger.debug("Body: <empty>")
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        try:
-            logger.debug(f"Body (raw): {response.content}")
-        except Exception:
-            logger.debug("Body: <could not decode>")
-    except Exception as e:
-        logger.debug(f"Could not log response body: {e}")
-    logger.debug("=== END RESPONSE ===")
-
-
-def request_hook(request):
-    """Hook called before sending a request (sync client)."""
-    log_request(request)
-
-
-def response_hook(response):
-    """Hook called after receiving a response (sync client)."""
-    log_response(response)
-
-
-async def async_request_hook(request):
-    """Async hook called before sending a request (AsyncClient)."""
-    log_request(request)
-
-
-async def async_response_hook(response):
-    """Async hook called after receiving a response (AsyncClient)."""
-    try:
-        # Ensure content is read in async context for safe logging
-        await response.aread()
-    except Exception:
-        pass
-    log_response(response)
-
-
-class OAuth2(httpx.Auth):
-    requires_response_body = True
-
-    def __init__(self, get_auth_data_func):
-        self._get_auth_data_func = get_auth_data_func
-        self.auth_data: Optional[AuthenticationData] = None
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type((httpx.HTTPStatusError, httpx.RequestError)),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        after=after_log(logger, logging.INFO),
-    )
-    def _make_authenticated_request(self, request):
-        """Make an authenticated request with retry logic (sync)."""
-        if not self.auth_data:
-            logger.debug("Getting authentication data for OAuth2 (sync)")
-            # For sync flow, call synchronously
-            self.auth_data = self._get_auth_data_func()
-
-        request.headers["Authorization"] = f"Bearer {self.auth_data.access_token}"
-        return request
-
-    def auth_flow(self, request):
-        # Sync flow retained for completeness (not used with AsyncClient)
-        request = self._make_authenticated_request(request)
-        log_request(request)
-        response = yield request
-        log_response(response)
-        if response.status_code == 401:
-            logger.debug("Received 401, refreshing authentication data (sync)")
-            self.auth_data = self._get_auth_data_func()
-            retry_request = request
-            retry_request.headers["Authorization"] = (
-                f"Bearer {self.auth_data.access_token}"
-            )
-            logger.debug("Retrying request with new authentication (sync)")
-            log_request(retry_request)
-            retry_response = yield retry_request
-            log_response(retry_response)
-
-    async def async_auth_flow(self, request):
-        # Apply authentication headers with retry logic (async)
-        if not self.auth_data:
-            logger.debug("Getting authentication data for OAuth2 (async)")
-            self.auth_data = await self._get_auth_data_func()
-
-        request.headers["Authorization"] = f"Bearer {self.auth_data.access_token}"
-        log_request(request)
-        response = yield request
-        # Ensure response body is available for potential retries
-        try:
-            await response.aread()
-        except Exception:
-            pass
-        log_response(response)
-
-        if response.status_code == 401:
-            logger.debug("Received 401, refreshing authentication data (async)")
-            self.auth_data = await self._get_auth_data_func()
-            retry_request = request
-            retry_request.headers["Authorization"] = (
-                f"Bearer {self.auth_data.access_token}"
-            )
-            logger.debug("Retrying request with new authentication (async)")
-            log_request(retry_request)
-            retry_response = yield retry_request
-            try:
-                await retry_response.aread()
-            except Exception:
-                pass
-            log_response(retry_response)
 
 
 class IGClient:
@@ -530,6 +315,7 @@ class IGClient:
 
         return GetHistoryResponse(**data)
 
+    @cache_client_request(ttl=5, namespace="ig_client")
     @ig_api_retry
     async def get_positions(self) -> PositionsResponse:
         """
@@ -582,6 +368,7 @@ class IGClient:
 
         return CreatePositionResponse(**data)
 
+    @cache_client_request(ttl=5, namespace="ig_client")
     @ig_api_retry
     async def get_working_orders(self) -> WorkingOrdersResponse:
         """
