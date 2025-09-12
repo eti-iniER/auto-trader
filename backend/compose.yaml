@@ -20,7 +20,7 @@ services:
     dramatiq_worker:
         image: etinier/auto-trader
         restart: unless-stopped
-        command: dramatiq app.tasks --processes 1
+        command: uv run dramatiq app.tasks --processes 1
         env_file:
             - .env
         environment:
@@ -37,7 +37,7 @@ services:
     periodiq_scheduler:
         image: etinier/auto-trader
         restart: unless-stopped
-        command: periodiq -v app.tasks
+        command: uv run periodiq -v app.tasks
         env_file:
             - .env
         environment:
