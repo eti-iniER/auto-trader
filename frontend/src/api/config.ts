@@ -1,4 +1,5 @@
-import { refreshToken } from "@/lib/authentication";
+import { ENDPOINTS_TO_SKIP_RETRIES } from "@/constants/authentication";
+import { refreshToken, skipRetry } from "@/lib/authentication";
 import { APIError } from "@/lib/errors";
 import { revivers } from "@/lib/revivers";
 import camelcaseKeys from "camelcase-keys";
@@ -34,9 +35,13 @@ export const api = ky.create({
       },
     ],
     afterResponse: [
-      async (_request, _options, response) => {
+      async (request, _options, response) => {
         // Trigger token refresh on unauthorized responses
-        if (response.status === 401 && !isRefreshing) {
+        if (
+          response.status === 401 &&
+          !isRefreshing &&
+          !skipRetry(request.url, ENDPOINTS_TO_SKIP_RETRIES)
+        ) {
           isRefreshing = true;
           try {
             await refreshToken();

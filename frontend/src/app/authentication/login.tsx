@@ -50,7 +50,6 @@ export const Login = () => {
         toast.success("Login successful!");
       },
       onError: (error) => {
-        console.log("Login error:", error);
         toast.error("Login failed", {
           description: error.message || "An unexpected error occurred.",
         });
