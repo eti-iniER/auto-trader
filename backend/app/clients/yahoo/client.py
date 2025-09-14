@@ -43,7 +43,7 @@ class YahooFinanceClient:
                 logger.info(f"No dividend data found for symbol: {symbol}")
                 return None
 
-            last_dividend_date = dividends.index[-1]
+            dividends.index[-1]
 
             info = ticker.info
 
@@ -82,7 +82,6 @@ class YahooFinanceClient:
 
             ticker = yf.Ticker(symbol)
             info = ticker.info
-            dividends = ticker.dividends
 
             # Get next dividend date
             next_dividend_date = self.get_next_dividend_date(symbol)

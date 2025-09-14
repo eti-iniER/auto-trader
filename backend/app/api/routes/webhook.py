@@ -1,6 +1,5 @@
 import logging
 
-from app.api.schemas.webhook import WebhookPayload
 from app.api.helpers.webhook_payload_parser import parse_webhook_payload
 from app.tasks import handle_trading_alert
 from fastapi import APIRouter, Request

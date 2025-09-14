@@ -366,7 +366,7 @@ async def get_instrument(
         if not instrument:
             raise APIException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                message=f"Instrument not found",
+                message="Instrument not found",
                 code="INSTRUMENT_NOT_FOUND",
             )
 
@@ -441,7 +441,7 @@ async def delete_instrument(
         if not existing_instrument:
             raise APIException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                message=f"Instrument not found",
+                message="Instrument not found",
                 code="INSTRUMENT_NOT_FOUND",
             )
 
@@ -449,7 +449,7 @@ async def delete_instrument(
     except Exception as e:
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=f"Failed to delete instrument",
+            message="Failed to delete instrument",
             code="INTERNAL_SERVER_ERROR",
             details={
                 "error": str(e),

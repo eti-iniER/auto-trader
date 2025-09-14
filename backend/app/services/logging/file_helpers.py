@@ -1,5 +1,4 @@
 from typing import List
-from io import BytesIO
 
 from app.db.models import Log
 from .formatter import format_log_entry

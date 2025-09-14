@@ -493,7 +493,7 @@ async def get_open_orders_for_user(db: AsyncSession, user_id: uuid.UUID) -> list
     Returns:
         List[Order]: A list of open order objects.
     """
-    stmt = select(Order).where(Order.user_id == user_id, Order.is_open == True)
+    stmt = select(Order).where(Order.user_id == user_id, Order.is_open)
     result = await db.execute(stmt)
     orders = result.scalars().all()
 

@@ -6,7 +6,7 @@ logger = logging.getLogger("ig_client")
 
 def log_request(request):
     """Log the outgoing request details."""
-    logger.debug(f"=== REQUEST ===")
+    logger.debug("=== REQUEST ===")
     logger.debug(f"Method: {request.method}")
     logger.debug(f"URL: {request.url}")
     logger.debug(f"Headers: {dict(request.headers)}")
@@ -38,7 +38,7 @@ def log_request(request):
 
 def log_response(response):
     """Log the incoming response details."""
-    logger.debug(f"=== RESPONSE ===")
+    logger.debug("=== RESPONSE ===")
     logger.debug(f"Status Code: {response.status_code}")
     logger.debug(f"Headers: {dict(response.headers)}")
 

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple
 from collections import defaultdict
 
 from sqlalchemy import select, update, case
@@ -278,7 +278,7 @@ async def fetch_and_update_single_dividend_date(
         # Log the action for the user
         if updated_count > 0:
             await log_message(
-                message=f"Dividend date updated for instrument",
+                message="Dividend date updated for instrument",
                 description=f"Dividend date for instrument {instrument.market_and_symbol} was updated to {dividend_datetime.strftime('%Y-%m-%d')} from Yahoo Finance.",
                 log_type="unspecified",
                 user_id=instrument.user_id,

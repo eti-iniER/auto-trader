@@ -127,7 +127,7 @@ async def register_user(
 
     await log_message(
         user_id=new_user.id,
-        message=f"Account created",
+        message="Account created",
         log_type="authentication",
     )
 
@@ -185,7 +185,7 @@ async def login(
 
     await log_message(
         user_id=user.id,
-        message=f"Logged in",
+        message="Logged in",
         log_type="authentication",
     )
     response.set_cookie(
@@ -251,7 +251,7 @@ async def send_reset_password_email_endpoint(
     logger.info(f"Reset password email queued for {payload.email}")
 
     await log_message(
-        message=f"You requested a password reset",
+        message="You requested a password reset",
         user_id=user.id,
         log_type="authentication",
     )
@@ -392,7 +392,7 @@ async def logout(
 
     await log_message(
         user_id=user.id,
-        message=f"Logged out",
+        message="Logged out",
         log_type="authentication",
     )
 

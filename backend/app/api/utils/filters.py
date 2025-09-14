@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
-from pydantic import AwareDatetime
 
 from fastapi import Query
 from app.db.enums import LogType

@@ -3,13 +3,13 @@ from typing import List
 
 import typer
 from pydantic import EmailStr
-from sqlalchemy import text, delete
+from sqlalchemy import delete
 from sqlalchemy.orm import selectinload
 from sqlalchemy.future import select
 
 from .db.crud import get_user_by_email
 from .db.enums import UserRole
-from .db.models import User, Order, Instrument, Log, UserSettings, AppSettings, Base
+from .db.models import User, Order, Instrument, Log, Base
 from .db.session import async_session, engine
 
 # Create the main CLI app

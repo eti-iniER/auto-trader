@@ -1,5 +1,4 @@
-from decimal import Decimal
-from typing import Literal, Optional
+from typing import Optional
 
 from pydantic import AwareDatetime, BaseModel, Field
 

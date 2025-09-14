@@ -66,9 +66,7 @@ async def cleanup_old_orders():
             )
 
             # Create delete statement for open orders older than cutoff time
-            stmt = delete(Order).where(
-                Order.created_at < cutoff_time, Order.is_open == True
-            )
+            stmt = delete(Order).where(Order.created_at < cutoff_time, Order.is_open)
 
             # Execute the deletion
             result = await db.execute(stmt)
@@ -88,7 +86,7 @@ async def cleanup_old_orders():
             raise
 
 
-@dramatiq.actor(periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=3)
+@dramatiq.actor(periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=1)
 async def check_order_conversions():
     """
     Check all orders with deal IDs to see if they've been converted to positions.

@@ -372,7 +372,7 @@ async def delete_user(
         await user_crud.delete(db, id=user_id)
 
         await log_message(
-            message=f"User deleted",
+            message="User deleted",
             description=f"You deleted user {user_to_delete.first_name} {user_to_delete.last_name} ({user_to_delete.email})",
             log_type="admin",
             user_id=admin_user.id,

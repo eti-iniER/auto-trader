@@ -10,7 +10,7 @@ from app.api.helpers.ig_utils import parse_ig_datetime
 from app.db.crud import get_market_and_symbol_by_ig_epic
 from app.db.models import User
 from app.api.schemas.positions import Position
-from app.clients.ig.types import PositionData, MarketData, PositionDetail
+from app.clients.ig.types import PositionData
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)

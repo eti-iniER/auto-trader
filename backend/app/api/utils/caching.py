@@ -76,7 +76,7 @@ def cache(ttl: int = 60, namespace: str = "main", extra_keys: dict = None):
             try:
                 # Store the serialized data directly (no JSON encoding needed)
                 await cache.set(cache_key, serialize_for_cache(response), ttl=ttl)
-            except Exception as e:
+            except Exception:
                 # Don't fail the request if caching fails
                 pass
 
@@ -126,7 +126,7 @@ def cache_user_data(ttl: int = 60, namespace: str = "main"):
             try:
                 # Store the serialized data directly (no JSON encoding needed)
                 await cache.set(cache_key, serialize_for_cache(response), ttl=ttl)
-            except Exception as e:
+            except Exception:
                 # Don't fail the request if caching fails, just log it
                 pass
 
