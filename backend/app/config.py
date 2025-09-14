@@ -114,7 +114,7 @@ class Settings(BaseSettings):
         description="Logging level for the application",
     )
     IG_API_MAX_REQUESTS_PER_MINUTE: int = Field(
-        default=30,
+        default=60,
         env="IG_API_MAX_REQUESTS_PER_MINUTE",
         description="Maximum number of requests to IG API per minute",
     )
@@ -141,6 +141,11 @@ LOGGING_CONFIG = {
     },
     "loggers": {
         "app": {
+            "level": settings.LOG_LEVEL,
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "dramatiq": {
             "level": settings.LOG_LEVEL,
             "handlers": ["console"],
             "propagate": False,

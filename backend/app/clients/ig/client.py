@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional
@@ -31,7 +30,6 @@ class IGClient:
 
     # Class-level cache for per-user rate limiters
     _user_limiters: Dict[str, AsyncLimiter] = {}
-    _limiter_lock = asyncio.Lock()
 
     def __init__(
         self,
@@ -68,6 +66,8 @@ class IGClient:
                 "Accept": "application/json",
                 "Version": "3",
             },
+            timeout=httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=30.0),
+            limits=httpx.Limits(max_keepalive_connections=20, max_connections=40),
             event_hooks={
                 "request": [async_request_hook],
                 "response": [async_response_hook],
@@ -76,12 +76,15 @@ class IGClient:
 
     @classmethod
     def _get_user_limiter(cls, user_id: str, rpm_limit: int) -> AsyncLimiter:
-        """Get or create a rate limiter for a specific user."""
-        if user_id not in cls._user_limiters:
-            cls._user_limiters[user_id] = AsyncLimiter(
-                max_rate=rpm_limit, time_period=60
+        """Get or create a rate limiter for a specific user.
+        Note: if a limiter already exists for the user, its rate will not be updated by subsequent calls.
+        """
+        limiter = cls._user_limiters.get(user_id)
+        if limiter is None:
+            limiter = cls._user_limiters.setdefault(
+                user_id, AsyncLimiter(max_rate=rpm_limit, time_period=60)
             )
-        return cls._user_limiters[user_id]
+        return limiter
 
     @classmethod
     async def create_for_user(cls, user: User) -> "IGClient":
@@ -139,14 +142,12 @@ class IGClient:
             base_url = settings.IG_LIVE_API_BASE_URL
             account_id = user.settings.live_account_id
 
-        if not all([api_key, username, password]):
+        if not all([api_key, username, password, account_id]):
             mode_str = user.settings.mode.value.lower()
-            logger.error(
-                f"Credentials are: {api_key}, {username}, {password}, {account_id}"
-            )
+            logger.error(f"Incomplete {mode_str} IG credentials for user {user.id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Missing {mode_str} mode IG credentials. Please configure your {mode_str} API key, username, and password.",
+                detail=f"Missing {mode_str} IG credentials. Please set API key, username, password, and account ID.",
             )
 
         client = cls(
@@ -201,6 +202,12 @@ class IGClient:
             logger.debug(
                 f"Invalidated cached IG client for user {user.id} in {user_mode} mode"
             )
+            # Remove the per-user limiter to prevent unbounded growth if not reused
+            removed = cls._user_limiters.pop(str(user.id), None)
+            if removed is not None:
+                logger.debug(
+                    f"Removed rate limiter for user {user.id} after cache invalidation"
+                )
         except Exception as e:
             logger.warning(f"Failed to invalidate cache for user {user.id}: {e}")
 
@@ -213,6 +220,9 @@ class IGClient:
         try:
             await cls._client_cache.clear()
             logger.info("Cleared all cached IG clients")
+            # Also clear all per-user limiters
+            cls._user_limiters.clear()
+            logger.info("Cleared all IG client per-user rate limiters")
         except Exception as e:
             logger.warning(f"Failed to clear IG client cache: {e}")
 
@@ -262,6 +272,8 @@ class IGClient:
                 "Accept": "application/json",
                 "Version": "3",
             },
+            timeout=httpx.Timeout(connect=5.0, read=30.0, write=10.0, pool=30.0),
+            limits=httpx.Limits(max_keepalive_connections=20, max_connections=40),
             event_hooks={
                 "request": [async_request_hook],
                 "response": [async_response_hook],
@@ -289,7 +301,7 @@ class IGClient:
                     error_code="PARSE_ERROR",
                 )
 
-            if response.status_code != 200:
+            if not response.is_success:
                 logger.error(
                     f"Session request failed with status {response.status_code}"
                 )
@@ -302,6 +314,17 @@ class IGClient:
 
             logger.info("Session data retrieved successfully")
             return GetSessionResponse(**data)
+
+    def _safe_json(self, response: httpx.Response) -> dict:
+        try:
+            if (
+                response.headers.get("Content-Type", "").startswith("application/json")
+                and response.content
+            ):
+                return response.json()
+        except Exception as e:
+            logger.debug(f"Response JSON parse error: {e}")
+        return {}
 
     @ig_api_retry
     async def get_history(self, filters: GetHistoryFilters) -> GetHistoryResponse:
@@ -320,15 +343,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            data = self._safe_json(response)
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=data.get("errorCode"),
             )
 
+        data = self._safe_json(response)
         return GetHistoryResponse(**data)
 
     @cache_client_request(ttl=5, namespace="ig_client")
@@ -344,15 +367,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            data = self._safe_json(response)
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=data.get("errorCode"),
             )
 
+        data = self._safe_json(response)
         return PositionsResponse(**data)
 
     @ig_api_retry
@@ -373,16 +396,16 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data: dict = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            err = self._safe_json(response)
             raise IGAPIError(
-                message=data.get("errorCode", "Unknown error"),
+                message=err.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
-                error_code=data.get("errorCode", "Unknown error"),
+                error_code=err.get("errorCode", "Unknown error"),
             )
 
-        return CreatePositionResponse(**data)
+        data_parsed: dict = self._safe_json(response)
+        return CreatePositionResponse(**data_parsed)
 
     @cache_client_request(ttl=5, namespace="ig_client")
     @ig_api_retry
@@ -397,15 +420,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            data = self._safe_json(response)
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=data.get("errorCode"),
             )
 
+        data = self._safe_json(response)
         return WorkingOrdersResponse(**data)
 
     @ig_api_retry
@@ -426,17 +449,16 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data: dict = response.json()
-        print(data)
-
-        if response.status_code != 200:
+        if not response.is_success:
+            err = self._safe_json(response)
             raise IGAPIError(
-                message=data.get("errorCode", "Unknown error"),
+                message=err.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
-                error_code=data.get("errorCode", "None"),
+                error_code=err.get("errorCode", "None"),
             )
 
-        return CreateWorkingOrderResponse(**data)
+        data_parsed: dict = self._safe_json(response)
+        return CreateWorkingOrderResponse(**data_parsed)
 
     @ig_api_retry
     async def delete_working_order(
@@ -454,15 +476,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            data = self._safe_json(response)
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=data.get("errorCode"),
             )
 
+        data = self._safe_json(response)
         return DeleteWorkingOrderResponse(**data)
 
     @ig_api_retry
@@ -481,15 +503,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        response_data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            response_data = self._safe_json(response)
             raise IGAPIError(
                 message=response_data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=response_data.get("errorCode"),
             )
 
+        response_data = self._safe_json(response)
         return DeletePositionResponse(**response_data)
 
     @ig_api_retry
@@ -507,15 +529,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            data = self._safe_json(response)
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=data.get("errorCode"),
             )
 
+        data = self._safe_json(response)
         return DealConfirmation(**data)
 
     @ig_api_retry
@@ -535,15 +557,15 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            data = self._safe_json(response)
             raise IGAPIError(
                 message=data.get("errorCode", "Unknown error"),
                 status_code=response.status_code,
                 error_code=data.get("errorCode"),
             )
 
+        data = self._safe_json(response)
         return PositionData(**data)
 
     @ig_api_retry
@@ -605,11 +627,22 @@ class IGClient:
             "pageNumber": params.page_number,
         }
 
+        # Drop None values
+        query_params = {k: v for k, v in query_params.items() if v is not None}
+
         # Add optional date parameters if provided
         if params.from_date:
-            query_params["from"] = params.from_date
+            query_params["from"] = (
+                params.from_date.isoformat()
+                if isinstance(params.from_date, datetime)
+                else params.from_date
+            )
         if params.to_date:
-            query_params["to"] = params.to_date
+            query_params["to"] = (
+                params.to_date.isoformat()
+                if isinstance(params.to_date, datetime)
+                else params.to_date
+            )
 
         async with self._limiter:
             response = await self.client.get(
@@ -621,14 +654,14 @@ class IGClient:
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
 
-        data = response.json()
-
-        if response.status_code != 200:
+        if not response.is_success:
+            err = self._safe_json(response)
             raise IGAPIError(
                 status_code=response.status_code,
-                error_code=data.get("errorCode", "UNKNOWN_ERROR"),
+                error_code=err.get("errorCode", "UNKNOWN_ERROR"),
             )
 
+        data = self._safe_json(response)
         return GetPricesResponse(**data)
 
     @ig_api_retry

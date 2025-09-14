@@ -36,7 +36,7 @@ services:
                       - .venv/
                 - action: rebuild
                   path: ./pyproject.toml
-        command: uv run dramatiq app.tasks --processes 1
+        command: uv run dramatiq app.tasks --processes 1 --threads 16
         env_file:
             - .env
         environment:
