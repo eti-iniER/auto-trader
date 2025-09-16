@@ -29,9 +29,14 @@ logger = logging.getLogger(__name__)
 DIVIDEND_DATE_UPDATE_SCHEDULE = cron(settings.DIVIDEND_DATE_UPDATE_SCHEDULE)
 ORDER_CLEANUP_SCHEDULE = cron(settings.ORDER_CLEANUP_SCHEDULE)
 ORDER_CONVERSION_CHECK_SCHEDULE = cron(settings.ORDER_CONVERSION_CHECK_SCHEDULE)
+LOW_PRIORITY = 20
+MEDIUM_PRIORITY = 10
+HIGH_PRIORITY = 0
 
 
-@dramatiq.actor(periodic=DIVIDEND_DATE_UPDATE_SCHEDULE, max_retries=3)
+@dramatiq.actor(
+    periodic=DIVIDEND_DATE_UPDATE_SCHEDULE, max_retries=3, priority=LOW_PRIORITY
+)
 async def update_dividend_dates():
     """
     Fetch and update dividend dates for all instruments with Yahoo symbols.
@@ -50,7 +55,7 @@ async def update_dividend_dates():
             raise
 
 
-@dramatiq.actor(periodic=ORDER_CLEANUP_SCHEDULE, max_retries=3)
+@dramatiq.actor(periodic=ORDER_CLEANUP_SCHEDULE, max_retries=3, priority=LOW_PRIORITY)
 async def cleanup_old_orders():
     """
     Delete orders that are older than the configured number of hours.
@@ -86,7 +91,9 @@ async def cleanup_old_orders():
             raise
 
 
-@dramatiq.actor(periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=1)
+@dramatiq.actor(
+    periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=1, priority=MEDIUM_PRIORITY
+)
 async def check_order_conversions():
     """
     Check all orders with deal IDs to see if they've been converted to positions.
@@ -123,7 +130,7 @@ async def check_order_conversions():
             raise
 
 
-@dramatiq.actor(max_retries=0)
+@dramatiq.actor(max_retries=0, priority=HIGH_PRIORITY)
 async def handle_trading_alert(payload_dict: dict):
     """
     Actor that wraps the handle_alert function for processing TradingView webhook alerts.

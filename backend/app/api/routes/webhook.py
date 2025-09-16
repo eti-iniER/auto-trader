@@ -24,7 +24,6 @@ async def trading_view_webhook(request: Request):
     received_at = datetime.now(timezone.utc)
     payload = parse_webhook_payload(alert)
     payload.received_at = received_at
-    logger.info(f"Parsed payload: {payload}")
 
     # Send the payload to the actor for processing
     handle_trading_alert.send(payload.model_dump(mode="json"))

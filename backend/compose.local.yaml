@@ -14,7 +14,7 @@ services:
         entrypoint: ["/app/entrypoint.local.sh"]
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
-            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbit_mq:5672/
+            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
         ports:
             - 80:80
         env_file:
@@ -25,7 +25,7 @@ services:
             postgres:
                 condition: service_healthy
 
-    dramatiq_worker:
+    dramatiq:
         build: .
         develop:
             watch:
@@ -41,16 +41,16 @@ services:
             - .env
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
-            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbit_mq:5672/
+            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
         depends_on:
             fastapi:
                 condition: service_started
-            rabbit_mq:
+            rabbitmq:
                 condition: service_healthy
         networks:
             - app-network
 
-    periodiq_scheduler:
+    periodiq:
         build: .
         develop:
             watch:
@@ -66,11 +66,11 @@ services:
             - .env
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
-            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbit_mq:5672/
+            - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
         depends_on:
-            dramatiq_worker:
+            dramatiq:
                 condition: service_started
-            rabbit_mq:
+            rabbitmq:
                 condition: service_healthy
         networks:
             - app-network
@@ -93,7 +93,7 @@ services:
             retries: 5
             start_period: 10s
 
-    rabbit_mq:
+    rabbitmq:
         image: rabbitmq:3-management
         ports:
             - "5672:5672"

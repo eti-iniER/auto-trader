@@ -82,7 +82,7 @@ class IGClient:
         limiter = cls._user_limiters.get(user_id)
         if limiter is None:
             limiter = cls._user_limiters.setdefault(
-                user_id, AsyncLimiter(max_rate=rpm_limit, time_period=60)
+                user_id, AsyncLimiter(max_rate=1, time_period=60 / rpm_limit)
             )
         return limiter
 
