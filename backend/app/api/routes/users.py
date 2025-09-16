@@ -12,6 +12,7 @@ from app.api.utils.pagination import (
     PaginationParams,
     build_paginated_response,
 )
+from app.clients.ig import IGClient
 from app.db.models import AppSettings
 from app.api.utils.admin import get_app_settings
 from app.db.crud import update_user
@@ -115,6 +116,7 @@ async def update_user_settings(
     """
     try:
         existing_settings = await user_settings_crud.exists(db, user_id=user.id)
+
         if not existing_settings:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -137,6 +139,7 @@ async def update_user_settings(
             user_id=user.id,
         )
 
+        IGClient.invalidate_user_cache(user)
         return updated_settings
     except HTTPException:
         raise
