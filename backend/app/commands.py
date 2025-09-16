@@ -207,6 +207,48 @@ async def _clear_logs_async() -> bool:
             return False
 
 
+async def _delete_user_logs_async(email: EmailStr) -> bool:
+    """
+    Async helper function to delete all logs for a specific user.
+
+    Args:
+        email (EmailStr): The email of the user whose logs should be deleted
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    async with async_session() as db:
+        try:
+            # Find the user by email
+            user = await get_user_by_email(db, email)
+
+            if not user:
+                typer.echo(f"❌ User with email '{email}' not found.", err=True)
+                return False
+
+            # Get count before deletion
+            count_stmt = select(Log).where(Log.user_id == user.id)
+            count_result = await db.execute(count_stmt)
+            logs_count = len(list(count_result.scalars().all()))
+
+            if logs_count == 0:
+                typer.echo(f"ℹ️  No logs found for user '{email}'.")
+                return True
+
+            # Delete logs for that user
+            delete_stmt = delete(Log).where(Log.user_id == user.id)
+            await db.execute(delete_stmt)
+            await db.commit()
+
+            typer.echo(f"✅ Successfully deleted {logs_count} logs for user '{email}'.")
+            return True
+
+        except Exception as e:
+            await db.rollback()
+            typer.echo(f"❌ Error deleting logs for user: {str(e)}", err=True)
+            return False
+
+
 @app.command(name="make-admin")
 def make_admin(
     email: str = typer.Option(
@@ -413,6 +455,42 @@ def clear_logs(
 
     # Run the async function
     success = asyncio.run(_clear_logs_async())
+
+    if not success:
+        raise typer.Exit(1)
+
+
+@app.command(name="delete-user-logs")
+def delete_user_logs(
+    email: str = typer.Option(
+        ..., prompt="User email", help="Email of the user whose logs to delete"
+    ),
+    confirm: bool = typer.Option(
+        False, "--confirm", help="Confirm deletion of the user's logs without prompting"
+    ),
+) -> None:
+    """
+    Delete all logs for a specific user.
+
+    WARNING: This will permanently delete ALL logs for the specified user.
+    This action cannot be undone.
+
+    Example:
+        python -m app.commands delete-user-logs --email user@example.com --confirm
+    """
+    if not confirm:
+        typer.echo("⚠️  WARNING: This will delete ALL logs for the specified user!")
+        typer.echo("This action cannot be undone.")
+
+        confirmation = typer.confirm("Are you sure you want to continue?")
+        if not confirmation:
+            typer.echo("❌ Operation cancelled.")
+            raise typer.Exit(0)
+
+    typer.echo(f"🔄 Deleting logs for user '{email}'...")
+
+    # Run the async function
+    success = asyncio.run(_delete_user_logs_async(email))
 
     if not success:
         raise typer.Exit(1)
