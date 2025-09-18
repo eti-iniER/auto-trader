@@ -15,6 +15,7 @@ services:
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
             - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+            - REDIS_URL=redis://redis:6379/0
         ports:
             - 80:80
         env_file:
@@ -42,6 +43,7 @@ services:
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
             - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+            - REDIS_URL=redis://redis:6379/0
         depends_on:
             fastapi:
                 condition: service_started
@@ -67,6 +69,7 @@ services:
         environment:
             - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/postgres
             - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+            - REDIS_URL=redis://redis:6379/0
         depends_on:
             dramatiq:
                 condition: service_started
@@ -106,6 +109,19 @@ services:
             timeout: 5s
             retries: 5
             start_period: 30s
+
+    redis:
+        image: redis:8
+        ports:
+            - "6379:6379"
+        networks:
+            - app-network
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
 
 volumes:
     caddy_data:

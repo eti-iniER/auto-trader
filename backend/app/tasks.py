@@ -16,6 +16,17 @@ from dramatiq.middleware import AsyncIO
 from periodiq import PeriodiqMiddleware, cron
 from sqlalchemy import delete
 
+from dramatiq.rate_limits import BucketRateLimiter
+from dramatiq.rate_limits.backends import RedisBackend
+
+backend = RedisBackend(url=settings.REDIS_URL)
+limiter = BucketRateLimiter(
+    backend,
+    "distributed-mutex",
+    limit=settings.DRAMATIQ_ACTOR_RATE_LIMIT,
+    bucket=60_000,
+)
+
 broker = RabbitmqBroker(url=settings.DRAMATIQ_BROKER_URL)
 broker.add_middleware(AsyncIO())
 broker.add_middleware(PeriodiqMiddleware(skip_delay=30))
@@ -113,15 +124,16 @@ async def check_order_conversions():
             logger.info(f"Checking conversion status for {len(orders)} orders")
 
             # Check each order for conversion
-            for order in orders:
-                try:
-                    await check_order_conversion(order)
-                except Exception as e:
-                    logger.error(
-                        f"Error checking conversion for order {order.id} "
-                        f"(deal_id: {order.deal_id}): {str(e)}"
-                    )
-                    # Continue with other orders even if one fails
+            with limiter.acquire() as acquired:
+                for order in orders:
+                    try:
+                        await check_order_conversion(order)
+                    except Exception as e:
+                        logger.error(
+                            f"Error checking conversion for order {order.id} "
+                            f"(deal_id: {order.deal_id}): {str(e)}"
+                        )
+                        # Continue with other orders even if one fails
 
             logger.info("Successfully completed order conversion check task")
 
@@ -130,7 +142,7 @@ async def check_order_conversions():
             raise
 
 
-@dramatiq.actor(max_retries=0, priority=HIGH_PRIORITY)
+@dramatiq.actor(priority=HIGH_PRIORITY)
 async def handle_trading_alert(payload_dict: dict):
     """
     Actor that wraps the handle_alert function for processing TradingView webhook alerts.
@@ -144,10 +156,11 @@ async def handle_trading_alert(payload_dict: dict):
         # Convert the dictionary back to WebhookPayload
         payload = WebhookPayload.model_validate(payload_dict)
 
-        # Call the handle_alert function
-        await handle_alert(payload)
+        with limiter.acquire() as acquired:
+            # Call the handle_alert function
+            await handle_alert(payload)
 
-        logger.info("Successfully processed trading alert")
+            logger.info("Successfully processed trading alert")
 
     except Exception as e:
         logger.error(f"Error processing trading alert: {str(e)}")

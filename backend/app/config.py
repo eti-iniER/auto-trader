@@ -118,6 +118,16 @@ class Settings(BaseSettings):
         env="IG_API_MAX_REQUESTS_PER_MINUTE",
         description="Maximum number of requests to IG API per minute",
     )
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0",
+        env="REDIS_URL",
+        description="URL for the Redis instance",
+    )
+    DRAMATIQ_ACTOR_RATE_LIMIT: int = Field(
+        default=12,
+        env="DRAMATIQ_ACTOR_RATE_LIMIT",
+        description="Rate limit for Dramatiq actors (number of messages per minute)",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 
