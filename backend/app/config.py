@@ -124,7 +124,7 @@ class Settings(BaseSettings):
         description="URL for the Redis instance",
     )
     DRAMATIQ_ACTOR_RATE_LIMIT: int = Field(
-        default=12,
+        default=15,
         env="DRAMATIQ_ACTOR_RATE_LIMIT",
         description="Rate limit for Dramatiq actors (number of messages per minute)",
     )

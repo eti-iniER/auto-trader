@@ -142,7 +142,7 @@ async def check_order_conversions():
             raise
 
 
-@dramatiq.actor(priority=HIGH_PRIORITY)
+@dramatiq.actor(priority=HIGH_PRIORITY, min_backoff=1000, max_backoff=30_000)
 async def handle_trading_alert(payload_dict: dict):
     """
     Actor that wraps the handle_alert function for processing TradingView webhook alerts.

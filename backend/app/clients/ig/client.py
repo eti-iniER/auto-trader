@@ -354,7 +354,7 @@ class IGClient:
         data = self._safe_json(response)
         return GetHistoryResponse(**data)
 
-    @cache_client_request(ttl=5, namespace="ig_client")
+    @cache_client_request(ttl=30, namespace="ig_client")
     @ig_api_retry
     async def get_positions(self) -> PositionsResponse:
         """
@@ -407,7 +407,7 @@ class IGClient:
         data_parsed: dict = self._safe_json(response)
         return CreatePositionResponse(**data_parsed)
 
-    @cache_client_request(ttl=5, namespace="ig_client")
+    @cache_client_request(ttl=30, namespace="ig_client")
     @ig_api_retry
     async def get_working_orders(self) -> WorkingOrdersResponse:
         """

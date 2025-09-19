@@ -1,28 +1,32 @@
 import logging
 from functools import wraps
+from urllib.parse import urlparse
+
 from aiocache import Cache
+from aiocache.serializers import PickleSerializer
+
+from app.config import settings
 
 logger = logging.getLogger("ig_client")
 
+# Parse REDIS_URL only once (e.g. redis://:password@host:port/db)
+_redis_url = urlparse(settings.REDIS_URL)
+_redis_host = _redis_url.hostname or "localhost"
+_redis_port = _redis_url.port or 6379
+_redis_db = int((_redis_url.path or "/0").lstrip("/")) if _redis_url.path else 0
+_redis_password = _redis_url.password
 
-def serialize_for_client_cache(data):
-    """Serialize data for client caching using model_dump() to avoid JSON serialization issues."""
-    # If it's a Pydantic model, use model_dump
-    if hasattr(data, "model_dump"):
-        return data.model_dump()
-    elif isinstance(data, list):
-        # Handle list of Pydantic models
-        return [
-            item.model_dump() if hasattr(item, "model_dump") else item for item in data
-        ]
-    else:
-        # For plain dictionaries or other serializable data
-        return data
-
-
-def deserialize_from_client_cache(data):
-    """Deserialize data from client cache - no conversion needed since we store dicts."""
-    return data
+# Create a module-level Redis cache instance with Pickle serialization.
+# Pickle lets us store/retrieve pydantic models (v2) and arbitrary python objects
+# without maintaining custom (de)serialization code.
+_redis_cache = Cache(
+    Cache.REDIS,
+    endpoint=_redis_host,
+    port=_redis_port,
+    db=_redis_db,
+    password=_redis_password,
+    serializer=PickleSerializer(),
+)
 
 
 def cache_client_request(ttl: int = 60, namespace: str = "ig_client"):
@@ -68,31 +72,15 @@ def cache_client_request(ttl: int = 60, namespace: str = "ig_client"):
 
             cache_key = ":".join(cache_key_parts)
 
-            cache = Cache.MEMORY(namespace=namespace)
+            # Reuse the module-level Redis cache; namespace still influences the key.
+            cache = _redis_cache
 
             try:
-                cached_value = await cache.get(cache_key)
-                if cached_value:
+                cached_value = await cache.get(cache_key, namespace=namespace)
+                if cached_value is not None:
                     logger.debug(f"Cache hit for {func.__name__}: {cache_key}")
-                    # Reconstruct the original response type
-                    if (
-                        hasattr(func, "__annotations__")
-                        and "return" in func.__annotations__
-                    ):
-                        return_type = func.__annotations__["return"]
-                        if hasattr(return_type, "__origin__"):
-                            # Handle generic types like Optional[Type]
-                            if (
-                                hasattr(return_type, "__args__")
-                                and return_type.__args__
-                            ):
-                                return_type = return_type.__args__[0]
-
-                        # If the return type is a Pydantic model, reconstruct it
-                        if hasattr(return_type, "model_validate"):
-                            return return_type.model_validate(cached_value)
-
-                    return deserialize_from_client_cache(cached_value)
+                    # PickleSerializer returns the original python object directly.
+                    return cached_value
             except Exception as e:
                 logger.warning(f"Cache retrieval failed for {func.__name__}: {e}")
 
@@ -101,9 +89,7 @@ def cache_client_request(ttl: int = 60, namespace: str = "ig_client"):
 
             try:
                 # Store the serialized data
-                await cache.set(
-                    cache_key, serialize_for_client_cache(response), ttl=ttl
-                )
+                await cache.set(cache_key, response, ttl=ttl, namespace=namespace)
                 logger.debug(
                     f"Cached response for {func.__name__}: {cache_key} (TTL: {ttl}s)"
                 )
