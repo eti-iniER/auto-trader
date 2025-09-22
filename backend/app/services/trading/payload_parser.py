@@ -51,6 +51,7 @@ def parse_message_fields(message: str) -> ParsedMessageFields:
 
     # Open price
     try:
+        parts[2] = parts[2].replace(",", "")
         open_price = Decimal(parts[2].strip())
     except (ValueError, TypeError) as e:
         raise ValueError(f"Failed to parse open price from message: {e}")
