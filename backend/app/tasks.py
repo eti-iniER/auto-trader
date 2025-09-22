@@ -1,23 +1,26 @@
 import logging
 import logging.config
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import dramatiq
 from app.api.schemas.webhook import WebhookPayload
 from app.config import LOGGING_CONFIG, settings
+from app.db.crud import get_all_orders_with_deal_id, get_user_by_id
 from app.db.deps import get_db_context
 from app.db.models import Order
-from app.services.dividend_dates import fetch_and_update_all_dividend_dates
+from app.services.dividend_dates import (
+    fetch_and_update_all_dividend_dates,
+    fetch_and_update_dividend_dates_for_user,
+)
 from app.services.order_fulfillment import check_order_conversion
 from app.services.trading.handler import handle_alert
-from app.db.crud import get_all_orders_with_deal_id
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.middleware import AsyncIO
-from periodiq import PeriodiqMiddleware, cron
-from sqlalchemy import delete
-
 from dramatiq.rate_limits import BucketRateLimiter
 from dramatiq.rate_limits.backends import RedisBackend
+from periodiq import PeriodiqMiddleware, cron
+from sqlalchemy import delete
 
 backend = RedisBackend(url=settings.REDIS_URL)
 limiter = BucketRateLimiter(
@@ -46,7 +49,10 @@ HIGH_PRIORITY = 0
 
 
 @dramatiq.actor(
-    periodic=DIVIDEND_DATE_UPDATE_SCHEDULE, max_retries=3, priority=LOW_PRIORITY
+    periodic=DIVIDEND_DATE_UPDATE_SCHEDULE,
+    max_retries=3,
+    priority=LOW_PRIORITY,
+    time_limit=7_200_000,  # 2 hours
 )
 async def update_dividend_dates():
     """
@@ -63,6 +69,29 @@ async def update_dividend_dates():
             )
         except Exception as e:
             logger.error(f"Error in update_dividend_dates: {str(e)}")
+            raise
+
+
+@dramatiq.actor(
+    priority=MEDIUM_PRIORITY, max_retries=3, time_limit=1_800_000
+)  # 30 minutes
+async def update_dividend_dates_for_user(user_id: str):
+    """
+    Fetch and update dividend dates for all instruments with Yahoo symbols for a specific user.
+    Uses the shared service logic for data fetching and updating.
+    """
+    logger.info(f"Starting dividend dates update task for user {user_id}")
+
+    async with get_db_context() as db:
+        user = await get_user_by_id(db, uuid.UUID(user_id))
+        try:
+            logger.info(f"Updating dividend dates for instruments of user {user.id}")
+            updated_count = await fetch_and_update_dividend_dates_for_user(db, user.id)
+            logger.info(
+                f"Successfully completed dividend dates update task for user {user.id} - {updated_count} instruments updated"
+            )
+        except Exception as e:
+            logger.error(f"Error in update_dividend_dates_for_user: {str(e)}")
             raise
 
 
@@ -124,7 +153,7 @@ async def check_order_conversions():
             logger.info(f"Checking conversion status for {len(orders)} orders")
 
             # Check each order for conversion
-            with limiter.acquire() as acquired:
+            with limiter.acquire():
                 for order in orders:
                     try:
                         await check_order_conversion(order)
@@ -156,7 +185,7 @@ async def handle_trading_alert(payload_dict: dict):
         # Convert the dictionary back to WebhookPayload
         payload = WebhookPayload.model_validate(payload_dict)
 
-        with limiter.acquire() as acquired:
+        with limiter.acquire():
             # Call the handle_alert function
             await handle_alert(payload)
 

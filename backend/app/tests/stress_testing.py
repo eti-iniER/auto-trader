@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from dataclasses import dataclass
 from datetime import datetime, timezone
 import sys
 import traceback

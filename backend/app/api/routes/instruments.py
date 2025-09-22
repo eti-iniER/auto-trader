@@ -26,10 +26,9 @@ from app.db.deps import get_db
 from app.db.models import Instrument, User
 from app.db.crud import universal_search_instruments
 from app.services.logging import log_message
-from app.tasks import update_dividend_dates
+from app.tasks import update_dividend_dates_for_user
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     File,
     HTTPException,
@@ -115,15 +114,15 @@ async def search_instruments(
 )
 async def fetch_dividend_dates(
     db: Annotated[AsyncSession, Depends(get_db)],
-    background_tasks: BackgroundTasks,
     user: Annotated[User, Depends(get_current_user)],
 ) -> DividendFetchResponse:
     """
-    Trigger fetching and updating of dividend dates for all instruments with Yahoo symbols.
+    Trigger fetching and updating of dividend dates for all instruments for a user with Yahoo symbols.
     This endpoint will fetch the latest dividend dates from Yahoo Finance and update the database.
     """
     try:
-        background_tasks.add_task(update_dividend_dates.send)
+        update_dividend_dates_for_user.send(str(user.id))
+        logger.info("Queued background task to update dividend dates for user")
         return DividendFetchResponse(
             message="Successfully updated dividend dates for all instruments",
         )

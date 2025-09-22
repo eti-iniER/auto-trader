@@ -30,14 +30,14 @@ services:
         build: .
         develop:
             watch:
-                - action: sync
+                - action: sync+restart
                   path: .
                   target: /app
                   ignore:
                       - .venv/
                 - action: rebuild
                   path: ./pyproject.toml
-        command: uv run dramatiq app.tasks --processes 1 --threads 12
+        command: uv run dramatiq app.tasks --processes 1 --threads 16
         env_file:
             - .env
         environment:
@@ -56,7 +56,7 @@ services:
         build: .
         develop:
             watch:
-                - action: sync
+                - action: sync+restart
                   path: .
                   target: /app
                   ignore:

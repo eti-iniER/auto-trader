@@ -85,6 +85,23 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return user
 
 
+async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> User:
+    """
+    Retrieve a user by their ID.
+
+    Args:
+        db (AsyncSession): The database session.
+        user_id (uuid.UUID): The ID of the user to retrieve.
+    Returns:
+        User: The user object if found, otherwise raises an error.
+    """
+    stmt = select(User).options(selectinload(User.settings)).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    return user
+
+
 async def get_user_by_refresh_token(
     db: AsyncSession, refresh_token: str
 ) -> User | None:
