@@ -21,7 +21,7 @@ from .logging import (
 from .retries import ig_api_retry
 from .types import *
 
-logger = logging.getLogger("ig_client")
+logger = logging.getLogger(__name__)
 
 
 class IGClient:
