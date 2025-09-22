@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, FileX } from "lucide-react";
 
 interface UsersTableProps {
   data: UserAdminDetails[];
@@ -24,6 +24,7 @@ interface UsersTableProps {
   additionalInputs?: React.ReactNode;
   onEditUser?: (user: UserAdminDetails) => void;
   onDeleteUser?: (user: UserAdminDetails) => void;
+  onDeleteUserLogs?: (user: UserAdminDetails) => void;
 }
 
 const getRoleColor = (role: "USER" | "ADMIN") => {
@@ -104,6 +105,7 @@ export function UsersTable({
   additionalInputs,
   onEditUser,
   onDeleteUser,
+  onDeleteUserLogs,
 }: UsersTableProps) {
   // Create ActionsCell component
   const ActionsCell = ({ user }: { user: UserAdminDetails }) => (
@@ -117,6 +119,10 @@ export function UsersTable({
         <DropdownMenuItem onClick={() => onEditUser?.(user)}>
           <Edit className="mr-2 h-4 w-4" />
           Edit user
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onDeleteUserLogs?.(user)}>
+          <FileX className="mr-2 h-4 w-4" />
+          Delete user logs
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => onDeleteUser?.(user)}

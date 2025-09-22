@@ -1,8 +1,10 @@
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Annotated
 
-from app.api.utils.authentication import get_current_user
+from app.api.schemas.generic import SimpleResponseSchema
+from app.api.utils.authentication import get_current_user, require_admin
 from app.api.utils.filters import LogFilterParams
 from app.api.utils.pagination import (
     PaginatedResponse,
@@ -10,12 +12,13 @@ from app.api.utils.pagination import (
     build_paginated_response,
 )
 from app.config import settings
+from app.db.crud import delete_logs_for_user
 from app.db.deps import get_db
 from app.db.models import Log, User
 from app.api.schemas.logs import LogRead
 from app.services.logging.file_helpers import prepare_logs_file
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse, Response
 from fastcrud import FastCRUD
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +27,7 @@ router = APIRouter(prefix="/logs", tags=["logs"])
 logger = logging.getLogger(__name__)
 
 logs_crud = FastCRUD(Log)
+user_crud = FastCRUD(User)
 
 
 @router.get(
@@ -149,3 +153,50 @@ async def download_logs(
             "Content-Type": "text/plain; charset=utf-8",
         },
     )
+
+
+@router.delete(
+    "/delete-for-user/{user_id}",
+    summary="Delete all logs for a specific user (Admin only)",
+    response_model=SimpleResponseSchema,
+)
+async def delete_logs_for_user_endpoint(
+    user_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin_user: Annotated[User, Depends(require_admin())],
+) -> SimpleResponseSchema:
+    """
+    Delete all logs for a specific user. Admin access required.
+    """
+    try:
+        # Check if the user exists
+        user_to_check = await user_crud.get(db, id=user_id)
+        logger.info(
+            f"Admin {admin_user.email} requested log deletion for user ID {user_id}"
+        )
+        logger.info(f"User to check: {user_to_check}")
+        if not user_to_check:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Delete all logs for the user
+        deleted_count = await delete_logs_for_user(db, user_id)
+
+        logger.info(
+            f"Admin {admin_user.email} deleted {deleted_count} logs for user {user_id}"
+        )
+
+        return SimpleResponseSchema(
+            message=f"Successfully deleted {deleted_count} logs for user {user_id}"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete logs for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete logs for user: {str(e)}",
+        )

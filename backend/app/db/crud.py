@@ -572,3 +572,29 @@ async def get_all_admin_users(db: AsyncSession) -> list[User]:
     users = result.scalars().all()
 
     return users
+
+
+async def delete_logs_for_user(db: AsyncSession, user_id: uuid.UUID) -> int:
+    """
+    Delete all logs for a specific user.
+
+    Args:
+        db (AsyncSession): The database session.
+        user_id (uuid.UUID): The ID of the user whose logs should be deleted.
+
+    Returns:
+        int: The number of logs deleted.
+    """
+    stmt = select(Log).where(Log.user_id == user_id)
+    result = await db.execute(stmt)
+    logs = result.scalars().all()
+
+    logs_count = len(logs)
+
+    # Delete all logs for the user
+    for log in logs:
+        await db.delete(log)
+
+    await db.commit()
+
+    return logs_count

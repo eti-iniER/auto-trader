@@ -1,6 +1,7 @@
 import { useDeleteUser } from "@/api/hooks/users/use-delete-user";
 import { useUpdateUser } from "@/api/hooks/users/use-update-user";
 import { useUsers } from "@/api/hooks/users/use-users";
+import { useDeleteUserLogs } from "@/api/hooks/logs/use-delete-user-logs";
 import { PageHeader } from "@/components/page-header";
 import { UsersTable } from "@/components/users-table";
 import { useDashboard } from "@/hooks/contexts/use-dashboard";
@@ -10,6 +11,7 @@ import { useState } from "react";
 import { Navigate } from "react-router";
 import { toast } from "sonner";
 import { DeleteUserDialog } from "./delete-user-dialog";
+import { DeleteUserLogsDialog } from "./delete-user-logs-dialog";
 import { EditUserModal } from "./edit-user-modal";
 
 interface EditUserData {
@@ -38,9 +40,11 @@ export const Users: React.FC = () => {
 
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
+  const deleteUserLogs = useDeleteUserLogs();
   // Modal state management
   const editModal = useModal();
   const deleteDialog = useModal();
+  const deleteLogsDialog = useModal();
   const [selectedUser, setSelectedUser] = useState<UserAdminDetails | null>(
     null,
   );
@@ -58,6 +62,11 @@ export const Users: React.FC = () => {
   const handleDeleteUser = (user: UserAdminDetails) => {
     setSelectedUser(user);
     deleteDialog.openModal();
+  };
+
+  const handleDeleteUserLogs = (user: UserAdminDetails) => {
+    setSelectedUser(user);
+    deleteLogsDialog.openModal();
   };
 
   const handleSaveUser = (userData: EditUserData) => {
@@ -101,6 +110,25 @@ export const Users: React.FC = () => {
     }
   };
 
+  const handleConfirmDeleteLogs = () => {
+    if (selectedUser) {
+      deleteUserLogs.mutate(selectedUser.id, {
+        onSuccess: () => {
+          toast.success("User logs deleted successfully");
+        },
+        onError: (error) => {
+          toast.error("Couldn't delete user logs", {
+            description: error.message || "An unknown error occurred",
+          });
+        },
+        onSettled: () => {
+          deleteLogsDialog.closeModal();
+          setSelectedUser(null);
+        },
+      });
+    }
+  };
+
   if (isError) {
     return (
       <>
@@ -137,6 +165,7 @@ export const Users: React.FC = () => {
             className="h-full"
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
+            onDeleteUserLogs={handleDeleteUserLogs}
             pagination={{
               ...pagination.paginationProps,
               totalCount,
@@ -162,6 +191,17 @@ export const Users: React.FC = () => {
           onClose={deleteDialog.closeModal}
           onConfirm={handleConfirmDelete}
           userName={`${selectedUser.firstName} ${selectedUser.lastName}`}
+        />
+      )}
+
+      {/* Delete User Logs Dialog */}
+      {selectedUser && (
+        <DeleteUserLogsDialog
+          isOpen={deleteLogsDialog.isOpen}
+          onClose={deleteLogsDialog.closeModal}
+          onConfirm={handleConfirmDeleteLogs}
+          userName={`${selectedUser.firstName} ${selectedUser.lastName}`}
+          loading={deleteUserLogs.isPending}
         />
       )}
     </>
