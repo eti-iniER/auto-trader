@@ -172,7 +172,7 @@ async def check_order_conversions():
 
 
 @dramatiq.actor(
-    priority=HIGH_PRIORITY, min_backoff=1000, max_backoff=20_000, max_retries=1
+    priority=HIGH_PRIORITY, min_backoff=1000, max_backoff=20_000, max_retries=10
 )
 async def handle_trading_alert(payload_dict: dict):
     """
