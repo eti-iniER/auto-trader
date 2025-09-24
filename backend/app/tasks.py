@@ -132,7 +132,7 @@ async def cleanup_old_orders():
 
 
 @dramatiq.actor(
-    periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=1, priority=MEDIUM_PRIORITY
+    periodic=ORDER_CONVERSION_CHECK_SCHEDULE, max_retries=3, priority=MEDIUM_PRIORITY
 )
 async def check_order_conversions():
     """
@@ -172,7 +172,7 @@ async def check_order_conversions():
 
 
 @dramatiq.actor(
-    priority=HIGH_PRIORITY, min_backoff=1000, max_backoff=20_000, max_retries=10
+    priority=HIGH_PRIORITY, min_backoff=5_000, max_backoff=60_000, max_retries=15
 )
 async def handle_trading_alert(payload_dict: dict):
     """
