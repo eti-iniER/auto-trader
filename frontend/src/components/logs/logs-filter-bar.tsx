@@ -9,7 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LuChevronDown, LuDownload, LuRotateCcw } from "react-icons/lu";
+import {
+  LuChevronDown,
+  LuDownload,
+  LuRotateCcw,
+  LuTrash2,
+} from "react-icons/lu";
 
 interface LogsFilterBarProps {
   fromDate?: Date;
@@ -22,6 +27,7 @@ interface LogsFilterBarProps {
   onLastHoursChange: (hours: number | undefined) => void;
   onDownload: () => void;
   onReset: () => void;
+  onDeleteAllLogs: () => void;
 }
 
 const LOG_TYPE_OPTIONS: { value: LogType | "ALL"; label: string }[] = [
@@ -45,6 +51,7 @@ export const LogsFilterBar = ({
   onLastHoursChange,
   onDownload,
   onReset,
+  onDeleteAllLogs,
 }: LogsFilterBarProps) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const handleLastHoursChange = (value: string) => {
@@ -163,7 +170,15 @@ export const LogsFilterBar = ({
                 className="w-full sm:w-auto"
               >
                 <LuDownload className="h-4 w-4" />
-                Download logs
+                Download
+              </Button>
+              <Button
+                onClick={onDeleteAllLogs}
+                variant="destructive"
+                className="w-full sm:w-auto"
+              >
+                <LuTrash2 className="h-4 w-4" />
+                Delete all
               </Button>
             </div>
           </div>
@@ -171,7 +186,7 @@ export const LogsFilterBar = ({
       </div>
 
       {/* Desktop layout: horizontal */}
-      <div className="hidden md:items-center md:gap-4 lg:flex">
+      <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-4 xl:flex-nowrap">
         <div className="flex items-center gap-2">
           <label htmlFor="from-date-desktop" className="text-sm font-medium">
             From
@@ -195,7 +210,7 @@ export const LogsFilterBar = ({
         </div>
 
         {/* Vertical separator */}
-        <div className="bg-border h-6 w-px"></div>
+        <div className="bg-border hidden h-6 w-px xl:block"></div>
 
         <div className="flex items-center gap-2">
           <label htmlFor="last-hours-desktop" className="text-sm font-medium">
@@ -234,14 +249,30 @@ export const LogsFilterBar = ({
           </Select>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <Button onClick={onReset} variant="default">
+        <div className="ml-auto flex flex-wrap items-center gap-2 lg:w-auto lg:min-w-0">
+          <Button
+            onClick={onReset}
+            variant="default"
+            className="whitespace-nowrap"
+          >
             <LuRotateCcw className="h-4 w-4" />
-            Reset filters
+            <span className="hidden xl:inline">Reset filters</span>
           </Button>
-          <Button onClick={onDownload} variant="default">
+          <Button
+            onClick={onDownload}
+            variant="default"
+            className="whitespace-nowrap"
+          >
             <LuDownload className="h-4 w-4" />
-            Download logs
+            <span className="hidden xl:inline">Download</span>
+          </Button>
+          <Button
+            onClick={onDeleteAllLogs}
+            variant="destructive"
+            className="whitespace-nowrap"
+          >
+            <LuTrash2 className="h-4 w-4" />
+            <span className="hidden xl:inline">Delete all</span>
           </Button>
         </div>
       </div>

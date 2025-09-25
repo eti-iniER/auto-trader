@@ -5,7 +5,7 @@ import { ResetPassword } from "@/app/authentication/reset-password";
 import { AppSettings } from "@/app/dashboard/app-settings";
 import { Help } from "@/app/dashboard/help";
 import { Instruments } from "@/app/dashboard/instruments";
-import { Logs } from "@/app/dashboard/logs";
+import { Logs } from "@/app/dashboard/logs/logs";
 import { Orders } from "@/app/dashboard/orders";
 import { Overview } from "@/app/dashboard/overview";
 import { Positions } from "@/app/dashboard/positions";

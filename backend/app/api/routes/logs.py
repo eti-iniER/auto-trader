@@ -156,6 +156,38 @@ async def download_logs(
 
 
 @router.delete(
+    "",
+    summary="Delete all logs for the current user",
+    response_model=SimpleResponseSchema,
+)
+async def delete_current_user_logs(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> SimpleResponseSchema:
+    """
+    Delete all logs for the current authenticated user.
+    """
+    try:
+        logger.info(f"User {user.email} requested deletion of all their logs")
+
+        # Delete all logs for the current user
+        deleted_count = await delete_logs_for_user(db, user.id)
+
+        logger.info(f"Successfully deleted {deleted_count} logs for user {user.email}")
+
+        return SimpleResponseSchema(
+            message=f"Successfully deleted {deleted_count} logs"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to delete logs for user {user.email}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete logs: {str(e)}",
+        )
+
+
+@router.delete(
     "/delete-for-user/{user_id}",
     summary="Delete all logs for a specific user (Admin only)",
     response_model=SimpleResponseSchema,

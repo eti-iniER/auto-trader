@@ -1,16 +1,19 @@
-import { useState } from "react";
-import { useLogs } from "@/api/hooks/logs/use-logs";
-import { LogItemCard } from "@/components/log-item-card";
-import { LogsFilterBar } from "@/components/logs-filter-bar";
-import { PageHeader } from "@/components/page-header";
-import { ErrorAlert } from "@/components/ui/error-alert";
 import { useDownloadLogs } from "@/api/hooks/logs/use-download-logs";
-import { usePagination } from "@/hooks/use-pagination";
+import { useDeleteLogs } from "@/api/hooks/logs/use-delete-logs";
+import { useLogs } from "@/api/hooks/logs/use-logs";
 import {
+  LogItemCard,
   LogsContainer,
   LogsContainerSkeleton,
+  LogsFilterBar,
   LogsPagination,
 } from "@/components/logs";
+import { PageHeader } from "@/components/page-header";
+import { ErrorAlert } from "@/components/ui/error-alert";
+import { usePagination } from "@/hooks/use-pagination";
+import { useModal } from "@/hooks/use-modal";
+import { useState } from "react";
+import { DeleteAllLogsDialog } from "./delete-all-logs-dialog";
 
 export const Logs = () => {
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
@@ -18,6 +21,7 @@ export const Logs = () => {
   const [type, setType] = useState<LogType | "ALL">("ALL");
   const [lastHours, setLastHours] = useState<number | undefined>(undefined);
   const pagination = usePagination({ initialPageSize: 20 });
+  const deleteAllDialog = useModal();
 
   // Pass Date objects directly to the API
   const logsParams = {
@@ -30,6 +34,7 @@ export const Logs = () => {
 
   const { data: logsResponse, isPending, isError } = useLogs(logsParams);
   const downloadLogs = useDownloadLogs();
+  const deleteLogs = useDeleteLogs();
 
   if (isPending) {
     return (
@@ -92,6 +97,15 @@ export const Logs = () => {
     pagination.reset();
   };
 
+  const handleDeleteAllLogs = () => {
+    deleteAllDialog.openModal();
+  };
+
+  const handleConfirmDeleteAll = () => {
+    deleteLogs.mutate();
+    deleteAllDialog.closeModal();
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Header - always visible */}
@@ -126,6 +140,7 @@ export const Logs = () => {
             }}
             onDownload={handleDownload}
             onReset={handleReset}
+            onDeleteAllLogs={handleDeleteAllLogs}
           />
         </div>
       </div>
@@ -161,6 +176,14 @@ export const Logs = () => {
           </div>
         </LogsContainer>
       </div>
+
+      {/* Delete All Logs Dialog */}
+      <DeleteAllLogsDialog
+        isOpen={deleteAllDialog.isOpen}
+        onClose={deleteAllDialog.closeModal}
+        onConfirm={handleConfirmDeleteAll}
+        loading={deleteLogs.isPending}
+      />
     </div>
   );
 };
