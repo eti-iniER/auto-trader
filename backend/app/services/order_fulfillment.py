@@ -9,9 +9,10 @@ from app.clients.ig.types import (
     DealConfirmation,
     GetPositionByDealIdRequest,
     DeleteWorkingOrderRequest,
+    WorkingOrdersResponse,
 )
 from app.db.deps import get_db_context
-from app.db.crud import get_order_by_id, update_order, delete_order
+from app.db.crud import get_order_by_id, update_order, delete_order, get_user_by_id
 from app.db.models import Order
 
 
@@ -152,7 +153,6 @@ async def delete_rejected_order(
 async def check_order_conversion(order: Order) -> None:
     """
     Check if an order with a deal ID has been converted to a position.
-    If not converted and the order exceeds max age, delete the order.
     If converted, delete the order as it's no longer needed.
 
     Args:
@@ -162,11 +162,6 @@ async def check_order_conversion(order: Order) -> None:
 
     try:
         user = order.user
-        user_settings = user.settings
-
-        # Calculate order age
-        order_age = datetime.now(timezone.utc) - order.created_at
-        max_age = timedelta(minutes=user_settings.maximum_order_age_in_minutes)
 
         # Create IG client for the user
         ig_client = await IGClient.create_for_user(user)
@@ -201,48 +196,6 @@ async def check_order_conversion(order: Order) -> None:
                 },
             )
 
-        elif order_age > max_age:
-            # Order is too old and hasn't been converted, delete both from DB and IG
-            try:
-                # Delete from IG first
-                delete_request = DeleteWorkingOrderRequest(deal_id=order.deal_id)
-                await ig_client.delete_working_order(delete_request)
-            except Exception as e:
-                # Log the IG deletion failure but continue with DB deletion
-                await log_message(
-                    message=f"Failed to delete order from IG - Deal ID: {order.deal_id}",
-                    description=f"Could not delete working order from IG: {str(e)}. Order will still be removed from database.",
-                    log_type="order",
-                    user_id=user.id,
-                    extra={
-                        "deal_id": order.deal_id,
-                        "order_id": str(order.id),
-                        "action": "ig_deletion_failed",
-                        "error": str(e),
-                    },
-                )
-
-            # Delete from database
-            async with get_db_context() as db:
-                await delete_order(db, order.id)
-
-            await log_message(
-                message=f"Expired order deleted - Deal ID: {order.deal_id}",
-                description=f"Order with deal ID {order.deal_id} exceeded maximum age of {user_settings.maximum_order_age_in_minutes} minutes and was deleted from both IG and database.",
-                log_type="order",
-                user_id=user.id,
-                extra={
-                    "deal_id": order.deal_id,
-                    "order_id": str(order.id),
-                    "action": "expired_order_deleted",
-                    "max_age_minutes": user_settings.maximum_order_age_in_minutes,
-                    "actual_age_minutes": int(order_age.total_seconds() / 60),
-                    "instrument_epic": (
-                        order.instrument.ig_epic if order.instrument else None
-                    ),
-                },
-            )
-
     except Exception as e:
         # Log any unexpected errors
         await log_message(
@@ -261,3 +214,173 @@ async def check_order_conversion(order: Order) -> None:
     finally:
         # IGClient lifecycle is managed by cache; do not close here.
         pass
+
+
+async def delete_expired_orders_for_user(user_id: uuid.UUID) -> None:
+    """
+    Delete expired working orders for a user.
+
+    This function fetches all working orders from IG for the user,
+    checks their created_date_utc against the user's maximum_order_age_in_minutes setting,
+    and deletes any orders that have exceeded the time limit.
+
+    Args:
+        user: The User object containing the user's settings and credentials
+    """
+    ig_client = None
+
+    async with get_db_context() as db:
+        user = await get_user_by_id(db, user_id)
+
+        try:
+            # Create IG client for the user
+            ig_client = await IGClient.create_for_user(user)
+
+            # Get user's maximum order age setting
+            max_age_minutes = user.settings.maximum_order_age_in_minutes
+            max_age = timedelta(minutes=max_age_minutes)
+            current_time = datetime.now(timezone.utc)
+
+            # Fetch all working orders from IG
+            try:
+                working_orders_response: WorkingOrdersResponse = (
+                    await ig_client.get_working_orders()
+                )
+            except Exception as e:
+                await log_message(
+                    message="Failed to fetch working orders from IG",
+                    description=f"Could not retrieve working orders for user: {str(e)}",
+                    log_type="error",
+                    user_id=user.id,
+                    extra={
+                        "action": "fetch_working_orders_failed",
+                        "error": str(e),
+                    },
+                )
+                return
+
+            # Process each working order
+            deleted_count = 0
+            failed_deletions = 0
+
+            for working_order_data in working_orders_response.working_orders:
+                working_order = working_order_data.working_order_data
+
+                if (
+                    not working_order
+                    or not working_order.deal_id
+                    or not working_order.created_date_utc
+                ):
+                    continue
+
+                try:
+                    # Parse the created date (format: "2024-01-15T10:30:00")
+                    created_date = working_order.created_date_utc.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                    # Check if order has exceeded maximum age
+                    order_age = current_time - created_date
+
+                    if order_age > max_age:
+                        # Order is expired, delete it
+                        try:
+                            delete_request = DeleteWorkingOrderRequest(
+                                deal_id=working_order.deal_id
+                            )
+                            await ig_client.delete_working_order(delete_request)
+                            deleted_count += 1
+
+                            await log_message(
+                                message=f"Expired working order deleted - Deal ID: {working_order.deal_id}",
+                                description=f"Working order with deal ID {working_order.deal_id} exceeded maximum age of {max_age_minutes} minutes and was deleted from IG.",
+                                log_type="order",
+                                user_id=user.id,
+                                extra={
+                                    "deal_id": working_order.deal_id,
+                                    "action": "expired_working_order_deleted",
+                                    "max_age_minutes": max_age_minutes,
+                                    "actual_age_minutes": int(
+                                        order_age.total_seconds() / 60
+                                    ),
+                                    "epic": working_order.epic,
+                                    "order_size": (
+                                        float(working_order.order_size)
+                                        if working_order.order_size
+                                        else None
+                                    ),
+                                    "direction": working_order.direction,
+                                    "created_date_utc": str(
+                                        working_order.created_date_utc
+                                    ),
+                                },
+                            )
+
+                        except Exception as e:
+                            failed_deletions += 1
+                            await log_message(
+                                message=f"Failed to delete expired working order - Deal ID: {working_order.deal_id}",
+                                description=f"Could not delete expired working order from IG: {str(e)}",
+                                log_type="error",
+                                user_id=user.id,
+                                extra={
+                                    "deal_id": working_order.deal_id,
+                                    "action": "working_order_deletion_failed",
+                                    "error": str(e),
+                                    "epic": working_order.epic,
+                                    "created_date_utc": str(
+                                        working_order.created_date_utc
+                                    ),
+                                },
+                            )
+
+                except Exception as e:
+                    # Error parsing date or calculating age
+                    await log_message(
+                        message=f"Error processing working order - Deal ID: {working_order.deal_id if working_order.deal_id else 'unknown'}",
+                        description=f"Could not process working order for expiration check: {str(e)}",
+                        log_type="error",
+                        user_id=user.id,
+                        extra={
+                            "deal_id": (
+                                working_order.deal_id if working_order.deal_id else None
+                            ),
+                            "action": "working_order_processing_error",
+                            "error": str(e),
+                            "created_date_utc": str(working_order.created_date_utc),
+                        },
+                    )
+
+            # Log summary if any orders were processed
+            total_orders = len(working_orders_response.working_orders)
+            if total_orders > 0:
+                await log_message(
+                    message=f"Expired orders cleanup completed - {deleted_count} deleted, {failed_deletions} failed",
+                    description=f"Processed {total_orders} working orders. Successfully deleted {deleted_count} expired orders, failed to delete {failed_deletions} orders.",
+                    log_type="order",
+                    user_id=user.id,
+                    extra={
+                        "action": "expired_orders_cleanup_summary",
+                        "total_orders": total_orders,
+                        "deleted_count": deleted_count,
+                        "failed_deletions": failed_deletions,
+                        "max_age_minutes": max_age_minutes,
+                    },
+                )
+
+        except Exception as e:
+            # Log any unexpected errors
+            await log_message(
+                message="Unexpected error during expired orders cleanup",
+                description=f"Unexpected error while cleaning up expired orders for user: {str(e)}",
+                log_type="error",
+                user_id=user.id,
+                extra={
+                    "action": "expired_orders_cleanup_error",
+                    "error": str(e),
+                },
+            )
+
+        finally:
+            # IGClient lifecycle is managed by cache; do not close here.
+            pass

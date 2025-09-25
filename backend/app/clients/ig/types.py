@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List, Literal, Optional
 from datetime import datetime, timezone
-from pydantic import AwareDatetime, BaseModel, Field, field_validator
+from pydantic import AwareDatetime, NaiveDatetime, BaseModel, Field, field_validator
 
 # Core Type Definitions
 type InstrumentType = Literal[
@@ -411,7 +411,7 @@ class WorkingOrderDetail(BaseModel):
     """Details of a working order"""
 
     created_date: Optional[str] = Field(None, alias="createdDate")
-    created_date_utc: Optional[str] = Field(None, alias="createdDateUTC")
+    created_date_utc: Optional[NaiveDatetime] = Field(None, alias="createdDateUTC")
     currency_code: Optional[str] = Field(None, alias="currencyCode")
     deal_id: Optional[str] = Field(None, alias="dealId")
     direction: Optional[Direction] = None
