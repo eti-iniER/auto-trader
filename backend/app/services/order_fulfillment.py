@@ -13,7 +13,13 @@ from app.clients.ig.types import (
 )
 from app.clients.ig.exceptions import MissingCredentialsError
 from app.db.deps import get_db_context
-from app.db.crud import get_order_by_id, update_order, delete_order, get_user_by_id
+from app.db.crud import (
+    get_order_by_id,
+    update_order,
+    delete_order,
+    get_user_by_id,
+    find_order_by_deal_id,
+)
 from app.db.models import Order
 
 
@@ -223,10 +229,10 @@ async def delete_expired_orders_for_user(user_id: uuid.UUID) -> None:
 
     This function fetches all working orders from IG for the user,
     checks their created_date_utc against the user's maximum_order_age_in_minutes setting,
-    and deletes any orders that have exceeded the time limit.
+    and deletes any orders that have exceeded the time limit from both IG and the database.
 
     Args:
-        user: The User object containing the user's settings and credentials
+        user_id: The UUID of the user whose expired orders should be deleted
     """
     ig_client = None
 
@@ -284,7 +290,7 @@ async def delete_expired_orders_for_user(user_id: uuid.UUID) -> None:
                     order_age = current_time - created_date
 
                     if order_age > max_age:
-                        # Order is expired, delete it
+                        # Order is expired, try to delete it from IG first
                         try:
                             delete_request = DeleteWorkingOrderRequest(
                                 deal_id=working_order.deal_id
@@ -292,9 +298,20 @@ async def delete_expired_orders_for_user(user_id: uuid.UUID) -> None:
                             await ig_client.delete_working_order(delete_request)
                             deleted_count += 1
 
+                            # IG deletion succeeded, now delete from database if it exists
+                            try:
+                                db_order = await find_order_by_deal_id(
+                                    db, working_order.deal_id
+                                )
+                                if db_order:
+                                    await delete_order(db, db_order.id)
+                            except Exception:
+                                # DB deletion failed, but we don't log this as the IG deletion succeeded
+                                pass
+
                             await log_message(
                                 message=f"Expired working order deleted - Deal ID: {working_order.deal_id}",
-                                description=f"Working order with deal ID {working_order.deal_id} exceeded maximum age of {max_age_minutes} minutes and was deleted from IG.",
+                                description=f"Working order with deal ID {working_order.deal_id} exceeded maximum age of {max_age_minutes} minutes and was deleted from IG and database.",
                                 log_type="order",
                                 user_id=user.id,
                                 extra={

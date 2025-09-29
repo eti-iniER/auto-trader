@@ -385,6 +385,30 @@ async def get_order_by_deal_id(db: AsyncSession, deal_id: str) -> Order:
     return order
 
 
+async def find_order_by_deal_id(db: AsyncSession, deal_id: str) -> Optional[Order]:
+    """
+    Find an order by its IG deal ID without raising an exception.
+
+    Args:
+        db (AsyncSession): The database session.
+        deal_id (str): The IG deal ID of the order to find.
+
+    Returns:
+        Order: The order object if found, None otherwise.
+    """
+    stmt = (
+        select(Order)
+        .options(
+            selectinload(Order.instrument)
+            .selectinload(Instrument.user)
+            .selectinload(User.settings)
+        )
+        .where(Order.deal_id == deal_id)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
 async def get_app_settings(db: AsyncSession) -> AppSettings:
     """
     Retrieve the application settings.
