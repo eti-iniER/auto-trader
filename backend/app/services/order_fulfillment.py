@@ -11,6 +11,7 @@ from app.clients.ig.types import (
     DeleteWorkingOrderRequest,
     WorkingOrdersResponse,
 )
+from app.clients.ig.exceptions import MissingCredentialsError
 from app.db.deps import get_db_context
 from app.db.crud import get_order_by_id, update_order, delete_order, get_user_by_id
 from app.db.models import Order
@@ -370,16 +371,20 @@ async def delete_expired_orders_for_user(user_id: uuid.UUID) -> None:
 
         except Exception as e:
             # Log any unexpected errors
-            await log_message(
-                message="Unexpected error during expired orders cleanup",
-                description=f"Unexpected error while cleaning up expired orders for user: {str(e)}",
-                log_type="error",
-                user_id=user.id,
-                extra={
-                    "action": "expired_orders_cleanup_error",
-                    "error": str(e),
-                },
-            )
+
+            if isinstance(e, (MissingCredentialsError)):
+                return
+            else:
+                await log_message(
+                    message="Unexpected error during expired orders cleanup",
+                    description=f"Unexpected error while cleaning up expired orders for user: {str(e)}",
+                    log_type="error",
+                    user_id=user.id,
+                    extra={
+                        "action": "expired_orders_cleanup_error",
+                        "error": str(e),
+                    },
+                )
 
         finally:
             # IGClient lifecycle is managed by cache; do not close here.

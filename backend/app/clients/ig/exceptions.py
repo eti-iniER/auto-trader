@@ -21,3 +21,15 @@ class IGAPIError(IGClientError):
     """Exception raised when API returns an error response."""
 
     pass
+
+
+class MissingCredentialsError(IGClientError):
+    """Exception raised when required credentials are missing."""
+
+    def __init__(
+        self,
+        message: str = "Missing required credentials",
+        status_code: int = 400,
+        error_code: str = "missing_credentials",
+    ):
+        super().__init__(message, status_code, error_code)

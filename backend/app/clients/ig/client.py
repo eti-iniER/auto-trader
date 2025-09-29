@@ -13,7 +13,7 @@ from fastapi import HTTPException, status
 
 from .authentication import OAuth2
 from .caching import cache_client_request
-from .exceptions import IGAPIError, IGAuthenticationError
+from .exceptions import IGAPIError, IGAuthenticationError, MissingCredentialsError
 from .logging import (
     async_request_hook,
     async_response_hook,
@@ -145,9 +145,9 @@ class IGClient:
         if not all([api_key, username, password, account_id]):
             mode_str = user.settings.mode.value.lower()
             logger.error(f"Incomplete {mode_str} IG credentials for user {user.id}")
-            raise HTTPException(
+            raise MissingCredentialsError(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Missing {mode_str} IG credentials. Please set API key, username, password, and account ID.",
+                message=f"Missing {mode_str} IG credentials. Please set API key, username, password, and account ID.",
             )
 
         client = cls(
