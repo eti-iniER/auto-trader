@@ -371,7 +371,7 @@ async def delete_expired_orders_for_user(user_id: uuid.UUID) -> None:
 
             # Log summary if any orders were processed
             total_orders = len(working_orders_response.working_orders)
-            if total_orders > 0:
+            if deleted_count > 0:
                 await log_message(
                     message=f"Expired orders cleanup completed - {deleted_count} deleted, {failed_deletions} failed",
                     description=f"Processed {total_orders} working orders. Successfully deleted {deleted_count} expired orders, failed to delete {failed_deletions} orders.",
