@@ -1,5 +1,5 @@
 import uuid
-
+from app.db.enums import UserSettingsMode
 from pydantic import AwareDatetime, BaseModel, EmailStr, Field
 
 
@@ -18,6 +18,21 @@ class UserAdminSchema(UserSchema):
     last_login: AwareDatetime = Field(
         ..., description="Timestamp of the user's last login"
     )
+    mode: UserSettingsMode = Field(..., description="User's mode (e.g., DEMO, LIVE)")
+
+    model_config = {
+        "from_attributes": True,
+        "use_enum_values": True,
+    }
+
+
+class UserSettingsModeSchema(BaseModel):
+    mode: UserSettingsMode = Field(..., description="User's mode (e.g., DEMO, LIVE)")
+
+    model_config = {
+        "from_attributes": True,
+        "use_enum_values": True,
+    }
 
 
 class UserUpdateSchema(BaseModel):

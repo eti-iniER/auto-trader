@@ -4,7 +4,11 @@ from typing import Annotated
 
 from app.api.exceptions import APIException
 from app.api.schemas.generic import SimpleResponseSchema
-from app.api.schemas.user import UserAdminSchema, UserUpdateSchema
+from app.api.schemas.user import (
+    UserAdminSchema,
+    UserUpdateSchema,
+    UserSettingsModeSchema,
+)
 from app.api.schemas.user_settings import UserSettingsRead, UserSettingsUpdate
 from app.api.utils.authentication import get_current_user, hash_password, require_admin
 from app.api.utils.pagination import (
@@ -206,7 +210,7 @@ async def list_users(
     List all users with pagination. Admin access required.
     """
     try:
-        result = await user_crud.get_multi(
+        result = await user_crud.get_multi_joined(
             db,
             offset=pagination.offset,
             limit=pagination.limit,
@@ -214,6 +218,9 @@ async def list_users(
             return_as_model=True,
             sort_columns=["last_login"],
             sort_orders=["desc"],
+            join_on=UserSettings.user_id == User.id,
+            join_model=UserSettings,
+            join_schema_to_select=UserSettingsModeSchema,
         )
 
         return build_paginated_response(

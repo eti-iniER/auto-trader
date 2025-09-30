@@ -34,6 +34,12 @@ const getRoleColor = (role: "USER" | "ADMIN") => {
     : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
 };
 
+const getModeColor = (mode: "DEMO" | "LIVE") => {
+  return mode === "DEMO"
+    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+};
+
 const columns: ColumnDef<UserAdminDetails>[] = [
   {
     accessorKey: "firstName",
@@ -70,6 +76,21 @@ const columns: ColumnDef<UserAdminDetails>[] = [
           className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${getRoleColor(role)}`}
         >
           {role}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: "mode",
+    header: "Mode",
+    size: 120,
+    cell: ({ row }) => {
+      const mode = row.getValue("mode") as "DEMO" | "LIVE";
+      return (
+        <span
+          className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${getModeColor(mode)}`}
+        >
+          {mode}
         </span>
       );
     },

@@ -6,4 +6,5 @@ interface UserAdminDetails {
   role: "USER" | "ADMIN";
   createdAt: Date;
   lastLogin: Date;
+  mode: "DEMO" | "LIVE";
 }
