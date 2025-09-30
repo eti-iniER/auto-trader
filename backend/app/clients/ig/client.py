@@ -1,10 +1,10 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional
 
-import asyncio
 import httpx
-from aiocache import Cache
+from aiocache import caches, RedisCache
 from aiolimiter import AsyncLimiter
 from app.config import settings
 from app.db.enums import UserSettingsMode
@@ -14,10 +14,7 @@ from fastapi import HTTPException, status
 from .authentication import OAuth2
 from .caching import cache_client_request
 from .exceptions import IGAPIError, IGAuthenticationError, MissingCredentialsError
-from .logging import (
-    async_request_hook,
-    async_response_hook,
-)
+from .logging import async_request_hook, async_response_hook
 from .retries import ig_api_retry
 from .types import *
 
@@ -26,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class IGClient:
     # Class-level cache for storing client instances
-    _client_cache = Cache.MEMORY(namespace="ig_clients")
+    _client_cache: RedisCache = caches.get("ig_clients")
 
     # Class-level cache for per-user rate limiters
     _user_limiters: Dict[str, AsyncLimiter] = {}
@@ -109,7 +106,7 @@ class IGClient:
 
         # Create cache key based on user ID and mode
         user_mode = user.settings.mode.value
-        cache_key = f"user:{user.id}:mode:{user_mode}"
+        cache_key = f":user:{user.id}:mode:{user_mode}"
 
         # Try to get cached client first
         try:
@@ -279,14 +276,13 @@ class IGClient:
                 "response": [async_response_hook],
             },
         ) as client:
-            async with self._limiter:
-                response = await client.post(
-                    "session",
-                    json={
-                        "identifier": self.username,
-                        "password": self.password,
-                    },
-                )
+            response = await client.post(
+                "session",
+                json={
+                    "identifier": self.username,
+                    "password": self.password,
+                },
+            )
 
             # Process the response while the client is still open
             try:
@@ -331,13 +327,10 @@ class IGClient:
         """
         Retrieves the historical data for the account.
         """
-        async with self._limiter:
-            response = await self.client.get(
-                "history/activity",
-                params=filters.model_dump(
-                    by_alias=True, mode="json", exclude_none=True
-                ),
-            )
+        response = await self.client.get(
+            "history/activity",
+            params=filters.model_dump(by_alias=True, mode="json", exclude_none=True),
+        )
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -354,14 +347,13 @@ class IGClient:
         data = self._safe_json(response)
         return GetHistoryResponse(**data)
 
-    @cache_client_request(ttl=30, namespace="ig_client")
+    @cache_client_request(ttl=30)
     @ig_api_retry
     async def get_positions(self) -> PositionsResponse:
         """
         Retrieve open positions for the account.
         """
-        async with self._limiter:
-            response = await self.client.get("positions", headers={"Version": "2"})
+        response = await self.client.get("positions", headers={"Version": "2"})
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -385,12 +377,11 @@ class IGClient:
         """
         Create a new position in the account.
         """
-        async with self._limiter:
-            response = await self.client.post(
-                "positions/otc",
-                json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
-                headers={"Version": "2"},
-            )
+        response = await self.client.post(
+            "positions/otc",
+            json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
+            headers={"Version": "2"},
+        )
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -407,14 +398,13 @@ class IGClient:
         data_parsed: dict = self._safe_json(response)
         return CreatePositionResponse(**data_parsed)
 
-    @cache_client_request(ttl=30, namespace="ig_client")
+    @cache_client_request(ttl=30)
     @ig_api_retry
     async def get_working_orders(self) -> WorkingOrdersResponse:
         """
         Retrieve working orders for the account.
         """
-        async with self._limiter:
-            response = await self.client.get("workingorders", headers={"Version": "2"})
+        response = await self.client.get("workingorders", headers={"Version": "2"})
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -438,12 +428,11 @@ class IGClient:
         """
         Create a new working order in the account.
         """
-        async with self._limiter:
-            response = await self.client.post(
-                "workingorders/otc",
-                json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
-                headers={"Version": "2"},
-            )
+        response = await self.client.post(
+            "workingorders/otc",
+            json=data.model_dump(by_alias=True, mode="json", exclude_none=True),
+            headers={"Version": "2"},
+        )
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -467,11 +456,10 @@ class IGClient:
         """
         Delete a working order by its deal reference.
         """
-        async with self._limiter:
-            response = await self.client.delete(
-                f"workingorders/otc/{data.deal_id}",
-                headers={"Version": "2"},
-            )
+        response = await self.client.delete(
+            f"workingorders/otc/{data.deal_id}",
+            headers={"Version": "2"},
+        )
 
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
@@ -494,11 +482,10 @@ class IGClient:
         """
         Delete/close a position by its deal ID.
         """
-        async with self._limiter:
-            response = await self.client.delete(
-                f"positions/otc/{data.deal_id}",
-                headers={"Version": "1"},
-            )
+        response = await self.client.delete(
+            f"positions/otc/{data.deal_id}",
+            headers={"Version": "1"},
+        )
 
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()
@@ -519,11 +506,10 @@ class IGClient:
         """
         Confirm a deal request by its deal reference.
         """
-        async with self._limiter:
-            response = await self.client.get(
-                f"confirms/{data.deal_reference}",
-                headers={"Version": "1"},
-            )
+        response = await self.client.get(
+            f"confirms/{data.deal_reference}",
+            headers={"Version": "1"},
+        )
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -547,11 +533,10 @@ class IGClient:
         """
         Get position details by deal ID.
         """
-        async with self._limiter:
-            response = await self.client.get(
-                f"positions/{data.deal_id}",
-                headers={"Version": "2"},
-            )
+        response = await self.client.get(
+            f"positions/{data.deal_id}",
+            headers={"Version": "2"},
+        )
 
         # Handle non-200 responses appropriately for retry logic
         if response.status_code >= 500 or response.status_code == 429:
@@ -644,12 +629,11 @@ class IGClient:
                 else params.to_date
             )
 
-        async with self._limiter:
-            response = await self.client.get(
-                f"prices/{params.epic}",
-                headers={"Version": "3"},
-                params=query_params,
-            )
+        response = await self.client.get(
+            f"prices/{params.epic}",
+            headers={"Version": "3"},
+            params=query_params,
+        )
 
         if response.status_code >= 500 or response.status_code == 429:
             response.raise_for_status()

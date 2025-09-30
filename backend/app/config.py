@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+from aiocache import caches
+from app.lib.cache import parse_redis_url
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -163,3 +165,34 @@ LOGGING_CONFIG = {
     },
     "root": {"level": settings.LOG_LEVEL, "handlers": ["console"], "propagate": False},
 }
+
+redis_config = parse_redis_url(settings.REDIS_URL)
+
+BASE_REDIS_CONFIG = {
+    "cache": "aiocache.RedisCache",
+    "endpoint": redis_config.get("host", "localhost"),
+    "port": redis_config.get("port", 6379),
+    "password": redis_config.get("password", None),
+    "timeout": 5,
+    "serializer": {"class": "aiocache.serializers.PickleSerializer"},
+}
+
+caches.set_config(
+    {
+        "default": {
+            "cache": "aiocache.SimpleMemoryCache",
+        },
+        "ig_clients": {
+            "cache": "aiocache.SimpleMemoryCache",
+            "namespace": "ig_clients",
+        },
+        "requests": {
+            **BASE_REDIS_CONFIG,
+            "namespace": "requests",
+        },
+        "ig_requests": {
+            **BASE_REDIS_CONFIG,
+            "namespace": "ig_requests",
+        },
+    }
+)

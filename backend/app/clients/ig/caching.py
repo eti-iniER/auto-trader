@@ -1,49 +1,27 @@
 import logging
 from functools import wraps
-from urllib.parse import urlparse
 
-from aiocache import Cache
-from aiocache.serializers import PickleSerializer
-
-from app.config import settings
+from aiocache import caches
 
 logger = logging.getLogger("ig_client")
 
-# Parse REDIS_URL only once (e.g. redis://:password@host:port/db)
-_redis_url = urlparse(settings.REDIS_URL)
-_redis_host = _redis_url.hostname or "localhost"
-_redis_port = _redis_url.port or 6379
-_redis_db = int((_redis_url.path or "/0").lstrip("/")) if _redis_url.path else 0
-_redis_password = _redis_url.password
-
-# Create a module-level Redis cache instance with Pickle serialization.
-# Pickle lets us store/retrieve pydantic models (v2) and arbitrary python objects
-# without maintaining custom (de)serialization code.
-_redis_cache = Cache(
-    Cache.REDIS,
-    endpoint=_redis_host,
-    port=_redis_port,
-    db=_redis_db,
-    password=_redis_password,
-    serializer=PickleSerializer(),
-)
+_redis_cache = caches.get("ig_requests")
 
 
-def cache_client_request(ttl: int = 60, namespace: str = "ig_client"):
+def cache_client_request(ttl: int = 30):
     """
     Caching decorator for IG client methods.
     Automatically includes client credentials hash and method parameters in cache key.
 
     Args:
         ttl: Time to live for the cache in seconds.
-        namespace: Namespace for cache keys.
     """
 
     def decorator(func):
         @wraps(func)
         async def wrapper(self, *args, **kwargs):
             # Build cache key based on client identity and method parameters
-            cache_key_parts = [f"{namespace}", func.__name__]
+            cache_key_parts = [func.__name__]
 
             # Add client identity (use username and account_id to identify unique client)
             cache_key_parts.extend(
@@ -72,11 +50,11 @@ def cache_client_request(ttl: int = 60, namespace: str = "ig_client"):
 
             cache_key = ":".join(cache_key_parts)
 
-            # Reuse the module-level Redis cache; namespace still influences the key.
+            # Reuse the module-level Redis cache
             cache = _redis_cache
 
             try:
-                cached_value = await cache.get(cache_key, namespace=namespace)
+                cached_value = await cache.get(cache_key)
                 if cached_value is not None:
                     logger.debug(f"Cache hit for {func.__name__}: {cache_key}")
                     # PickleSerializer returns the original python object directly.
@@ -89,7 +67,7 @@ def cache_client_request(ttl: int = 60, namespace: str = "ig_client"):
 
             try:
                 # Store the serialized data
-                await cache.set(cache_key, response, ttl=ttl, namespace=namespace)
+                await cache.set(cache_key, response, ttl=ttl)
                 logger.debug(
                     f"Cached response for {func.__name__}: {cache_key} (TTL: {ttl}s)"
                 )

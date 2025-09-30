@@ -1,5 +1,5 @@
 from functools import wraps
-from aiocache import Cache
+from aiocache import caches
 from fastapi import HTTPException
 
 
@@ -65,7 +65,7 @@ def cache(ttl: int = 60, namespace: str = "main", extra_keys: dict = None):
 
             cache_key = ":".join(cache_key_parts)
 
-            cache = Cache.MEMORY(namespace=namespace)
+            cache = caches.get("requests")
 
             cached_value = await cache.get(cache_key)
             if cached_value:
@@ -115,7 +115,7 @@ def cache_user_data(ttl: int = 60, namespace: str = "main"):
             user_mode = user.settings.mode.value if user.settings else "unknown"
             cache_key = f"{namespace}:user:{user.id}:mode:{user_mode}"
 
-            cache = Cache.MEMORY(namespace=namespace)
+            cache = caches.get("requests")
 
             cached_value = await cache.get(cache_key)
             if cached_value:
@@ -189,7 +189,7 @@ def cache_with_pagination(
 
             cache_key = ":".join(cache_key_parts)
 
-            cache = Cache.MEMORY(namespace=namespace)
+            cache = caches.get("requests")
 
             cached_value = await cache.get(cache_key)
             if cached_value:
