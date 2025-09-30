@@ -1,0 +1,9 @@
+backend.autotrader.test {
+    reverse_proxy localhost:8000
+    tls internal
+}
+
+autotrader.test {
+    reverse_proxy localhost:5173
+    tls internal
+}

@@ -17,7 +17,7 @@ services:
             - DRAMATIQ_BROKER_URL=amqp://guest:guest@rabbitmq:5672/
             - REDIS_URL=redis://redis:6379/0
         ports:
-            - 80:80
+            - 8000:80
         env_file:
             - .env
         networks:
