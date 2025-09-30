@@ -2,6 +2,7 @@ import { useDeleteUser } from "@/api/hooks/users/use-delete-user";
 import { useUpdateUser } from "@/api/hooks/users/use-update-user";
 import { useUsers } from "@/api/hooks/users/use-users";
 import { useDeleteUserLogs } from "@/api/hooks/logs/use-delete-user-logs";
+import { useDownloadUserLogs } from "@/api/hooks/logs/use-download-user-logs";
 import { PageHeader } from "@/components/page-header";
 import { UsersTable } from "@/components/users-table";
 import { useDashboard } from "@/hooks/contexts/use-dashboard";
@@ -41,6 +42,7 @@ export const Users: React.FC = () => {
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
   const deleteUserLogs = useDeleteUserLogs();
+  const downloadUserLogs = useDownloadUserLogs();
   // Modal state management
   const editModal = useModal();
   const deleteDialog = useModal();
@@ -67,6 +69,19 @@ export const Users: React.FC = () => {
   const handleDeleteUserLogs = (user: UserAdminDetails) => {
     setSelectedUser(user);
     deleteLogsDialog.openModal();
+  };
+
+  const handleDownloadUserLogs = (user: UserAdminDetails) => {
+    downloadUserLogs.mutate(user.id, {
+      onSuccess: () => {
+        toast.success("User logs downloaded successfully");
+      },
+      onError: (error) => {
+        toast.error("Couldn't download user logs", {
+          description: error.message || "An unknown error occurred",
+        });
+      },
+    });
   };
 
   const handleSaveUser = (userData: EditUserData) => {
@@ -166,6 +181,7 @@ export const Users: React.FC = () => {
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
             onDeleteUserLogs={handleDeleteUserLogs}
+            onDownloadUserLogs={handleDownloadUserLogs}
             pagination={{
               ...pagination.paginationProps,
               totalCount,

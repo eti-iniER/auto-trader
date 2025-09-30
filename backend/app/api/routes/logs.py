@@ -12,7 +12,7 @@ from app.api.utils.pagination import (
     build_paginated_response,
 )
 from app.config import settings
-from app.db.crud import delete_logs_for_user
+from app.db.crud import delete_logs_for_user, get_user_by_id
 from app.db.deps import get_db
 from app.db.models import Log, User
 from app.api.schemas.logs import LogRead
@@ -188,7 +188,7 @@ async def delete_current_user_logs(
 
 
 @router.delete(
-    "/delete-for-user/{user_id}",
+    "/{user_id}",
     summary="Delete all logs for a specific user (Admin only)",
     response_model=SimpleResponseSchema,
 )
@@ -202,7 +202,8 @@ async def delete_logs_for_user_endpoint(
     """
     try:
         # Check if the user exists
-        user_to_check = await user_crud.get(db, id=user_id)
+        user_to_check = await get_user_by_id(db, user_id)
+
         logger.info(
             f"Admin {admin_user.email} requested log deletion for user ID {user_id}"
         )
@@ -231,4 +232,98 @@ async def delete_logs_for_user_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete logs for user: {str(e)}",
+        )
+
+
+@router.get(
+    "/{user_id}/download",
+    summary="Download logs for a specific user (Admin only)",
+    response_class=Response,
+)
+async def download_logs_for_user(
+    user_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin_user: Annotated[User, Depends(require_admin())],
+    filters: Annotated[LogFilterParams, Depends()],
+    limit: int = Query(
+        1000, ge=1, le=10000, description="Maximum number of logs to download"
+    ),
+) -> Response:
+    """
+    Download logs for a specific user as a formatted text file. Admin access required.
+    Returns the last 1000 log items by default, with the same filtering options as the main logs endpoint.
+    """
+    try:
+        # Check if the user exists
+        user_to_check = await get_user_by_id(db, user_id)
+
+        logger.info(
+            f"Admin {admin_user.email} requested log download for user ID {user_id}"
+        )
+
+        if not user_to_check:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        logger.info(
+            f"Preparing to download logs for user {user_to_check.email} (ID: {user_id}) "
+            f"with filters: from_date={filters.from_date}, to_date={filters.to_date}, "
+            f"type={filters.log_type}, limit={limit} (requested by admin {admin_user.email})"
+        )
+
+        filter_kwargs = {"user_id": user_id}
+        filter_kwargs.update(filters.to_dict())
+
+        result = await logs_crud.get_multi(
+            db=db,
+            offset=0,
+            limit=limit,
+            sort_columns=["created_at"],
+            sort_orders=["desc"],
+            schema_to_select=LogRead,
+            return_as_model=True,
+            **filter_kwargs,
+        )
+
+        logs = result["data"]
+
+        logger.info(
+            f"Preparing log file download for user {user_to_check.email} (ID: {user_id}) "
+            f"with {len(logs)} logs (requested by admin {admin_user.email})"
+        )
+
+        file_content = prepare_logs_file(logs)
+
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d at %H-%M-%S")
+        filename = (
+            f"{settings.LOGFILE_NAME_PREFIX}_logs_{user_to_check.email}_{timestamp}"
+        )
+
+        if filters.from_date:
+            filename += f"_from_{filters.from_date.strftime('%Y%m%d')}"
+        if filters.to_date:
+            filename += f"_to_{filters.to_date.strftime('%Y%m%d')}"
+        if filters.log_type:
+            filename += f"_{filters.log_type.lower()}"
+
+        filename += ".log"
+
+        return Response(
+            content=file_content,
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "text/plain; charset=utf-8",
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to download logs for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download logs for user: {str(e)}",
         )

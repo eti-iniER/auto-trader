@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, FileX } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, FileX, Download } from "lucide-react";
 
 interface UsersTableProps {
   data: UserAdminDetails[];
@@ -25,6 +25,7 @@ interface UsersTableProps {
   onEditUser?: (user: UserAdminDetails) => void;
   onDeleteUser?: (user: UserAdminDetails) => void;
   onDeleteUserLogs?: (user: UserAdminDetails) => void;
+  onDownloadUserLogs?: (user: UserAdminDetails) => void;
 }
 
 const getRoleColor = (role: "USER" | "ADMIN") => {
@@ -106,6 +107,7 @@ export function UsersTable({
   onEditUser,
   onDeleteUser,
   onDeleteUserLogs,
+  onDownloadUserLogs,
 }: UsersTableProps) {
   // Create ActionsCell component
   const ActionsCell = ({ user }: { user: UserAdminDetails }) => (
@@ -118,18 +120,22 @@ export function UsersTable({
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => onEditUser?.(user)}>
           <Edit className="mr-2 h-4 w-4" />
-          Edit user
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onDownloadUserLogs?.(user)}>
+          <Download className="mr-2 h-4 w-4" />
+          Download logs
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onDeleteUserLogs?.(user)}>
           <FileX className="mr-2 h-4 w-4" />
-          Delete user logs
+          Clear logs
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => onDeleteUser?.(user)}
           className="text-red-600 focus:text-red-600"
         >
           <Trash2 className="mr-2 h-4 w-4" />
-          Delete user
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
