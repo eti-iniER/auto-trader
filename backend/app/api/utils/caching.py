@@ -75,7 +75,12 @@ def cache(ttl: int = 60, namespace: str = "main", extra_keys: dict = None):
 
             try:
                 # Store the serialized data directly (no JSON encoding needed)
-                await cache.set(cache_key, serialize_for_cache(response), ttl=ttl)
+                await cache.set(
+                    cache_key,
+                    serialize_for_cache(response),
+                    ttl=ttl,
+                    namespace=namespace,
+                )
             except Exception:
                 # Don't fail the request if caching fails
                 pass
@@ -125,7 +130,12 @@ def cache_user_data(ttl: int = 60, namespace: str = "main"):
 
             try:
                 # Store the serialized data directly (no JSON encoding needed)
-                await cache.set(cache_key, serialize_for_cache(response), ttl=ttl)
+                await cache.set(
+                    cache_key,
+                    serialize_for_cache(response),
+                    ttl=ttl,
+                    namespace=namespace,
+                )
             except Exception:
                 # Don't fail the request if caching fails, just log it
                 pass
@@ -199,7 +209,12 @@ def cache_with_pagination(
 
             try:
                 # Store the serialized data directly (no JSON encoding needed)
-                await cache.set(cache_key, serialize_for_cache(response), ttl=ttl)
+                await cache.set(
+                    cache_key,
+                    serialize_for_cache(response),
+                    ttl=ttl,
+                    namespace=namespace,
+                )
                 return response
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Error caching data: {e}")

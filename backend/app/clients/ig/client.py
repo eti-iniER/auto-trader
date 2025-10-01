@@ -20,6 +20,8 @@ from .types import *
 
 logger = logging.getLogger(__name__)
 
+POSITIONS_AND_WORKING_ORDERS_CACHE_TTL = 5  # seconds
+
 
 class IGClient:
     # Class-level cache for storing client instances
@@ -347,7 +349,7 @@ class IGClient:
         data = self._safe_json(response)
         return GetHistoryResponse(**data)
 
-    @cache_client_request(ttl=30)
+    @cache_client_request(ttl=POSITIONS_AND_WORKING_ORDERS_CACHE_TTL)
     @ig_api_retry
     async def get_positions(self) -> PositionsResponse:
         """
@@ -398,7 +400,7 @@ class IGClient:
         data_parsed: dict = self._safe_json(response)
         return CreatePositionResponse(**data_parsed)
 
-    @cache_client_request(ttl=30)
+    @cache_client_request(ttl=POSITIONS_AND_WORKING_ORDERS_CACHE_TTL)
     @ig_api_retry
     async def get_working_orders(self) -> WorkingOrdersResponse:
         """

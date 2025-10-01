@@ -4,7 +4,7 @@ import logging
 import uuid
 from decimal import Decimal
 from typing import Annotated
-
+from aiocache import caches
 from app.api.exceptions import APIException
 from app.api.schemas.instruments import (
     DividendFetchResponse,
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/search", response_model=PaginatedResponse[InstrumentRead])
-@cache_with_pagination(ttl=300, namespace="instrument_search")
+@cache_with_pagination(ttl=30, namespace="instruments")
 async def search_instruments(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -151,6 +151,8 @@ async def upload_instruments_csv(
     Expected CSV format:
     Symbol,IG EPIC,Yahoo Symbol,ATR Stop Loss Period,ATR Stop Loss Multiple,ATR Profit Target Period,ATR Profit Multiple,Position Size Max GBP,Opening Price Multiple
     """
+
+    cache = caches.get("requests")
 
     # Validate file type
     if not file.filename or not file.filename.lower().endswith(".csv"):
@@ -260,6 +262,9 @@ async def upload_instruments_csv(
                 ],
             },
         )
+
+        # Invalidate relevant caches
+        await cache.clear("instruments")
 
         return InstrumentUploadResponse(
             message=f"Successfully uploaded {len(created_instruments)} instruments",
