@@ -7,7 +7,6 @@ from app.clients.ig.client import IGClient
 from app.clients.ig.exceptions import IGAPIError, IGAuthenticationError
 from app.db.crud import (
     get_instrument_by_market_and_symbol,
-    get_most_recent_order_for_instrument,
     get_user_by_webhook_secret,
     get_all_admin_users,
 )
@@ -164,31 +163,32 @@ async def _validate_instrument_exists(
 async def _validate_trade_cooldown_timing(
     payload: WebhookPayload, user: User, instrument: Instrument, db
 ) -> Tuple[bool, Optional[str]]:
-    """Validate that enough time has passed since the last trade for this instrument."""
+    """Validate that enough time has passed since the last alert was received for this instrument."""
 
-    existing_order = await get_most_recent_order_for_instrument(db, instrument.id)
-
-    if not existing_order:
+    if not instrument.last_alert_received_at:
         return True, None
 
-    time_since_order = datetime.now(timezone.utc) - existing_order.created_at
+    time_since_last_alert = (
+        datetime.now(timezone.utc) - instrument.last_alert_received_at
+    )
     required_timedelta = timedelta(
         hours=user.settings.instrument_trade_cooldown_period_in_hours
     )
 
-    if time_since_order < required_timedelta:
-        hours_since_order = time_since_order.total_seconds() / SECONDS_PER_HOUR
+    if time_since_last_alert < required_timedelta:
+        hours_since_last_alert = (
+            time_since_last_alert.total_seconds() / SECONDS_PER_HOUR
+        )
 
         await _log_validation_error(
-            "Order creation too soon after previous order",
-            "Alert has been ignored due to insufficient cooldown period since last order for this instrument",
+            "Alert received too soon after previous alert",
+            "Alert has been ignored due to insufficient cooldown period since last alert received for this instrument",
             user.id,
             payload,
             {
                 "instrument_id": str(instrument.id),
-                "existing_order_id": str(existing_order.id),
-                "existing_order_created_at": existing_order.created_at.isoformat(),
-                "hours_since_order": hours_since_order,
+                "last_alert_received_at": instrument.last_alert_received_at.isoformat(),
+                "hours_since_last_alert": hours_since_last_alert,
                 "minimum_hours_required": user.settings.instrument_trade_cooldown_period_in_hours,
             },
         )
@@ -436,7 +436,7 @@ async def validate_webhook_payload(
         if not is_valid:
             return is_valid, error_code
 
-        # Validate trade cooldown timing (requires DB to read last order)
+        # Validate trade cooldown timing (checks instrument's last alert received timestamp)
         is_valid, error_code = await _validate_trade_cooldown_timing(
             payload, user, instrument, db
         )

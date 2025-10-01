@@ -1,6 +1,10 @@
 from app.api.schemas.instruments import InstrumentRead
 from app.api.schemas.webhook import WebhookPayload
-from app.db.crud import get_instrument_by_market_and_symbol, get_user_by_webhook_secret
+from app.db.crud import (
+    get_instrument_by_market_and_symbol,
+    get_user_by_webhook_secret,
+    update_instrument,
+)
 from app.db.deps import get_db_context
 from app.services.logging import log_message
 from app.services.trading.calculation_helpers import *
@@ -25,6 +29,9 @@ async def handle_alert(payload: WebhookPayload):
         user = await get_user_by_webhook_secret(db, payload.secret)
         instrument = await get_instrument_by_market_and_symbol(
             db, raw_alert.market_and_symbol, user
+        )
+        await update_instrument(
+            db, instrument.id, {"last_alert_received_at": raw_alert.timestamp}
         )
 
     alert = await normalize_prices(raw_alert, instrument)

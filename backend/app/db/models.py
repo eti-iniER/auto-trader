@@ -118,6 +118,9 @@ class Instrument(BaseDBModel):
         cascade="all, delete-orphan",
         uselist=False,
     )
+    last_alert_received_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class UserSettings(BaseDBModel):

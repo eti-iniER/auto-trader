@@ -1,5 +1,4 @@
 import logging
-import asyncio
 from functools import wraps
 import httpx
 from tenacity import (

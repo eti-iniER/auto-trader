@@ -10,6 +10,7 @@ interface Instrument {
   openingPriceMultiplePercentage: number;
   nextDividendDate: Date | null;
   tradingViewPriceMultiplier: number;
+  lastAlertReceivedAt: Date | null;
 }
 
 interface InstrumentUploadResponse {

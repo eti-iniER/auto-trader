@@ -43,6 +43,9 @@ class InstrumentBase(BaseModel):
     trading_view_price_multiplier: Decimal = Field(
         default=Decimal("1.0"), description="TradingView price multiplier"
     )
+    last_alert_received_at: Optional[AwareDatetime] = Field(
+        None, description="Timestamp of the last alert received"
+    )
 
 
 class InstrumentCreate(InstrumentBase):

@@ -18,7 +18,7 @@ from app.db.models import Log, User
 from app.api.schemas.logs import LogRead
 from app.services.logging.file_helpers import prepare_logs_file
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import Response
 from fastcrud import FastCRUD
 from sqlalchemy.ext.asyncio import AsyncSession
 

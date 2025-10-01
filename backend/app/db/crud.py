@@ -241,6 +241,43 @@ async def get_instrument_by_market_and_symbol(
     return instrument
 
 
+async def update_instrument(
+    db: AsyncSession, instrument_id: uuid.UUID, update_data: dict
+) -> Instrument:
+    """
+    Update an instrument by its ID.
+
+    Args:
+        db (AsyncSession): The database session.
+        instrument_id (uuid.UUID): The ID of the instrument to update.
+        update_data (dict): Dictionary of fields to update.
+
+    Returns:
+        Instrument: The updated instrument object.
+
+    Raises:
+        HTTPException: If the instrument is not found.
+    """
+    stmt = select(Instrument).where(Instrument.id == instrument_id)
+    result = await db.execute(stmt)
+    instrument = result.scalar_one_or_none()
+
+    if not instrument:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Instrument with ID '{instrument_id}' not found.",
+        )
+
+    # Update the instrument with the provided data
+    for key, value in update_data.items():
+        if hasattr(instrument, key):
+            setattr(instrument, key, value)
+
+    await db.commit()
+    await db.refresh(instrument)
+    return instrument
+
+
 async def create_order_for_instrument(
     db: AsyncSession, instrument: Instrument
 ) -> Order:
