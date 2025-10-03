@@ -30,10 +30,6 @@ async def handle_alert(payload: WebhookPayload):
         instrument = await get_instrument_by_market_and_symbol(
             db, raw_alert.market_and_symbol, user
         )
-        await update_instrument(
-            db, instrument.id, {"last_alert_received_at": raw_alert.timestamp}
-        )
-
     alert = await normalize_prices(raw_alert, instrument)
 
     await log_message(

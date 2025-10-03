@@ -9,6 +9,7 @@ from app.db.crud import (
     get_instrument_by_market_and_symbol,
     get_user_by_webhook_secret,
     get_all_admin_users,
+    update_instrument,
 )
 from app.db.deps import get_db_context
 from app.db.enums import UserSettingsMode
@@ -173,6 +174,11 @@ async def _validate_trade_cooldown_timing(
     )
     required_timedelta = timedelta(
         hours=user.settings.instrument_trade_cooldown_period_in_hours
+    )
+
+    # Update the instrument's last_alert_received_at timestamp to now
+    await update_instrument(
+        db, instrument.id, {"last_alert_received_at": payload.timestamp}
     )
 
     if time_since_last_alert < required_timedelta:
