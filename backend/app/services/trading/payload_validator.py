@@ -167,6 +167,11 @@ async def _validate_trade_cooldown_timing(
     """Validate that enough time has passed since the last alert was received for this instrument."""
 
     if not instrument.last_alert_received_at:
+        # If there's no previous alert timestamp, allow the trade
+        await update_instrument(
+            db, instrument.id, {"last_alert_received_at": payload.timestamp}
+        )
+
         return True, None
 
     time_since_last_alert = (
