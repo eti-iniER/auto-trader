@@ -76,9 +76,9 @@ services:
     rabbitmq:
         image: rabbitmq:3-management
         restart: unless-stopped
-        ports:
-            - "5672:5672"
-            - "15672:15672"
+        expose:
+            - "5672"
+            - "15672"
         networks:
             - app-network
         healthcheck:
@@ -92,8 +92,9 @@ services:
 
     redis:
         image: redis:8
-        ports:
-            - "6379:6379"
+        expose:
+            - "6379"
+        restart: unless-stopped
         networks:
             - app-network
         healthcheck:
